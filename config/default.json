@@ -1,0 +1,7 @@
+{
+  "ignoredPaths": ["node_modules/**", ".git/**", "dist/**", "coverage/**"],
+  "allowlist": { "spellings": [], "terminology": [], "register": [] },
+  "severities": {},
+  "rules": {},
+  "spellingReview": false
+}

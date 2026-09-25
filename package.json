@@ -1,0 +1,12 @@
+{
+  "name": "un-editorial-check",
+  "version": "0.1.0",
+  "description": "Audit written content against United Nations editorial standards; report, do not rewrite.",
+  "type": "module",
+  "bin": { "un-editorial-check": "bin/check.mjs" },
+  "files": ["bin", "rules", "config", "SKILL.md", "README.md", "LICENSE", "CHANGELOG.md"],
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node tests/run.mjs", "check:syntax": "node --check bin/check.mjs && node --check tests/run.mjs" },
+  "keywords": ["un", "editorial", "editorial-standards", "linter", "accessibility", "sarif"],
+  "license": "MIT"
+}
