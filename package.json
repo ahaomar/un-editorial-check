@@ -1,6 +1,6 @@
 {
   "name": "un-editorial-check",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Portable, zero-dependency editorial, accessibility and deterministic security checks.",
   "type": "module",
   "bin": { "un-editorial-check": "bin/check.mjs" },

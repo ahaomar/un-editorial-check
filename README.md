@@ -1,6 +1,6 @@
 # un-editorial-check
 
-[![skills.sh](https://skills.sh/badge/ahaomar/un-editorial-check)](https://skills.sh/ahaomar/un-editorial-check)
+[![skills.sh](https://skills.sh/badge/ahaomar/un-editorial-check/un-editorial-check)](https://skills.sh/ahaomar/un-editorial-check/un-editorial-check)
 
 A portable, zero-dependency Node.js CLI and Agent Skill that reports written-content risks against United Nations editorial standards. It checks HTML, Markdown, plain text and JavaScript strings, including strings that generate user-facing copy.
 
@@ -14,7 +14,7 @@ The product boundary is **report first**: a finding identifies a review requirem
 - SEO structure, basic accessibility attributes and selected deterministic web-security patterns.
 - Supplied organisation vocabulary through data-only profiles.
 
-The v0.2.0 catalogue contains 24 stable rule IDs. Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
+The v0.3.0 catalogue contains 24 stable rule IDs. Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
 
 ## Tier 1 and Tier 2
 
@@ -30,32 +30,141 @@ The v0.2.0 catalogue contains 24 stable rule IDs. Its institutional sources were
 - No runtime npm dependencies.
 - A supported Agent Skills host, or direct use of the CLI.
 
-### Universal skills installation
+### Universal installation with the skills CLI
 
-The Vercel `skills` CLI installs the canonical repository skill and its bundled runtime files. Run it in the target project:
-
-```sh
-npx skills add ahaomar/un-editorial-check
-npx skills add ahaomar/un-editorial-check --list
-```
-
-Choose the project or global scope and the detected host in the prompts. Add `--global` for user-level installation, `--copy` instead of the default symbolic-link installation, or `--yes` for a reviewed non-interactive installation.
-
-### Per-agent installation
+The canonical published skill is available through skills.sh and GitHub. The CLI installs the complete package, including `bin/`, `rules/` and `config/`:
 
 ```sh
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent opencode --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent claude-code --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent codex --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent kimi-code-cli --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent cursor --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent gemini-cli --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent windsurf --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent cline --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent github-copilot --yes
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check \
+  --list
 ```
 
-Append `--global` where a user-level installation is required. For the generic Agent Skills layout, use `--agent universal` to install to `.agents/skills/`.
+To install for a specific agent, use the corresponding command below. Run these commands from the project where you want the skill installed, unless you add `--global` for a user-level installation.
+
+```sh
+# OpenCode 1.x and 2.x
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent opencode --yes
+
+# Claude Code
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent claude-code --yes
+
+# Codex
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent codex --yes
+
+# Kimi Code CLI
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent kimi-code-cli --yes
+
+# Other supported skills hosts
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent cursor --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent gemini-cli --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent windsurf --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent cline --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent github-copilot --yes
+```
+
+Use `--global` for a user-level installation. Use `--copy` instead of the CLI's default symbolic-link installation when the agent or filesystem does not support links. Review the target path shown by the CLI.
+
+### OpenCode 1.x and 2.x
+
+The portable `SKILL.md` format is designed for both OpenCode generations. The installer path is the recommended approach because it copies or links the complete package:
+
+```sh
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent opencode --yes
+```
+
+Expected project locations are:
+
+```text
+.opencode/skills/un-editorial-check/SKILL.md
+.agents/skills/un-editorial-check/SKILL.md
+.claude/skills/un-editorial-check/SKILL.md
+```
+
+OpenCode 2.x documents all three project locations. OpenCode 1.x support can vary by exact release; if native discovery is unavailable, use the CLI installation, or manually copy the complete package to `.opencode/skills/un-editorial-check/`. Restart OpenCode after installation. The skill is loaded on demand; ask:
+
+```text
+Use the un-editorial-check skill to audit this content.
+```
+
+For a global installation, add `--global`. The global location for OpenCode 2.x is `~/.config/opencode/skills/un-editorial-check/`. Older 1.x releases may use a different global location, so use the CLI's reported path as the source of truth.
+
+### Claude Code
+
+```sh
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent claude-code --yes
+```
+
+Project installation:
+
+```text
+.claude/skills/un-editorial-check/SKILL.md
+```
+
+Global installation:
+
+```text
+~/.claude/skills/un-editorial-check/SKILL.md
+```
+
+Restart Claude Code and ask it to use `un-editorial-check`, or select the skill from the host's skill interface.
+
+### Codex
+
+```sh
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent codex --yes
+```
+
+The standard project path is:
+
+```text
+.agents/skills/un-editorial-check/SKILL.md
+```
+
+The optional `agents/openai.yaml` file provides Codex display metadata; it is not required for the portable skill. Restart Codex after installation.
+
+### Kimi Code CLI
+
+```sh
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent kimi-code-cli --yes
+```
+
+The standard project path is:
+
+```text
+.agents/skills/un-editorial-check/SKILL.md
+```
+
+Kimi Code may also expose version-specific `.kimi` or `.kimi-code` locations. Prefer the skills CLI installation and use the path it reports. Restart Kimi Code and invoke `/skill:un-editorial-check` or ask the agent to use the skill.
+
+### Other agents and editors
+
+The same canonical skill can be installed through the skills CLI for supported agents:
+
+| Host | Project installation | Boundary |
+|---|---|---|
+| Cursor | `.agents/skills/un-editorial-check/SKILL.md` via CLI | Confirm native discovery in the installed Cursor version. |
+| Gemini CLI | `.agents/skills/un-editorial-check/SKILL.md` | Gemini surfaces can have separate stores. |
+| Windsurf | `.windsurf/skills/un-editorial-check/SKILL.md` via CLI | Use a rules adapter if the installed version does not load Agent Skills. |
+| Cline | `.agents/skills/un-editorial-check/SKILL.md` via CLI | Use a rules adapter if the installed version does not load Agent Skills. |
+| GitHub Copilot | `.agents/skills/un-editorial-check/SKILL.md` | IDE, chat and CLI surfaces may differ. |
+
+For a host that supports the shared Agent Skills format but is not listed above, use:
+
+```sh
+npx skills add https://github.com/ahaomar/un-editorial-check \
+  --skill un-editorial-check --agent universal --yes
+```
+
+See [COMPATIBILITY.md](COMPATIBILITY.md) for the verified matrix, global paths, source links and version-specific boundaries.
 
 ### Direct npm installation
 
@@ -157,7 +266,7 @@ const label = deriveComparison(rows);
 
 ## The safe `--fix` boundary
 
-Report-only operation is the default. `--fix` is opt-in and, in v0.2.0, is deliberately narrower than a general editor:
+Report-only operation is the default. `--fix` is opt-in and, in v0.3.0, is deliberately narrower than a general editor:
 
 - It accepts explicit or discovered regular prose files with `.txt`, `.md` or `.markdown` extensions.
 - It refuses HTML, JavaScript, JSON, code and configuration files, symbolic links and regular files with multiple hard links, with exit code `2`.
@@ -256,7 +365,7 @@ If an update cannot be applied cleanly:
 
 ```sh
 npx skills remove un-editorial-check
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check
 npx skills list
 ```
 
@@ -280,7 +389,7 @@ The suite covers positive and negative fixtures for every catalogue rule, config
 
 Stable releases are published to [npm](https://www.npmjs.com/package/un-editorial-check) and [GitHub Releases](https://github.com/ahaomar/un-editorial-check/releases). `package.json`, `VERSION` and the newest `CHANGELOG.md` heading must agree. A release requires syntax checks, the full test suite, portability validation, JSON parsing, `npm pack --dry-run`, direct CLI smoke tests, an installed tarball smoke test and a clean `git diff --check`.
 
-The skill is listed through [skills.sh](https://skills.sh/ahaomar/un-editorial-check). The repository-root `SKILL.md` remains the canonical public definition.
+The skill is listed through [skills.sh](https://skills.sh/ahaomar/un-editorial-check/un-editorial-check). The repository-root `SKILL.md` remains the canonical public definition.
 
 ## Troubleshooting
 

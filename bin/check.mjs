@@ -5,7 +5,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 const DEFAULT_CONFIG = JSON.parse(fs.readFileSync(path.join(HERE, '../config/default.json'), 'utf8'));
 export const CATALOGUE = JSON.parse(fs.readFileSync(path.join(HERE, '../rules/catalogue.json'), 'utf8'));
 const SPELLINGS = [

@@ -4,7 +4,7 @@ description: Audits written content against United Nations editorial standards a
 license: MIT
 compatibility: Requires Node.js 18 or later and a host that can load the portable Agent Skills SKILL.md format.
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   source-date: "2026-09-24"
 ---
 

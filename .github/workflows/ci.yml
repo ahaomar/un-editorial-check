@@ -1,0 +1,29 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ matrix.node }}
+      # No dependencies and therefore no lockfile are required.
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm run check:syntax
+      - run: npm test
+      - run: npm run check:portability
+      - run: node -e "for (const f of ['package.json','rules/catalogue.json','skills.sh.json','.un-editorial.json']) JSON.parse(require('fs').readFileSync(f,'utf8'))"
+      - run: npm pack --dry-run
+      - run: node bin/check.mjs --self-scan --quiet; test $? -eq 0 -o $? -eq 1
+      - run: |
+          tarball=$(npm pack --silent)
+          prefix=$(mktemp -d)
+          npm install --prefix "$prefix" --ignore-scripts --no-audit --no-fund "./$tarball"
+          "$prefix/node_modules/.bin/un-editorial-check" --self-scan --quiet; test $? -eq 0 -o $? -eq 1
+          rm -rf "$prefix" "$tarball"

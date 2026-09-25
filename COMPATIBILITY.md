@@ -37,16 +37,16 @@ The experimental `allowed-tools` field is not used. Host-specific frontmatter is
 Run from the target project unless `--global` is shown:
 
 ```sh
-npx skills add ahaomar/un-editorial-check
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent opencode --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent claude-code --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent codex --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent kimi-code-cli --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent cursor --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent gemini-cli --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent windsurf --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent cline --yes
-npx skills add ahaomar/un-editorial-check --skill un-editorial-check --agent github-copilot --yes
+npx skills add https://github.com/ahaomar/un-editorial-check
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent opencode --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent claude-code --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent codex --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent kimi-code-cli --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent cursor --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent gemini-cli --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent windsurf --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent cline --yes
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --agent github-copilot --yes
 ```
 
 Add `--global` for user-level installation or `--copy` where symbolic links are unsuitable. Review the CLI prompt and target paths. The installer may be updated independently of this package.

@@ -4,7 +4,7 @@ The current institutional source check date is **24 September 2026**. Before cha
 
 ## Compatibility changes
 
-The repository-root `SKILL.md` is the only canonical skill definition. Do not commit copied `SKILL.md` files under `.agents/`, `.claude/`, `.opencode/` or another host directory, and do not create recursive symbolic links. Use `npx skills add ahaomar/un-editorial-check` for user installations. A required committed adapter must be generated or tested against the canonical file and must fail on drift.
+The repository-root `SKILL.md` is the only canonical skill definition. Do not commit copied `SKILL.md` files under `.agents/`, `.claude/`, `.opencode/` or another host directory, and do not create recursive symbolic links. Use `npx skills add https://github.com/ahaomar/un-editorial-check` for user installations. A required committed adapter must be generated or tested against the canonical file and must fail on drift.
 
 A new or changed host adapter requires all of the following before merge:
 
@@ -27,6 +27,6 @@ HTML and JavaScript analysis is intentionally conservative and regex-based. `UE-
 
 ## Release gate
 
-Keep `package.json`, `VERSION` and the newest `CHANGELOG.md` heading identical. Keep version `0.2.0` unless the documented release process requires a version change. The package has no dependencies, so no lockfile is required.
+Keep `package.json`, `VERSION` and the newest `CHANGELOG.md` heading identical. Keep version `0.3.0` unless the documented release process requires a version change. The package has no dependencies, so no lockfile is required.
 
 Run `npm run check:syntax`, `npm test`, `npm run check:portability`, parse every tracked JSON file, `npm pack --dry-run`, `node bin/check.mjs --self-scan --quiet`, an installed executable smoke test and `git diff --check`. GitHub Actions actions are pinned to full verified commit SHAs with version comments. Never commit generated tarballs, local profiles, installed-package directories or agent copies that can drift from the canonical skill.
