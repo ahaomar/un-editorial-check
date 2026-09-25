@@ -1,0 +1,3 @@
+# Security policy
+
+Report suspected vulnerabilities privately through the repository's GitHub security-advisory form; do not open a public issue with exploit details. The checker does not execute repository content or fetch third-party assets. `--fix` is restricted to regular `.txt`, `.md` and `.markdown` files, honours spelling allowlists, and rejects symbolic links and hard links. It re-checks descriptor identity and link count immediately before writing; this assumes no hostile concurrent filesystem mutation and is not a race-proof sandbox. Profiles may be explicit external local files, but the loader rejects symbolic links, non-regular files and hard-linked files.

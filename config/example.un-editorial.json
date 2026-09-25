@@ -1,0 +1,8 @@
+{
+  "ignoredPaths": ["node_modules/**", "dist/**", "coverage/**"],
+  "allowlist": { "spellings": ["UN Women"], "terminology": [], "register": [] },
+  "severities": {},
+  "rules": {},
+  "spellingReview": false,
+  "baseOrigin": "https://ahaomar.github.io"
+}

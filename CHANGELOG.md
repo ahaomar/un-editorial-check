@@ -1,16 +1,14 @@
 # Changelog
 
-All notable changes follow semantic versioning.
+## 0.2.0 – 25 September 2026
 
-## 0.1.0 — 2026-09-24
+- Hardened `--fix` to prose-only regular `.txt`/`.md` files; reject symbolic links in every mode and hard links before writes.
+- Added independent protected-span masking, allowlist-aware fixes and terminology/register allowlist handling.
+- Recast HTML sink and Leaflet tooltip checks as documented conservative sink policies.
+- Added strict, portable, data-only organisation profile v1 support and a maintained rule catalogue.
+- Hardened HTML preprocessing, entity decoding and Unicode-safe JSON/SARIF output; corrected SRI and canonical wording.
+- Added release metadata, community files, CI, skills.sh integration, maintainer guidance and packaging coverage.
 
-- Escapes control and bidi-control characters in text diagnostics while preserving valid JSON and SARIF output.
-- Matches configured canonical URLs by origin (scheme, hostname and effective port); without `baseOrigin`, checks only for an absolute HTTP(S) canonical.
-- Expands mutable-reference coverage to `latest`, `dev`, `trunk`, `main` and `master`; clarifies that SRI checks cover syntax, declarations and pinning, not digest correctness.
-- Rejects malformed and unknown configuration structures with precise exit-2 errors.
-- Prevents apostrophes in contractions and possessives from acting as `--fix` quote boundaries while protecting straight- and curly-double-quoted titles.
-- Initial Node-only, zero-dependency checker.
-- Added deterministic spelling, terminology, numeral, register, SEO, accessibility, security and data-integrity rules.
-- Added text, JSON and SARIF output, quiet mode, project configuration, allowlists and inline suppression.
-- Added paired good/bad fixtures and a built-in test runner.
-- Added opt-in, spelling-only `--fix` mode.
+## 0.1.0 – 24 September 2026
+
+- Initial deterministic editorial checker.

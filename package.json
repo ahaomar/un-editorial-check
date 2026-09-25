@@ -1,12 +1,15 @@
 {
   "name": "un-editorial-check",
-  "version": "0.1.0",
-  "description": "Audit written content against United Nations editorial standards; report, do not rewrite.",
+  "version": "0.2.0",
+  "description": "Portable, zero-dependency editorial, accessibility and deterministic security checks.",
   "type": "module",
   "bin": { "un-editorial-check": "bin/check.mjs" },
-  "files": ["bin", "rules", "config", "SKILL.md", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": ["bin", "rules", "config", "scripts", "agents", "skills.sh.json", "SKILL.md", "README.md", "COMPATIBILITY.md", "LICENSE", "VERSION", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "MAINTAINING.md"],
   "engines": { "node": ">=18" },
-  "scripts": { "test": "node tests/run.mjs", "check:syntax": "node --check bin/check.mjs && node --check tests/run.mjs" },
-  "keywords": ["un", "editorial", "editorial-standards", "linter", "accessibility", "sarif"],
+  "scripts": { "test": "node tests/run.mjs && node tests/release-regressions.mjs && node tests/portability-frontmatter.mjs && node scripts/validate-portability.mjs", "check:portability": "node scripts/validate-portability.mjs", "check:syntax": "node --check bin/check.mjs && node --check tests/run.mjs && node --check tests/release-regressions.mjs && node --check tests/portability-frontmatter.mjs && node --check scripts/validate-portability.mjs" },
+  "keywords": ["un", "editorial", "editorial-standards", "linter", "accessibility", "sarif", "static-analysis", "zero-dependency"],
+  "repository": { "type": "git", "url": "git+https://github.com/ahaomar/un-editorial-check.git" },
+  "homepage": "https://github.com/ahaomar/un-editorial-check#readme",
+  "bugs": { "url": "https://github.com/ahaomar/un-editorial-check/issues" },
   "license": "MIT"
 }

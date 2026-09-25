@@ -1,0 +1,7 @@
+interface:
+  display_name: "UN Editorial Check"
+  short_description: "Report United Nations editorial and deterministic content risks"
+  default_prompt: "Use $un-editorial-check to audit the requested content, run its Node.js CLI, review Tier 2 claims, and report deterministic findings separately from editorial judgement."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,31 @@
+{
+  "$comment": "Maintained deterministic rule catalogue. Validated against RULES by tests.",
+  "catalogueVersion": 1,
+  "sourceCheckDate": "2026-09-24",
+  "rules": [
+    {"id":"UE-SP001","severity":"error","category":"spelling","status":"deterministic","extensibility":"profile.spelling and allowlist.spellings","guardNotes":"Allowlisted terms and protected spans are exempt."},
+    {"id":"UE-SP002","severity":"error","category":"spelling","status":"deterministic","extensibility":"profile.spelling","guardNotes":"Detects paired register variants in a file."},
+    {"id":"UE-SP003","severity":"warning","category":"spelling","status":"configuration-gated","extensibility":"allowlist.spellings","guardNotes":"Only emitted when spellingReview is enabled."},
+    {"id":"UE-TE001","severity":"error","category":"terminology","status":"deterministic","extensibility":"profile.terminology and allowlist.terminology","guardNotes":"Configured terminology exemptions are checked."},
+    {"id":"UE-TE002","severity":"error","category":"terminology","status":"deterministic","extensibility":"profile.terminology and allowlist.terminology","guardNotes":"Configured terminology exemptions are checked."},
+    {"id":"UE-TE003","severity":"error","category":"terminology","status":"deterministic","extensibility":"profile.terminology","guardNotes":"Compact UI contexts are exempt."},
+    {"id":"UE-TE004","severity":"error","category":"terminology","status":"deterministic","extensibility":"profile.terminology and allowlist.terminology","guardNotes":"Prose country-name check."},
+    {"id":"UE-NU001","severity":"warning","category":"numerals","status":"deterministic","extensibility":"profile.rules","guardNotes":"Slash dates only."},
+    {"id":"UE-NU002","severity":"warning","category":"numerals","status":"deterministic","extensibility":"profile.rules","guardNotes":"Hyphen ranges only."},
+    {"id":"UE-RE001","severity":"error","category":"register","status":"deterministic","extensibility":"profile.register and allowlist.register","guardNotes":"Configured register allowlist is phrase-aware."},
+    {"id":"UE-RE002","severity":"error","category":"register","status":"deterministic","extensibility":"profile.rules","guardNotes":"Conservative JavaScript-string comparison heuristic."},
+    {"id":"UE-RE003","severity":"warning","category":"register","status":"deterministic heuristic","extensibility":"profile.rules","guardNotes":"Clause-level prose figure hedge check."},
+    {"id":"UE-DI001","severity":"warning","category":"data-integrity","status":"deterministic heuristic","extensibility":"profile.rules","guardNotes":"Coverage wording heuristic."},
+    {"id":"UE-EO001","severity":"error","category":"seo","status":"deterministic","extensibility":"profile.rules","guardNotes":"Rendered title length after safe entity decoding."},
+    {"id":"UE-EO002","severity":"error","category":"seo","status":"deterministic","extensibility":"profile.rules","guardNotes":"Rendered meta-description length."},
+    {"id":"UE-EO003","severity":"error","category":"seo","status":"deterministic","extensibility":"baseOrigin or profile.pageUrl","guardNotes":"Validates configured deployment origin; does not prove path self-reference."},
+    {"id":"UE-EO004","severity":"error","category":"seo","status":"deterministic","extensibility":"profile.rules","guardNotes":"Exactly one h1 element."},
+    {"id":"UE-EO005","severity":"warning","category":"seo","status":"deterministic","extensibility":"profile.rules","guardNotes":"Requires both Open Graph and Twitter metadata."},
+    {"id":"UE-AX001","severity":"error","category":"accessibility","status":"deterministic heuristic","extensibility":"profile.rules","guardNotes":"Canvas naming heuristic."},
+    {"id":"UE-AX002","severity":"error","category":"accessibility","status":"deterministic heuristic","extensibility":"profile.rules","guardNotes":"Label-association heuristic."},
+    {"id":"UE-SE001","severity":"error","category":"security","status":"conservative sink policy","extensibility":"profile.rules","guardNotes":"Flags every innerHTML/outerHTML assignment, including aliases; does not trace taint."},
+    {"id":"UE-SE002","severity":"error","category":"security","status":"declaration syntax only","extensibility":"profile.rules","guardNotes":"Validates version declarations, SHA-384 syntax and crossorigin; never fetches assets."},
+    {"id":"UE-SE003","severity":"error","category":"security","status":"deterministic","extensibility":"profile.rules","guardNotes":"Flags mutable upstream branch URL segments."},
+    {"id":"UE-SE004","severity":"error","category":"security","status":"conservative sink policy","extensibility":"profile.rules","guardNotes":"Flags bindTooltip unless a direct document.createElement variable passed in the same call is proven."}
+  ]
+}
