@@ -1,7 +1,9 @@
 {
-  "ignoredPaths": ["node_modules/**", ".git/**", "dist/**", "coverage/**"],
+  "ignoredPaths": ["node_modules/**", ".git/**", "dist/**", "build/**", "coverage/**", "tests/fixtures/**"],
   "allowlist": { "spellings": [], "terminology": [], "register": [] },
   "severities": {},
   "rules": {},
-  "spellingReview": false
+  "spellingReview": false,
+  "baseOrigin": null,
+  "renderTargets": ["inlineNote", "statusMessage", "tooltipContent"]
 }

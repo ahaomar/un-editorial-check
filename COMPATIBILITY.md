@@ -53,11 +53,11 @@ Add `--global` for user-level installation or `--copy` where symbolic links are 
 
 ### Manual installation
 
-Download or clone this repository, then copy the complete package—not only `SKILL.md`—to the host's project or global directory above. The skill needs `bin/`, `rules/` and `config/`. Example for a project using the shared path:
+Download or clone this repository, then copy the complete package—not only `SKILL.md`—to the host's project or global directory above. The skill needs `bin/`, `lib/`, `rules/` and `config/`. Example for a project using the shared path:
 
 ```sh
 mkdir -p .agents/skills/un-editorial-check
-cp -R SKILL.md bin rules config README.md LICENSE .agents/skills/un-editorial-check/
+cp -R SKILL.md bin lib rules config README.md LICENSE .agents/skills/un-editorial-check/
 ```
 
 Do not create recursive symbolic links. If a host lacks native skills, create a documented rules adapter that tells the agent to read the canonical `SKILL.md`; this package does not claim that every rules system loads `SKILL.md` natively.

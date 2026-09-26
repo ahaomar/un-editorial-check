@@ -8,4 +8,4 @@ Checked on **24 September 2026**.
 
 These sources establish the editorial baseline. They do not establish that a factual claim is true, current or proportionate. Source factual prose to the original dataset or report and include its date. If a report is quoted in a standfirst or post, cite it in the page footer with a link.
 
-Some web style guidance can change. Re-check the manual before treating this v0.2.0 package as a substitute for current institutional guidance.
+Some web style guidance can change. Re-check the manual before treating this package as a substitute for current institutional guidance.

@@ -1,1 +1,0 @@
-const label = deriveComparison(rows);

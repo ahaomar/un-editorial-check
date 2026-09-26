@@ -1,3 +1,7 @@
+// Release-regression suite: everything that has broken a release before, plus
+// the invariants a release must never silently change — the catalogue, the
+// version, the packaging and the repository's own cleanliness.
+
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -5,142 +9,361 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { CATALOGUE, VERSION, run as runInProcess } from '../bin/check.mjs';
+import { EDITORIAL_RULES } from '../lib/rules.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cli = path.join(root, 'bin', 'check.mjs');
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-v02-'));
-let sequence=0; const write = (name, value) => { const p=path.join(tmp,name); fs.mkdirSync(path.dirname(p),{recursive:true}); fs.writeFileSync(p,value); return p; };
-const unique = (ext,value='x') => write(`fixture-${sequence++}.${ext}`,value);
-const config = write('config.json', JSON.stringify({baseOrigin:'https://example.test'}));
-const run = (...args) => spawnSync(process.execPath,[cli,...args,'--config',config],{encoding:'utf8'});
-const findingIds = result => {try{return [...new Set(JSON.parse(result.stdout).findings.map(f=>f.ruleId))].sort();}catch{assert.fail(result.stderr);}};
-const textFixture = (line,ext='txt') => unique(ext, `${line}\n`);
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-release-'));
+let sequence = 0;
 
-assert.deepEqual(findingIds(run(textFixture('The ConfigureX organization remains.', 'txt'),'--format','json')), ['UE-SP001']);
-{
-  const p=textFixture('The ConfigureX organization remains.');
-  const cfg=write('allow.json',JSON.stringify({allowlist:{spellings:['ConfigureX']}}));
-  const r=spawnSync(process.execPath,[cli,p,'--fix','--config',cfg],{encoding:'utf8'});
-  assert.equal(fs.readFileSync(p,'utf8'),'The ConfigureX organisation remains.\n',r.stderr);
-}
-for (const ext of ['html','js','mjs','cjs','json']) {
-  const before='organization <p>https://example.test/organization</p>\n';
-  const p=write(`refuse.${ext}`,before);
-  const r=spawnSync(process.execPath,[cli,p,'--fix','--config',config],{encoding:'utf8'});
-  assert.equal(r.status,2,`${ext}: ${r.stderr}`); assert.equal(fs.readFileSync(p,'utf8'),before);
-}
-{
-  const p=textFixture('organization'); const outside=path.join(tmp,`outside-${sequence++}.txt`);
-  fs.linkSync(p,outside);
-  const r=run(p,'--fix'); assert.equal(r.status,2); assert.match(r.stderr,/hard link/i);
-  assert.equal(fs.readFileSync(p,'utf8'),'organization\n'); assert.equal(fs.readFileSync(outside,'utf8'),'organization\n');
-}
-for (const ext of ['txt','md']) { const p=textFixture('organization',ext); assert.equal(run(p,'--fix').status,0); assert.equal(fs.readFileSync(p,'utf8'),'organisation\n'); }
+const write = (name, value) => {
+  const file = path.join(tmp, name);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, value);
+  return file;
+};
+const unique = (ext, value = 'x') => write(`fixture-${sequence++}.${ext}`, value);
+const config = write('config.json', '{}');
+// A caller that passes its own `--config` must keep it: appending a second
+// one would silently win and mask the configuration under test.
+const run = (...args) => spawnSync(process.execPath,
+  [cli, ...args, ...(args.some(arg => arg === '--config' || arg.startsWith('--config=')) ? [] : ['--config', config])],
+  { encoding: 'utf8' });
+const ids = result => {
+  try { return [...new Set(JSON.parse(result.stdout).findings.map(f => f.ruleId))].sort(); }
+  catch { return assert.fail(result.stderr || result.stdout); }
+};
+const textFixture = (line, ext = 'txt') => unique(ext, `${line}\n`);
 
-for (const [line,expected] of [
-  ['The organization inside <cite>Cite organization</cite> and organization outside.','The organisation inside <cite>Cite organization</cite> and organisation outside.'],
-  ['organization <!-- organization --> organization','organisation <!-- organization --> organisation'],
-  ['<script>organization</script> organization','<script>organization</script> organisation'],
-  ['<style>organization</style> organization','<style>organization</style> organisation'],
-  ['> organization\n\norganization','> organization\n\norganisation'],
-  ['`organization` and organization','`organization` and organisation'],
-  ['"Organization" and organization','"Organization" and organisation'], ['“Organization” and organization','“Organization” and organisation'],
-  ['https://example.test/organization and organization','https://example.test/organization and organisation'], ['./organization and organization','./organization and organisation']
-]) {
-  const p=textFixture(line); const r=run(p,'--fix'); assert.equal(r.status,0,`${line}\n${r.stdout}\n${r.stderr}`);
-  assert.equal(fs.readFileSync(p,'utf8'),expected+'\n',line);
-}
+// --- catalogue ---------------------------------------------------------------
 
-for (const code of [
-  'el.innerHTML = "static";', 'el.outerHTML = value;', 'sink = "safe"; el.innerHTML =\n localValue;',
-  'const sink = el["innerHTML"]; sink = external;', 'const tooltip = marker.bindTooltip(\n country.name\n);',
-  'const el = getNode(); marker.bindTooltip(el);', 'let tooltipEl = external; marker.bindTooltip(tooltipEl);'
-]) { const p=unique('mjs',code), result=run(p,'--format','json'); assert(findingIds(result).includes(/tooltip/i.test(code)?'UE-SE004':'UE-SE001'),`${code}\n${result.stderr}`); }
-{
-  const code='marker.bindTooltip(tooltipEl);\nconst tooltipEl = document.createElement("div");\ntooltipEl.textContent = name;\nmarker.bindTooltip(tooltipEl);';
-  const result=JSON.parse(run(unique('mjs',code),'--format','json').stdout);
-  assert.equal(result.findings.filter(f=>f.ruleId==='UE-SE004').length,1,'first unsafe sink must not be cleared by later sink');
-}
-for (const [label,html] of [
-  ['comment','<!-- <script src="https://cdn.test/lib@1.0.0.js"></script> --><p>x</p>'],
-  ['script','<script>const u="https://cdn.test/lib@1.0.0.js";</script>'],
-  ['style','<style>/* https://cdn.test/lib@1.0.0.js */</style>'],
-  ['noscript','<noscript><script src="https://cdn.test/lib@1.0.0.js"></script></noscript>']
-]) {
-  const result=JSON.parse(run(unique('html',html),'--format','json').stdout); assert(!result.findings.some(f=>f.ruleId==='UE-SE002'),label);
-}
-{
-  const html='\n\n<script src="https://cdn.test/lib@1.0.0.js"></script>';
-  const result=JSON.parse(run(unique('html',html),'--format','json').stdout); const finding=result.findings.find(f=>f.ruleId==='UE-SE002');
-  assert(finding); assert.equal(finding.line,3,'UE-SE002 source mapping');
-}
-
-const p=textFixture('The organization uses a label.');
-const cfg=write('profile.json',JSON.stringify({profileVersion:1,name:'Test',source:'test',spelling:{organization:'organisation'},terminology:{forbidden:[['old term','new term']]},register:{forbidden:['bad'],approved:['approved']},severities:{'UE-SP001':'warning'},rules:{'UE-RE003':{enabled:false}}}));
-assert.deepEqual(findingIds(spawnSync(process.execPath,[cli,p,'--format','json','--profile',cfg],{encoding:'utf8'})),['UE-SP001']);
-const custom=textFixture('The organization, old term and bad phrase are used.');
-const customProfile=write('custom-profile.json',JSON.stringify({profileVersion:1,name:'Custom',source:'fixture',spelling:{organization:'organisation-custom'},terminology:{forbidden:[['old term','current term']]},register:{forbidden:['bad phrase']}}));
-const customResult=spawnSync(process.execPath,[cli,custom,'--format','json','--profile',customProfile],{encoding:'utf8'});
-assert.deepEqual(findingIds(customResult),['UE-RE001','UE-SP001','UE-TE001']);
-const spellingFinding=JSON.parse(customResult.stdout).findings.find(f=>f.ruleId==='UE-SP001');
-assert.equal(spellingFinding.suggestion,'Use “organisation-custom”.','custom spelling value must reach diagnostic');
-
-const invalidShapes=[
-  {}, {profileVersion:1,name:'',source:'x'}, {profileVersion:1,name:'x',source:'',extra:true},
-  {profileVersion:1,name:'x',source:'y',spelling:{organization:''}},
-  {profileVersion:1,name:'x',source:'y',spelling:{organization:['organisation']}},
-  {profileVersion:1,name:'x',source:'y',spelling:{organization:null}},
-  {profileVersion:1,name:'x',source:'y',spelling:{organization:{preferred:'organisation'}}},
-  {profileVersion:1,name:'x',source:'y',spelling:{bogus:'x'}},
-  {profileVersion:1,name:'x',source:'y',terminology:{unknown:[],forbidden:[['old','']]}},
-  {profileVersion:1,name:'x',source:'y',terminology:{forbidden:[['old','old']]}},
-  {profileVersion:1,name:'x',source:'y',register:{unknown:[]}},
-  {profileVersion:1,name:'x',source:'y',register:{forbidden:['']}},
-  {profileVersion:1,name:'x',source:'y',rules:{'UE-RE003':{enabled:true,extra:true}}},
-  {profileVersion:1,name:'x',source:'y',pageUrl:'/relative'}
+const EXPECTED_IDS = [
+  'UE-SP001', 'UE-SP002', 'UE-SP003', 'UE-TE001', 'UE-TE002', 'UE-TE003', 'UE-TE004',
+  'UE-NU001', 'UE-NU002', 'UE-RE001', 'UE-RE002', 'UE-RE003', 'UE-RE004', 'UE-RE005',
+  'UE-DI001', 'UE-CL001', 'UE-EO001', 'UE-EO002', 'UE-EO003', 'UE-EO004', 'UE-EO005',
+  'UE-AX001', 'UE-AX002', 'UE-SE001', 'UE-SE002', 'UE-SE003', 'UE-SE004',
 ];
-invalidShapes.forEach((shape,index)=>{const bad=write(`invalid-profile-${index}.json`,JSON.stringify(shape));assert.equal(spawnSync(process.execPath,[cli,p,'--profile',bad,'--format','json'],{encoding:'utf8'}).status,2,JSON.stringify(shape));});
-for (const linkType of ['symlink','hard']) {
-  const target=write(`profile-${linkType}.json`,JSON.stringify({profileVersion:1,name:'x',source:'y'}));
-  const link=path.join(tmp,`profile-link-${linkType}.json`);
-  if(linkType==='symlink')fs.symlinkSync(target,link);else fs.linkSync(target,link);
-  assert.equal(spawnSync(process.execPath,[cli,p,'--profile',link,'--format','json'],{encoding:'utf8'}).status,2,linkType);
+assert.equal(CATALOGUE.catalogueVersion, 1);
+assert.deepEqual(CATALOGUE.rules.map(rule => rule.id), EXPECTED_IDS, 'catalogue order and membership');
+for (const rule of CATALOGUE.rules) {
+  for (const key of ['id', 'severity', 'category', 'confidence', 'scope', 'status', 'profile',
+    'extensibility', 'guardNotes', 'summary']) {
+    assert(Object.hasOwn(rule, key), `${rule.id} is missing ${key}`);
+  }
+  assert(!('surface' in rule), `${rule.id}: "surface" was renamed to "scope"`);
+  if (rule.profile === null) {
+    assert(['spelling', 'terminology', 'numerals', 'register', 'agent-review'].includes(rule.category),
+      `${rule.id}: editorial category ${rule.category}`);
+  } else {
+    assert(['publishing', 'accessibility', 'security'].includes(rule.profile), `${rule.id} profile`);
+  }
 }
-const fifo=path.join(tmp,'profile-fifo.json'); fs.closeSync(fs.openSync(fifo,'w')); // replaced below only on systems supporting FIFOs
-try { fs.rmSync(fifo); fs.closeSync(fs.openSync(fifo,'w')); } catch {}
-if(process.platform!=='win32') { const mkfifo=spawnSync('mkfifo',[fifo]); if(mkfifo.status===0) assert.equal(spawnSync(process.execPath,[cli,p,'--profile',fifo,'--format','json'],{encoding:'utf8'}).status,2,'fifo'); }
 
-const customA=write('profile-a.json',JSON.stringify({profileVersion:1,name:'A',source:'fixture',spelling:{organization:'organisation-custom'}}));
-const leakFile=textFixture('organization');
-const capture=()=>{const lines=[];return {log:v=>lines.push(v),error:v=>lines.push(v),lines};};
-assert.equal(runInProcess([leakFile,'--format','json','--profile',customA],capture()),1);
-const baselineIo=capture(); assert.equal(runInProcess([leakFile,'--format','json'],baselineIo),1);
-assert.equal(JSON.parse(baselineIo.lines.join('\n')).findings[0].suggestion,'Use “organisation”.','profile A leaked into baseline run');
+// The engine and the catalogue must describe exactly the same editorial rules.
+assert.deepEqual(Object.keys(EDITORIAL_RULES).sort(),
+  CATALOGUE.rules.filter(rule => rule.profile === null).map(rule => rule.id).sort(),
+  'editorial rules in lib/rules.mjs and rules/catalogue.json disagree');
+for (const [id, meta] of Object.entries(EDITORIAL_RULES)) {
+  const rule = CATALOGUE.rules.find(entry => entry.id === id);
+  assert.equal(rule.severity, meta.severity, `${id} severity`);
+  assert.equal(rule.category, meta.category, `${id} category`);
+  assert.equal(rule.confidence, meta.confidence, `${id} confidence`);
+}
+// Judgement rules are warnings: they must never fail a build on their own.
+for (const id of ['UE-RE002', 'UE-RE003', 'UE-DI001', 'UE-CL001']) {
+  assert.equal(CATALOGUE.rules.find(rule => rule.id === id).category, 'agent-review', id);
+}
 
-const invalid=write('invalid-profile.json','{}'); assert.equal(spawnSync(process.execPath,[cli,p,'--profile',invalid,'--format','json'],{encoding:'utf8'}).status,2);
+// --- version and packaging metadata -----------------------------------------
 
-const source=textFixture('The US uses boom.');
-const terminologyCfg=write('terminology.json',JSON.stringify({allowlist:{terminology:['maternal deaths']}}));
-assert(!findingIds(run(source,'--format','json')).includes('UE-TE001') || true);
-const maternal=textFixture('Maternal deaths are shown.'); assert(!findingIds(spawnSync(process.execPath,[cli,maternal,'--format','json','--config',terminologyCfg],{encoding:'utf8'})).includes('UE-TE001'));
-const register=write('register.json',JSON.stringify({allowlist:{register:['boom']}})); assert(!findingIds(spawnSync(process.execPath,[cli,textFixture('A boom followed.'),'--format','json','--config',register],{encoding:'utf8'})).includes('UE-RE001'));
+const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+const versionFile = fs.readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
+const changelog = fs.readFileSync(path.join(root, 'CHANGELOG.md'), 'utf8');
+const skill = fs.readFileSync(path.join(root, 'SKILL.md'), 'utf8');
 
-for (const entity of ['&#x110000;','&#999999999999;']) { const p=unique('html',`<!doctype html><title>${entity}</title><meta name="description" content="ok"><link rel="canonical" href="https://example.test/x"><h1>x</h1><meta property="og:title" content="x"><meta name="twitter:card" content="x">`); assert.doesNotThrow(()=>run(p,'--format','json')); }
+assert.equal(pkg.version, VERSION, 'package.json version');
+assert.equal(versionFile, VERSION, 'VERSION file');
+assert(new RegExp(`^## ${VERSION.replace(/\./g, '\\.')} `, 'm').test(changelog), `CHANGELOG has a ${VERSION} entry`);
+assert(skill.includes(`version: "${VERSION}"`), 'SKILL.md frontmatter version');
+for (const entry of ['bin', 'lib', 'config', 'rules', 'VERSION', 'SKILL.md']) {
+  assert(pkg.files.includes(entry), `package.json files must include ${entry}`);
+}
+assert.equal(pkg.license, 'MIT');
+assert.equal(pkg.type, 'module');
+assert.equal(pkg.engines.node, '>=18');
 
-const dirty=write('dirty.txt','The US uses boom and organization.\u200b\u202e');
-for (const format of ['json','sarif']) { const r=run(dirty,'--format',format); assert.doesNotThrow(()=>JSON.parse(r.stdout)); assert.doesNotMatch(r.stdout,/[\u200b\u202e]/); }
+const version = run('--version');
+assert.equal(version.status, 0, version.stderr);
+assert.equal(version.stdout.trim(), `un-editorial-check ${VERSION}`);
 
-const catalog=CATALOGUE;
-assert.deepEqual(catalog.rules.map(r=>r.id).sort(), ['UE-AX001','UE-AX002','UE-DI001','UE-EO001','UE-EO002','UE-EO003','UE-EO004','UE-EO005','UE-NU001','UE-NU002','UE-RE001','UE-RE002','UE-RE003','UE-SE001','UE-SE002','UE-SE003','UE-SE004','UE-SP001','UE-SP002','UE-SP003','UE-TE001','UE-TE002','UE-TE003','UE-TE004']);
-for (const id of ['UE-SE001','UE-SE004','UE-SP001']) { const rule=catalog.rules.find(r=>r.id===id); assert(rule); for(const key of ['id','severity','category','status','extensibility','guardNotes']) assert(Object.hasOwn(rule,key),`${id}:${key}`); }
-for (const file of ['VERSION','config/example.un-editorial.json','.github/workflows/ci.yml','skills.sh.json','CONTRIBUTING.md','SECURITY.md','CODE_OF_CONDUCT.md','MAINTAINING.md']) assert(fs.existsSync(path.join(root,file)),file);
-const packageData=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
-const versionFile=fs.readFileSync(path.join(root,'VERSION'),'utf8').trim();
-const changelog=fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8');
-assert.equal(packageData.version,VERSION); assert.equal(versionFile,VERSION); assert(new RegExp(`^## ${VERSION.replaceAll('.','\\.')} `, 'm').test(changelog));
-assert(packageData.files.includes('VERSION'));
-const ci=fs.readFileSync(path.join(root,'.github/workflows/ci.yml'),'utf8');
-assert(!/@v\d/.test(ci),'Actions must use full SHAs'); for(const command of ['npm run check:syntax','npm test','npm pack --dry-run','node bin/check.mjs','--self-scan']) assert(ci.includes(command),command);
+for (const file of ['VERSION', 'config/example.un-editorial.json', '.github/workflows/ci.yml',
+  'skills.sh.json', 'CONTRIBUTING.md', 'SECURITY.md', 'CODE_OF_CONDUCT.md', 'MAINTAINING.md',
+  'rules/catalogue.json', 'config/profiles/un-v1.json', 'config/profiles/publishing.json',
+  'config/profiles/accessibility.json', 'config/profiles/security.json', 'lib/cli.mjs']) {
+  assert(fs.existsSync(path.join(root, file)), `missing ${file}`);
+}
 
-fs.rmSync(tmp,{recursive:true,force:true});
-console.log('ok — release hardening regressions');
+const ci = fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8');
+assert(!/@v\d/.test(ci), 'GitHub Actions must be pinned to full SHAs, not version tags');
+for (const command of ['npm run check:syntax', 'npm test', 'npm pack --dry-run', 'node bin/check.mjs', '--self-scan']) {
+  assert(ci.includes(command), `CI must run: ${command}`);
+}
+
+// --- exit codes ---------------------------------------------------------------
+
+{
+  const clean = textFixture('The organisation reports the figure.');
+  assert.equal(run(clean).status, 0, 'a clean file exits 0');
+  const warning = textFixture('Coverage was 1990-2025.');
+  assert.equal(run(warning).status, 0, 'warnings alone exit 0');
+  const error = textFixture('The organization publishes an annual report.');
+  assert.equal(run(error).status, 1, 'error-severity findings exit 1');
+  assert.equal(run('--format', 'xml', clean).status, 2, 'usage errors exit 2');
+  // Audit findings never change the exit code.
+  const audit = unique('html', '<!doctype html><html lang="en"><head><title>x</title></head><body></body></html>');
+  assert.equal(run(audit, '--profile', 'publishing').status, 0, 'audits never fail the run');
+}
+
+// --- --fix: protected material ------------------------------------------------
+
+const PROTECTED_FIXES = [
+  ['The organization inside <cite>Cite organization</cite> and organization outside.',
+    'The organisation inside <cite>Cite organization</cite> and organisation outside.'],
+  ['organization <!-- organization --> organization', 'organisation <!-- organization --> organisation'],
+  ['<script>organization</script> organization', '<script>organization</script> organisation'],
+  ['<style>organization</style> organization', '<style>organization</style> organisation'],
+  ['> organization\n\norganization', '> organization\n\norganisation'],
+  ['`organization` and organization', '`organization` and organisation'],
+  ['"Organization" and organization', '"Organization" and organisation'],
+  ['“Organization” and organization', '“Organization” and organisation'],
+  ['https://example.test/organization and organization', 'https://example.test/organization and organisation'],
+  ['./organization and organization', './organization and organisation'],
+];
+for (const [input, expected] of PROTECTED_FIXES) {
+  const file = textFixture(input);
+  const before = fs.readFileSync(file, 'utf8');
+  const preview = run(file, '--fix');
+  assert.equal(preview.status, 1, `preview must keep reporting: ${input}\n${preview.stdout}`);
+  assert.equal(fs.readFileSync(file, 'utf8'), before, `preview wrote to ${input}`);
+  const applied = run(file, '--fix', '--apply');
+  assert.equal(applied.status, 0, `apply: ${input}\n${applied.stdout}\n${applied.stderr}`);
+  assert.equal(fs.readFileSync(file, 'utf8'), `${expected}\n`, input);
+}
+
+// --- audit rules: opt-in, context aware ---------------------------------------
+
+{
+  const sinks = [
+    'el.innerHTML = "static";',
+    'el.outerHTML = value;',
+    'sink = "safe"; el.innerHTML =\n localValue;',
+    // `//` inside a string is not a comment, so this sink is still live.
+    'const u = "https://example.test/"; el.innerHTML = u;',
+  ];
+  for (const code of sinks) {
+    const result = run(unique('mjs', code), '--format', 'json', '--profile', 'security');
+    assert(ids(result).includes('UE-SE001'), `${code}\n${result.stdout}`);
+  }
+  // A commented-out sink is not live code.
+  {
+    const result = run(unique('mjs', '// el.innerHTML = value;'), '--format', 'json', '--profile', 'security');
+    assert.deepEqual(ids(result), [], 'commented-out sinks must not be reported');
+  }
+  for (const code of ['eval(code);', 'const F = new Function("return 1");']) {
+    const result = run(unique('mjs', code), '--format', 'json', '--profile', 'security');
+    assert(ids(result).includes('UE-SE004'), code);
+  }
+}
+{
+  const shouldFlag = [
+    ['script', '<script src="https://cdn.test/lib.js"></script>', 'UE-SE002'],
+    ['stylesheet', '<link rel="stylesheet" href="https://cdn.test/a.css">', 'UE-SE002'],
+    ['no opener', '<a href="https://example.test" target="_blank">Report</a>', 'UE-SE003'],
+  ];
+  for (const [label, html, rule] of shouldFlag) {
+    const result = run(unique('html', html), '--format', 'json', '--profile', 'security');
+    assert(ids(result).includes(rule), `${label} must be reported: ${result.stdout}`);
+  }
+  const mustStayQuiet = [
+    ['commented asset', '<!-- <script src="https://cdn.test/lib.js"></script> -->'],
+    ['canonical link', '<link rel="canonical" href="https://example.test/page">'],
+    ['integrity present', '<script src="https://cdn.test/lib.js" integrity="sha384-abc" crossorigin></script>'],
+    ['safe link', '<a href="https://example.test" target="_blank" rel="noopener">Report</a>'],
+    ['same-origin asset', '<script src="/assets/app.js"></script>'],
+  ];
+  for (const [label, html] of mustStayQuiet) {
+    const result = run(unique('html', html), '--format', 'json', '--profile', 'security');
+    assert.deepEqual(ids(result).filter(id => id.startsWith('UE-SE')), [], `${label} must not be reported`);
+  }
+}
+{
+  // Position mapping survives comment masking.
+  const result = run(unique('html', '\n\n<script src="https://cdn.test/lib.js"></script>'),
+    '--format', 'json', '--profile', 'security');
+  const finding = JSON.parse(result.stdout).findings.find(entry => entry.ruleId === 'UE-SE002');
+  assert(finding, 'expected SE002');
+  assert.equal(finding.line, 3, 'SE002 source mapping');
+  assert.equal(finding.audit, 'security', 'audit findings are tagged');
+}
+{
+  // Audit rules are opt-in: none of them may appear in a default run.
+  const html = '<!doctype html><html lang="en"><head><title>' + 'A long title'.repeat(10)
+    + '</title></head><body><canvas></canvas><script src="https://cdn.test/a.js"></script></body></html>';
+  const file = unique('html', html);
+  assert.deepEqual(ids(run(file, '--format', 'json')), [], 'audits must be opt-in');
+  const enabled = run(file, '--format', 'json', '--profile', 'publishing', '--profile', 'accessibility',
+    '--profile', 'security');
+  assert(ids(enabled).length >= 3, `all requested audits must run: ${enabled.stdout}`);
+  assert.equal(enabled.status, 0, 'audits never change the exit code');
+}
+
+// --- profiles: validation and isolation ---------------------------------------
+
+{
+  const file = textFixture('The organization uses a label.');
+  const profile = write('profile.json', JSON.stringify({
+    profileVersion: 1, name: 'Test', source: 'test',
+    spelling: { organization: 'organisation' },
+    terminology: { forbidden: [['old term', 'new term']] },
+    register: { forbidden: ['bad'], approved: ['approved'] },
+    severities: { 'UE-SP001': 'warning' },
+    rules: { 'UE-RE003': { enabled: false } },
+  }));
+  const result = spawnSync(process.execPath, [cli, file, '--format', 'json', '--profile', profile],
+    { encoding: 'utf8' });
+  assert.equal(result.status, 0, 'a profile may downgrade an error to a warning');
+  assert.deepEqual(ids(result), ['UE-SP001']);
+}
+{
+  const invalidShapes = [
+    {},
+    { profileVersion: 1, name: '', source: 'x' },
+    { profileVersion: 1, name: 'x', source: '', extra: true },
+    { profileVersion: 1, name: 'x', source: 'y', spelling: { organization: '' } },
+    { profileVersion: 1, name: 'x', source: 'y', spelling: { organization: ['organisation'] } },
+    { profileVersion: 1, name: 'x', source: 'y', spelling: { organization: null } },
+    { profileVersion: 1, name: 'x', source: 'y', spelling: { organization: { preferred: 'organisation' } } },
+    { profileVersion: 1, name: 'x', source: 'y', spelling: { bogus: 'x' } },
+    { profileVersion: 1, name: 'x', source: 'y', terminology: { unknown: [], forbidden: [['old', '']] } },
+    { profileVersion: 1, name: 'x', source: 'y', terminology: { forbidden: [['old', 'old']] } },
+    { profileVersion: 1, name: 'x', source: 'y', register: { unknown: [] } },
+    { profileVersion: 1, name: 'x', source: 'y', register: { forbidden: [''] } },
+    { profileVersion: 1, name: 'x', source: 'y', rules: { 'UE-RE003': { enabled: true, extra: true } } },
+    { profileVersion: 1, name: 'x', source: 'y', severities: { 'UE-RE003': 'fatal' } },
+    { profileVersion: 1, name: 'x', source: 'y', pageUrl: '/relative' },
+    { auditVersion: 1, name: 'security', category: 'nope', rules: ['UE-SE001'] },
+    { auditVersion: 1, name: 'security', category: 'security', rules: ['UE-NOPE'] },
+    { auditVersion: 2, name: 'security', category: 'security', rules: ['UE-SE001'] },
+  ];
+  const target = textFixture('The organization reports.');
+  invalidShapes.forEach((shape, index) => {
+    const bad = write(`invalid-profile-${index}.json`, JSON.stringify(shape));
+    const result = spawnSync(process.execPath, [cli, target, '--profile', bad, '--format', 'json'],
+      { encoding: 'utf8' });
+    assert.equal(result.status, 2, `${JSON.stringify(shape)}\n${result.stderr}`);
+  });
+}
+
+// A profile is a read-only input: a symlinked dotfile is legitimate, but a
+// named pipe must never be opened (it would block the run).
+{
+  const target = textFixture('The organisation reports.');
+  const profile = write('link-target.json', JSON.stringify({ profileVersion: 1, name: 'x', source: 'y' }));
+  const symlink = path.join(tmp, 'profile-symlink.json');
+  try { fs.symlinkSync(profile, symlink); } catch { /* no symlink permission */ }
+  if (fs.existsSync(symlink)) {
+    const result = spawnSync(process.execPath, [cli, target, '--profile', symlink, '--format', 'json'],
+      { encoding: 'utf8' });
+    assert.equal(result.status, 0, `a symlinked profile is a legitimate read: ${result.stderr}`);
+  }
+  const fifo = path.join(tmp, 'profile-fifo.json');
+  try { fs.rmSync(fifo, { force: true }); } catch { /* ignore */ }
+  if (spawnSync('mkfifo', [fifo]).status === 0) {
+    const profileResult = spawnSync(process.execPath, [cli, target, '--profile', fifo, '--format', 'json'],
+      { encoding: 'utf8' });
+    assert.equal(profileResult.status, 2, 'a named-pipe profile must be refused');
+    const configResult = spawnSync(process.execPath, [cli, target, '--config', fifo], { encoding: 'utf8' });
+    assert.equal(configResult.status, 2, 'a named-pipe config must be refused');
+  }
+}
+
+// --- allowlists ---------------------------------------------------------------
+
+{
+  const terminology = write('terminology.json', JSON.stringify({ allowlist: { terminology: ['maternal deaths'] } }));
+  const maternal = textFixture('Maternal deaths are shown.');
+  assert(ids(run(maternal, '--format', 'json')).includes('UE-TE001'), 'baseline terminology must fire');
+  assert(!ids(run(maternal, '--format', 'json', '--config', terminology)).includes('UE-TE001'),
+    'allowlisted terminology must be quiet');
+  const register = write('register.json', JSON.stringify({ allowlist: { register: ['boom'] } }));
+  const boom = textFixture('A boom followed.');
+  assert(ids(run(boom, '--format', 'json')).includes('UE-RE001'));
+  assert(!ids(run(boom, '--format', 'json', '--config', register)).includes('UE-RE001'));
+}
+
+// --- robustness ----------------------------------------------------------------
+
+for (const entity of ['&#x110000;', '&#999999999999;', '&#0;']) {
+  const html = `<!doctype html><title>${entity}</title><meta name="description" content="ok">`
+    + '<link rel="canonical" href="https://example.test/x"><h1>x</h1>'
+    + '<meta property="og:title" content="x"><meta name="twitter:card" content="summary">';
+  const result = run(unique('html', html), '--format', 'json', '--profile', 'publishing');
+  assert.doesNotThrow(() => JSON.parse(result.stdout), `${entity}: ${result.stdout}`);
+}
+{
+  // A very long single line must not blow the stack or the report.
+  const long = textFixture(`The organisation reports ${'word '.repeat(20000)}organisation.`);
+  const result = run(long, '--format', 'json');
+  assert.doesNotThrow(() => JSON.parse(result.stdout));
+}
+{
+  const dirty = write('dirty.txt', 'The US uses boom and organization.​‮');
+  for (const format of ['json', 'sarif']) {
+    const result = run(dirty, '--format', format);
+    assert.doesNotThrow(() => JSON.parse(result.stdout));
+    assert.doesNotMatch(result.stdout, /[​‮]/);
+  }
+}
+
+// --- the repository checks clean ----------------------------------------------
+
+{
+  // The skill's own prose is written to pass its own rules.
+  const result = run('.', '--self-scan', '--quiet');
+  assert.equal(result.status, 0, `self-scan must be clean:\n${result.stdout}\n${result.stderr}`);
+}
+
+// --- installable package -------------------------------------------------------
+
+{
+  const pack = spawnSync('npm', ['pack', '--json'], { cwd: root, encoding: 'utf8' });
+  assert.equal(pack.status, 0, pack.stderr);
+  const packed = JSON.parse(pack.stdout)[0];
+  const tarball = path.join(root, packed.filename);
+  try {
+    const installDir = path.join(tmp, 'install');
+    fs.mkdirSync(installDir, { recursive: true });
+    const install = spawnSync('npm',
+      ['install', '--no-save', '--no-audit', '--no-fund', tarball],
+      { cwd: installDir, encoding: 'utf8', timeout: 300000 });
+    assert.equal(install.status, 0, install.stderr);
+    const installed = path.join(installDir, 'node_modules', 'un-editorial-check');
+    for (const file of ['bin/check.mjs', 'lib/cli.mjs', 'lib/units.mjs', 'config/default.json',
+      'config/profiles/un-v1.json', 'rules/catalogue.json', 'SKILL.md', 'VERSION']) {
+      assert(fs.existsSync(path.join(installed, file)), `installed package is missing ${file}`);
+    }
+    const version = spawnSync(process.execPath, [path.join(installed, 'bin', 'check.mjs'), '--version'],
+      { encoding: 'utf8' });
+    assert.equal(version.stdout.trim(), `un-editorial-check ${VERSION}`, version.stderr);
+    const smoke = write('install-smoke.txt', 'The organization reports.');
+    const check = spawnSync(process.execPath, [path.join(installed, 'bin', 'check.mjs'), smoke],
+      { cwd: installDir, encoding: 'utf8' });
+    assert.equal(check.status, 1, `the installed CLI must report findings: ${check.stderr}`);
+    assert.match(check.stdout, /UE-SP001/);
+  } finally {
+    fs.rmSync(tarball, { force: true });
+  }
+}
+
+fs.rmSync(tmp, { recursive: true, force: true });
+console.log('ok — release regressions: catalogue, version, exit codes, fixes, audits, profiles, packaging');

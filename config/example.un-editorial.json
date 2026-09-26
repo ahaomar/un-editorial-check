@@ -4,5 +4,6 @@
   "severities": {},
   "rules": {},
   "spellingReview": false,
-  "baseOrigin": "https://ahaomar.github.io"
+  "baseOrigin": "https://ahaomar.github.io",
+  "renderTargets": ["inlineNote", "statusMessage", "tooltipContent"]
 }

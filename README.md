@@ -2,25 +2,33 @@
 
 [![skills.sh](https://skills.sh/badge/ahaomar/un-editorial-check/un-editorial-check)](https://skills.sh/ahaomar/un-editorial-check/un-editorial-check)
 
-A portable, zero-dependency Node.js CLI and Agent Skill that reports written-content risks against United Nations editorial standards. It checks HTML, Markdown, plain text and JavaScript strings, including strings that generate user-facing copy.
+A portable, zero-dependency Node.js CLI and Agent Skill that reads user-visible copy the way a United Nations editor would — language, wording, tone, spelling, terminology, dates, numbers, claims and register — and reports what fails.
 
-The product boundary is **report first**: a finding identifies a review requirement; it does not establish the truth of a claim. Deterministic checks find documented patterns. Editorial judgement remains with the reviewer.
+It is not a code-quality, accessibility, security or SEO linter. Copy is extracted first (HTML text nodes and copy-bearing attributes, Markdown paragraphs, plain-text blocks, JavaScript strings that demonstrably render) and only then checked, so CSS properties, comments, identifiers, URLs, quoted titles, block quotations and code never reach a rule. Those other concerns exist in this package solely as opt-in audits.
+
+The product boundary is **report first**: a finding identifies a review requirement; it does not establish the truth of a claim. Deterministic rules prove the defect; where judgement is required the finding is labelled heuristic and moves to `AGENT REVIEW REQUIRED`.
 
 ## What it checks
 
-- United Nations terminology, including maternal mortality ratios, labour-force participation rates, lower-secondary completion rates and data centres' share of electricity demand.
-- British English spelling and written-out “per cent” in running prose, with compact-display exemptions.
-- Dates, ranges, reporting language and some common data-claim risks.
-- SEO structure, basic accessibility attributes and selected deterministic web-security patterns.
+Editorial rules (16, always on):
+
+- British English spelling, mixed variants within a passage, and opt-in `-ize` review.
+- United Nations terminology: maternal mortality ratio, labour-force participation rates, lower-secondary completion rates, data centres’ share of electricity demand, “per cent” in running prose, “the United States”.
+- Day–month–year dates, en-dash ranges, hedged and sourced figures, counts that say what was counted, comparisons that align reference years.
+- Neutral register: promotional phrasing, rhetorical questions, exclamation marks, unsourced superlatives.
 - Supplied organisation vocabulary through data-only profiles.
 
-The v0.3.0 catalogue contains 24 stable rule IDs. Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
+Audit rules (11, only with `--profile publishing`, `--profile accessibility` or `--profile security`): page title, meta description, canonical link, heading structure and card metadata; image and form-control labelling; four bounded source-code policies. Audits are reported in their own section and never change the exit code.
 
-## Tier 1 and Tier 2
+The v0.4.0 catalogue contains 27 stable rule IDs, indexed in [rules/catalogue.json](rules/catalogue.json). Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
 
-**Tier 1 — deterministic checks:** the CLI tests patterns with documented boundaries. These are suitable for local review and CI because the rule, exemption and output are explicit. A clean Tier 1 result is not a certificate of quality.
+## What the CLI proves, and what it does not
 
-**Tier 2 — editorial judgement:** a reviewer must assess whether a claim matches its evidence, figures are sourced and dated, citations are complete, comparisons use aligned years, register is proportionate, labels describe what was counted and a coverage claim is reproducible. The skill requires the agent to review Tier 2 after running the CLI and to report the two classes separately.
+**Deterministic rules** test a pattern with a documented boundary — a spelling map, a terminology pair, `%` in running prose, an exclamation mark. The rule, its exemption and its position are explicit, so results are suitable for local review and CI. A clean run is not a certificate of quality.
+
+**Heuristic rules and `AGENT REVIEW REQUIRED`** ask for judgement: whether a claim matches its evidence, figures are sourced and dated, citations are complete, comparisons use aligned years, register is proportionate, and labels describe what was counted. They are reported as warnings and are never promoted to errors.
+
+The skill requires the agent to work through those findings after running the CLI, and to keep deterministic findings, agent-review findings and its own editorial judgement separate in the report.
 
 ## Requirements and installation
 
@@ -32,7 +40,7 @@ The v0.3.0 catalogue contains 24 stable rule IDs. Its institutional sources were
 
 ### Universal installation with the skills CLI
 
-The canonical published skill is available through skills.sh and GitHub. The CLI installs the complete package, including `bin/`, `rules/` and `config/`:
+The canonical published skill is available through skills.sh and GitHub. The CLI installs the complete package, including `bin/`, `lib/`, `rules/` and `config/`:
 
 ```sh
 npx skills add https://github.com/ahaomar/un-editorial-check \
@@ -216,10 +224,11 @@ node .agents/skills/un-editorial-check/bin/check.mjs content --format text
 The agent must:
 
 1. run the Node CLI on the requested files;
-2. address error-severity findings and review warnings;
+2. address error-severity findings and review warnings, without suppressing them just to reach exit `0`;
 3. read the applicable bundled rule files relative to the skill base, not from memory;
-4. review Tier 2 claims against the available evidence; and
-5. distinguish deterministic findings from editorial judgement in its report.
+4. work through `AGENT REVIEW REQUIRED` findings against the available evidence;
+5. keep deterministic findings, agent-review findings and its own editorial judgement separate in the report; and
+6. request audits with `--profile publishing`, `--profile accessibility` or `--profile security` only when that audit was asked for — a default run is editorial only.
 
 ## CLI use
 
@@ -229,56 +238,62 @@ node bin/check.mjs content dashboards --format text
 node bin/check.mjs content --format json > results.json
 node bin/check.mjs content --format sarif > results.sarif
 node bin/check.mjs content --config .un-editorial.json
-node bin/check.mjs content --profile config/profiles/un-v1.json
+node bin/check.mjs content --profile editorial-org.json
+node bin/check.mjs content --profile publishing --profile accessibility --profile security
 node bin/check.mjs content --quiet
 node bin/check.mjs --self-scan --quiet
 ```
 
-`--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links.
+`--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links, and hidden directories, `node_modules`, build output and fixtures are skipped unless you name them explicitly.
+
+`--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; any other value is an organisation profile file merged over the bundled United Nations baseline. A missing or invalid profile is a usage failure (exit `2`), not a silent fallback.
 
 ### Exit codes
 
 | Code | Meaning |
 |---:|---|
-| `0` | No error-severity findings; warnings may remain |
-| `1` | One or more error-severity findings |
-| `2` | Invalid options, path, JSON, profile or configuration; the audit could not be completed as requested |
+| `0` | No error-severity editorial findings; warnings, notes and every audit may remain |
+| `1` | One or more error-severity editorial findings |
+| `2` | Invalid options, path, JSON, profile or configuration; a scan or write failure |
 
-CI should treat exit code `1` as a requested policy failure and exit code `2` as a tool failure. It should not silently merge the two.
+CI should treat exit code `1` as a requested policy failure and exit code `2` as a tool failure. It should not silently merge the two. Audit findings never move the exit code, so `--profile security` cannot fail a build that the editorial rules passed.
 
 ### Output formats
 
-- **Text:** concise, review-oriented findings with path, line, rule and message.
-- **JSON:** structured findings, file counts, severity and rule IDs; suitable for local automation.
+- **Text:** sectioned report — `EDITORIAL ERRORS`, `EDITORIAL WARNINGS`, `EDITORIAL NOTES`, `AGENT REVIEW REQUIRED`, then `OPTIONAL AUDIT — <name>` for each audit that was requested.
+- **JSON:** the same findings as records carrying `file`, `line`, `column`, `ruleId`, `category`, `severity`, `confidence`, `scope`, `message` and `suggestion`; audit findings are tagged with their `audit`. Internal fields are stripped from every format.
 - **SARIF:** SARIF 2.1.0 for code-scanning tools that accept static-analysis output.
 
-Suppression comments apply to the line or bounded construct. Keep suppressions narrow and record the reason in version control:
+A suppression belongs to the copy span that contains it — one paragraph in HTML or Markdown, one line in JavaScript. Keep it narrow and record the reason in version control:
 
 ```html
-<!-- ue:ignore UE-SP001 -->
-<p>organization</p>
+<p>The organization reports quarterly. <!-- ue:ignore UE-SP001 --></p>
 ```
 
 ```js
-// ue:ignore UE-RE002
-const label = deriveComparison(rows);
+const note = { inlineNote: `${count} organization` }; // ue:ignore UE-SP001  (name of a body)
 ```
+
+`ue:ignore UE-SP001,UE-TE003` accepts a list, `ue:ignore UE-SP*` a rule family, and `ue:ignore all` everything in that span. A suppression in one paragraph never reaches the next, and configuration (`allowlist`, `severities`, `rules`) is the right tool when a whole project needs the same exception.
 
 ## The safe `--fix` boundary
 
-Report-only operation is the default. `--fix` is opt-in and, in v0.3.0, is deliberately narrower than a general editor:
+Report-only operation is the default. `--fix` is opt-in and deliberately narrower than a general editor:
 
-- It accepts explicit or discovered regular prose files with `.txt`, `.md` or `.markdown` extensions.
-- It refuses HTML, JavaScript, JSON, code and configuration files, symbolic links and regular files with multiple hard links, with exit code `2`.
-- It performs only conservative American-to-British spelling replacements and honours spelling allowlists.
-- It masks comments, script and style blocks, fenced code, Markdown block quotes, inline code, cited titles, URLs and paths. An unrelated occurrence on the same line can remain fixable.
-- It re-checks type, descriptor identity and link count before writing. This reduces path-replacement races but is not a race-proof sandbox.
+- `--fix` prints a diff labelled `(proposed)` and writes nothing; `--fix --apply` performs the same writes and labels them `(applied)`.
+- It accepts only regular prose files with `.txt`, `.md` or `.markdown` extensions. Anything else — HTML, JavaScript, JSON, configuration — is refused with exit code `2`.
+- It applies only deterministic replacements: British spelling (`UE-SP001`), `per cent` (`UE-TE003`), en-dash ranges (`UE-NU002`) and `the United States` (`UE-TE004`), honouring spelling allowlists.
+- It masks comments, script and style blocks, fenced code, block quotations, inline code, cited titles, `<cite>`, `<q>` and `<blockquote>`, URLs and paths. An unrelated occurrence elsewhere in the same file can remain fixable.
+- A fix is skipped, never guessed: if the matched copy is not present exactly where the offset map says it is, the finding is left alone and reported.
+- It refuses symbolic links, non-regular files and regular files with multiple hard links, and re-checks type, descriptor identity and link count before writing. This reduces path-replacement races but is not a race-proof sandbox.
 
-The skill instructs agents to show changed files before invoking `--fix`. Run it only on a controlled working tree and review the diff. It does not rewrite dates, percentages, claims or terminology.
+Exit codes after `--apply`: `0` when every error-severity finding was written, `1` when an error-severity finding could not be written (for example `UE-RE005`, which needs a human to rewrite the sentence), `2` on a refusal or write failure.
+
+The skill instructs agents to show the target files and the proposed diff before invoking `--fix`. Run it only on a controlled working tree and review the result. It does not rewrite dates, terminology or claims.
 
 ## Configuration
 
-Copy [`.un-editorial.json`](.un-editorial.json) to the project root, or pass `--config path`:
+Defaults live in [config/default.json](config/default.json). Override them with `.un-editorial.json` in the working directory (discovered automatically) or with `--config path`. A copyable starting point is [config/example.un-editorial.json](config/example.un-editorial.json):
 
 ```json
 {
@@ -291,11 +306,18 @@ Copy [`.un-editorial.json`](.un-editorial.json) to the project root, or pass `--
   "severities": { "UE-RE003": "error" },
   "rules": { "UE-SE004": { "enabled": false } },
   "spellingReview": false,
-  "baseOrigin": "https://www.example.org"
+  "baseOrigin": "https://www.example.org",
+  "renderTargets": ["inlineNote", "statusMessage", "tooltipContent"]
 }
 ```
 
-`baseOrigin` must be an absolute HTTP(S) origin. With it configured, canonical URLs are checked by scheme, hostname and effective port. Without it, the checker can reject missing or non-absolute canonical URLs but does not claim origin or self-reference. Local configuration files named `.un-editorial.json` are ignored during scans.
+- `allowlist.spellings` names words the spelling rules leave alone. `allowlist.terminology` must repeat the unapproved term exactly as the profile writes it, and `allowlist.register` names phrases that are fine in this project.
+- `severities` promotes or downgrades one rule; `rules` carries `{"enabled": false}` to switch one off. Both are validated against the catalogue, so a mistyped rule ID fails with exit code `2` instead of quietly doing nothing.
+- `spellingReview` enables the `-ize` review (`UE-SP003`).
+- `renderTargets` adds project-specific identifiers to the JavaScript keys and calls treated as rendering copy.
+- `baseOrigin` must be an absolute HTTP(S) origin. With it configured, canonical URLs are checked by scheme, hostname and effective port. Without it, the checker can reject missing or non-absolute canonical URLs but does not claim origin or self-reference.
+
+Where a configuration file and a profile both set a rule's severity or state, the configuration file wins. Local configuration files named `.un-editorial.json` are ignored during scans.
 
 ## Organisation profile v1
 
@@ -311,19 +333,24 @@ A profile adds organisation-specific data without forking the skill:
     "organization": "organisation"
   },
   "terminology": {
-    "program": "programme"
+    "forbidden": [["program", "programme"]]
   },
-  "register": ["project house phrase"],
+  "register": {
+    "forbidden": ["project house phrase"],
+    "approved": []
+  },
   "severities": {
     "UE-RE003": "warning"
   },
   "rules": {
-    "UE-SE004": { "enabled": false }
+    "UE-RE003": { "enabled": false }
   }
 }
 ```
 
-Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling`, `terminology`, `register`, `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, and non-HTTP(S) page URLs fail closed. Profiles contain data only and cannot execute JavaScript.
+Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling` (a word-to-word map; each key must already exist in the baseline vocabulary so a typo cannot disable a rule), `terminology.forbidden` (a list of pairs, or `{ "rule", "from", "to" }` objects to target one rule), `register` (an object with `forbidden` and `approved` lists), `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, and non-HTTP(S) page URLs fail closed with exit code `2`. Profiles contain data only and cannot execute JavaScript.
+
+A profile's `severities` and `rules` are applied to the run; where a configuration file sets the same key, the configuration file wins.
 
 The packaged baseline is [config/profiles/un-v1.json](config/profiles/un-v1.json). A discoverable project configuration example is [config/example.un-editorial.json](config/example.un-editorial.json).
 
@@ -341,11 +368,12 @@ The maintained index is [rules/catalogue.json](rules/catalogue.json). Detailed g
 
 Important limitations:
 
-- HTML and JavaScript use conservative regular expressions, not standards-compliant parsers, scopes or data-flow analysis.
-- `UE-SE001` flags `innerHTML` and `outerHTML` sinks. `UE-SE004` applies a bounded local `bindTooltip` policy. Neither is a complete taint analysis.
-- SRI rules validate exact-version markers, `sha384-` syntax, a 48-byte base64 digest and `crossorigin="anonymous"`. They do not fetch assets or prove that the digest matches content.
-- The date rule detects slash dates; it cannot infer the intended locale of an ambiguous numeric date.
-- Allowlists are simple and may suppress more context than intended.
+- Rules run on extracted copy, never on raw source lines: HTML text nodes and copy-bearing attributes, Markdown paragraphs, plain-text blocks, and JavaScript strings with evidence of rendering. Extraction is deliberately conservative and regex-based — not a standards-compliant HTML or JavaScript parser — and no rule performs scope or data-flow analysis.
+- `UE-SE001` flags `.innerHTML =` and `.outerHTML =` assignments in script files; `UE-SE004` flags `eval()` and `new Function()`. Neither is a taint analysis. Comments are masked first, so commented-out code is not reported.
+- `UE-SE002` asks only whether an external script or stylesheet *declares* an `integrity` attribute. It never fetches an asset, never validates digest syntax and never proves a digest matches content. `UE-SE003` looks for `rel="noopener"` or `rel="noreferrer"` on `target="_blank"` links.
+- The date rule detects slash dates in prose; it cannot infer the intended locale of an ambiguous numeric date.
+- Allowlists and suppressions are blunt: they silence a rule over a span without proving the copy is correct.
+- Promotional vocabulary and superlatives come from bounded lists in the profile and in `lib/rules.mjs`; an unlisted superlative is not reported. Extend them with a fixture, not by loosening the pattern.
 - Grammar, source accuracy, neutrality, claim support and year alignment require human review.
 - A skill can direct an agent to read files or run tools. Audit skills and scripts as software, grant only necessary permissions and do not install a skill into a sensitive environment without review.
 
@@ -381,9 +409,9 @@ node bin/check.mjs --self-scan --quiet
 npm pack --dry-run
 ```
 
-The suite covers positive and negative fixtures for every catalogue rule, configuration and profile rejection, security boundaries, output formats, exit codes, package contents, a packed installation and executable smoke test. The portability validator uses Node.js built-ins only and checks the canonical frontmatter, identity, relative resources, package allowlist, host documentation, stale-version markers and all maintained JSON files. GitHub Actions runs it across supported Node.js versions.
+The suite covers positive and negative fixtures for every catalogue rule, offset-accuracy assertions, suppressions, protected and applied fixes, configuration and profile rejection, audit opt-in, output formats, exit codes, package contents, a packed installation and an executable smoke test. The portability validator uses Node.js built-ins only and checks the canonical frontmatter, identity, relative resources, package allowlist, host documentation, stale-version markers and all maintained JSON files. GitHub Actions runs both across supported Node.js versions.
 
-`--self-scan` may return `1` because fixtures and documentation intentionally contain rule examples. Release checks accept only exit codes `0` or `1`; exit code `2` fails.
+The repository is a fixture for itself: `node bin/check.mjs . --self-scan --quiet` must exit `0`. Documentation and fixtures may still *mention* rule IDs, but they may not contain copy that breaks the rules.
 
 ## Releases and discovery
 

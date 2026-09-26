@@ -3,3 +3,5 @@ node_modules/
 coverage/
 *.tgz
 .un-editorial.json
+package-lock.json
+.feedbacks/

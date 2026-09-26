@@ -1,9 +1,11 @@
-# Register and data integrity
+# Register
 
-- **UE-RE001** — Avoid loaded or informal phrases including “boom”, “appetite”, “furthest behind”, “on the line” and “as donors retreat”. Use a neutral factual construction.
-- Do not use rhetorical questions or exclamation marks in UN editorial copy.
-- **UE-RE002** — Do not hard-code a superlative, comparison or ratio in a JavaScript string. Derive it from the same data shown to the user and test the result.
-- Comparisons must use aligned reporting years. Say “reported on or before” when values are carried forward.
-- Ordinal ranks are not counts. Verify all off-by-one boundaries and count the rows actually included.
+- **UE-RE001** *(warning)* — Avoid loaded or informal phrases including “boom”, “appetite”, “furthest behind”, “on the line” and “as donors retreat”. Use a neutral factual construction.
+- **UE-RE004** *(warning)* — Do not use rhetorical questions in UN editorial copy; state the finding.
+- **UE-RE005** *(error)* — No exclamation marks in formal copy. Deterministic and fixable.
 
-These are guards, not a substitute for reading the claim in context.
+## Agent review required
+
+- **UE-RE002** *(warning)* — A superlative, ranking or ratio written into a JavaScript string needs a source or neutral wording. Derive it from the same data shown to the user and test the result; comparisons must use aligned reporting years.
+
+Register findings are guards against tone drift, not a substitute for reading the claim in context. Report them separately from the deterministic rules.

@@ -1,1 +1,0 @@
-marker.bindTooltip(country.name);

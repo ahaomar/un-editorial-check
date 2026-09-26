@@ -1,2 +1,0 @@
-<div class="stat-tile">25%</div>
-

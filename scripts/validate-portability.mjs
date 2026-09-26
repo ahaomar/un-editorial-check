@@ -145,13 +145,14 @@ function main() {
 
   const referenced = new Set();
   for (const match of skillText.matchAll(/\[[^\]]+\]\((?!https?:|#)([^)]+)\)/g)) referenced.add(match[1].split('#')[0]);
-  for (const match of skillText.matchAll(/(?:^|\s)((?:bin|rules|config)\/[A-Za-z0-9_./-]+)/g)) referenced.add(match[1].replace(/[.,;:]$/, ''));
+  for (const match of skillText.matchAll(/(?:^|\s)((?:bin|lib|rules|config)\/[A-Za-z0-9_./-]+)/g)) referenced.add(match[1].replace(/[.,;:]$/, ''));
   for (const relative of referenced) if (!exists(relative)) fail(`SKILL.md references missing file: ${relative}`);
 
   const duplicateSkills = [];
   const findDuplicateSkills = directory => {
     for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
       if (['.git', 'node_modules', 'coverage'].includes(entry.name)) continue;
+      if (entry.isDirectory() && entry.name.startsWith('.') && directory === '.') continue; // scratch, not skill definitions
       const relative = path.join(directory, entry.name);
       if (entry.isDirectory()) findDuplicateSkills(relative);
       else if (entry.isFile() && entry.name === 'SKILL.md' && relative !== 'SKILL.md') duplicateSkills.push(relative);
@@ -160,7 +161,7 @@ function main() {
   findDuplicateSkills('.');
   for (const duplicate of duplicateSkills) fail(`committed duplicate skill definition may drift: ${duplicate}`);
 
-  const requiredFiles = ['bin/check.mjs', 'rules/catalogue.json', 'config/default.json', 'config/profiles/un-v1.json', 'agents/openai.yaml', 'README.md', 'COMPATIBILITY.md', 'LICENSE'];
+  const requiredFiles = ['bin/check.mjs', 'lib/cli.mjs', 'rules/catalogue.json', 'config/default.json', 'config/profiles/un-v1.json', 'config/profiles/security.json', 'agents/openai.yaml', 'README.md', 'COMPATIBILITY.md', 'LICENSE'];
   for (const file of requiredFiles) if (!exists(file)) fail(`required repository file is missing: ${file}`);
   for (const file of requiredFiles) if (!packageJson.files?.some(entry => entry === file || file.startsWith(`${entry}/`))) fail(`package files allowlist omits: ${file}`);
 
@@ -185,6 +186,7 @@ function main() {
     for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
       const relative = path.join(directory, entry.name);
       if (ignored.has(entry.name)) continue;
+      if (entry.isDirectory() && entry.name.startsWith('.') && directory === '.') continue; // scratch, not shipped data
       if (entry.isDirectory()) visit(relative);
       else if (entry.isFile() && entry.name.endsWith('.json')) {
         try { JSON.parse(fs.readFileSync(path.join(root, relative), 'utf8')); }

@@ -18,12 +18,14 @@ jobs:
       - run: npm run check:syntax
       - run: npm test
       - run: npm run check:portability
-      - run: node -e "for (const f of ['package.json','rules/catalogue.json','skills.sh.json','.un-editorial.json']) JSON.parse(require('fs').readFileSync(f,'utf8'))"
+      # Every git-tracked JSON file must parse (the gitignored local .un-editorial.json is intentionally excluded).
+      - run: node -e "const fs=require('fs'),cp=require('child_process');const files=cp.execSync('git ls-files').toString().trim().split('\n').filter(f=>f.endsWith('.json')&&fs.existsSync(f));for(const f of files){JSON.parse(fs.readFileSync(f,'utf8'));}console.log('json ok ('+files.length+' files)')"
       - run: npm pack --dry-run
-      - run: node bin/check.mjs --self-scan --quiet; test $? -eq 0 -o $? -eq 1
+      # Release gate: self-scan must exit 0 (bash -e fails the step on any non-zero exit).
+      - run: node bin/check.mjs --self-scan --quiet
       - run: |
           tarball=$(npm pack --silent)
           prefix=$(mktemp -d)
           npm install --prefix "$prefix" --ignore-scripts --no-audit --no-fund "./$tarball"
-          "$prefix/node_modules/.bin/un-editorial-check" --self-scan --quiet; test $? -eq 0 -o $? -eq 1
+          "$prefix/node_modules/.bin/un-editorial-check" --self-scan --quiet
           rm -rf "$prefix" "$tarball"
