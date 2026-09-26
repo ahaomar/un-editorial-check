@@ -1,6 +1,6 @@
 ---
 name: un-editorial-check
-description: Reads user-visible copy the way a United Nations editor would — language, wording, tone, spelling, terminology, dates, numbers, claims and register — and reports what fails. Use when reviewing web pages, dashboards, blog posts, page titles, meta descriptions or copy baked into JavaScript by a coding agent. Checks HTML, Markdown, plain text and rendered JavaScript string literals only; it is not a code-quality, accessibility, security or SEO linter (those run only as explicit opt-in audits) and it does not judge whether a claim is true.
+description: Reads user-visible copy the way a United Nations editor would — language, wording, tone, grammar, hate speech, spelling, terminology, dates, numbers, claims and register — and reports what fails. Use when reviewing web pages, dashboards, blog posts, page titles, meta descriptions or copy baked into JavaScript by a coding agent. Checks HTML, Markdown, plain text and rendered JavaScript string literals only; it is not a code-quality, accessibility, security or SEO linter (those run only as explicit opt-in audits) and it does not judge whether a claim is true.
 license: MIT
 compatibility: Requires Node.js 18 or later and a host that can load the portable Agent Skills SKILL.md format.
 metadata:
@@ -18,7 +18,7 @@ Resolve `<skill-base>` from the directory containing this `SKILL.md`. All paths 
 
 1. Run `node <skill-base>/bin/check.mjs <paths>`.
 2. Address error-severity findings (exit code `1`). Review warnings; do not suppress them merely to obtain exit code `0`.
-3. Read the applicable files under [rules/](rules/): [spelling](rules/spelling.md), [terminology](rules/terminology.md), [numerals](rules/numerals.md), [register](rules/register.md) and [diplomacy](rules/diplomacy.md). Do not restate or reinterpret them from memory.
+3. Read the applicable files under [rules/](rules/): [spelling](rules/spelling.md), [terminology](rules/terminology.md), [numerals](rules/numerals.md), [register](rules/register.md), [diplomacy](rules/diplomacy.md), [hate speech](rules/hate-speech.md) and [grammar](rules/grammar.md). Do not restate or reinterpret them from memory.
 4. Work through `AGENT REVIEW REQUIRED` findings: whether claims match evidence, figures are sourced and dated, citations are complete, comparisons use aligned years, and labels say what was counted.
 5. Report deterministic findings separately from editorial judgement.
 

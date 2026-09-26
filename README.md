@@ -10,18 +10,20 @@ The product boundary is **report first**: a finding identifies a review requirem
 
 ## What it checks
 
-Editorial rules (17, always on):
+Editorial rules (26, always on):
 
 - British English spelling, mixed variants within a passage, and opt-in `-ize` review.
 - United Nations terminology: maternal mortality ratio, labour-force participation rates, lower-secondary completion rates, data centres’ share of electricity demand, “per cent” in running prose, “the United States”.
 - Day–month–year dates, en-dash ranges, hedged and sourced figures, counts that say what was counted, comparisons that align reference years.
-- Neutral register: promotional phrasing, rhetorical questions, exclamation marks, unsourced superlatives.
+- Neutral register and tone: promotional phrasing, rhetorical questions, exclamation marks, unsourced superlatives, direct insults and name-calling, threat or intimidation posture, and all-caps shouting.
 - Contested territorial and sovereignty claims stated as fact: flagged for attribution or neutral United Nations wording, symmetrically for every party to the claim, with a cited source per claim.
+- Hate speech: dehumanising frames, collective blame and calls for exclusion or violence against a group of people. Detection is composed over bounded pattern groups with a cited source each, is symmetric across groups, and never fires on attributed or quoted statements.
+- High-precision grammar: unintentionally doubled words, a space between a word and its following punctuation, and a missing space between two sentences — all deterministic, all repairable with `--fix`.
 - Supplied organisation vocabulary through data-only profiles.
 
 Audit rules (11, only with `--profile publishing`, `--profile accessibility` or `--profile security`): page title, meta description, canonical link, heading structure and card metadata; image and form-control labelling; four bounded source-code policies. Audits are reported in their own section and never change the exit code.
 
-The catalogue contains 28 stable rule IDs, indexed in [rules/catalogue.json](rules/catalogue.json). Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
+The catalogue contains 37 stable rule IDs, indexed in [rules/catalogue.json](rules/catalogue.json). Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
 
 ## What the CLI proves, and what it does not
 
@@ -285,7 +287,7 @@ Report-only operation is the default. `--fix` is opt-in and deliberately narrowe
 
 - `--fix` prints a diff labelled `(proposed)` and writes nothing; `--fix --apply` performs the same writes and labels them `(applied)`.
 - It accepts only regular prose files with `.txt`, `.md` or `.markdown` extensions. Anything else — HTML, JavaScript, JSON, configuration — is refused with exit code `2`.
-- It applies only deterministic replacements: British spelling (`UE-SP001`), `per cent` (`UE-TE003`), en-dash ranges (`UE-NU002`) and `the United States` (`UE-TE004`), honouring spelling allowlists.
+- It applies only deterministic replacements: British spelling (`UE-SP001`), `per cent` (`UE-TE003`), en-dash ranges (`UE-NU002`), `the United States` (`UE-TE004`), a doubled word (`UE-GR001`), a space before punctuation (`UE-GR002`) and a missing space between sentences (`UE-GR003`), honouring spelling allowlists.
 - It masks comments, script and style blocks, fenced code, block quotations, inline code, cited titles, `<cite>`, `<q>` and `<blockquote>`, URLs and paths. An unrelated occurrence elsewhere in the same file can remain fixable.
 - A fix is skipped, never guessed: if the matched copy is not present exactly where the offset map says it is, the finding is left alone and reported.
 - It refuses symbolic links, non-regular files and regular files with multiple hard links, and re-checks type, descriptor identity and link count before writing. This reduces path-replacement races but is not a race-proof sandbox.
@@ -378,7 +380,7 @@ Important limitations:
 - Allowlists and suppressions are blunt: they silence a rule over a span without proving the copy is correct.
 - Promotional vocabulary and superlatives come from bounded lists in the profile and in `lib/rules.mjs`; an unlisted superlative is not reported. Extend them with a fixture, not by loosening the pattern.
 - Contested-claim detection (`UE-DP001`) is a bounded knowledge base: listed regions, literal status phrases and a cited source per entry. A paraphrase outside the listed patterns is not reported, and the rule never decides which party's claim is correct — it asks for attribution or neutral wording.
-- Grammar, source accuracy, neutrality, claim support and year alignment require human review.
+- Grammar beyond the three high-precision patterns — agreement, tense, articles — requires human review, as do source accuracy, neutrality, claim support and year alignment.
 - A skill can direct an agent to read files or run tools. Audit skills and scripts as software, grant only necessary permissions and do not install a skill into a sensitive environment without review.
 
 ## Upgrade and maintenance

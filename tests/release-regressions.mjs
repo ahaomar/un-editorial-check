@@ -28,7 +28,10 @@ const config = write('config.json', '{}');
 // one would silently win and mask the configuration under test.
 const run = (...args) => spawnSync(process.execPath,
   [cli, ...args, ...(args.some(arg => arg === '--config' || arg.startsWith('--config=')) ? [] : ['--config', config])],
-  { encoding: 'utf8' });
+  // The robustness fixtures below produce deliberately huge reports (the
+  // long-line stress input yields tens of thousands of findings), so the
+  // default 1 MB spawn buffer would truncate stdout to nothing.
+  { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 const ids = result => {
   try { return [...new Set(JSON.parse(result.stdout).findings.map(f => f.ruleId))].sort(); }
   catch { return assert.fail(result.stderr || result.stdout); }
@@ -42,6 +45,8 @@ const EXPECTED_IDS = [
   'UE-NU001', 'UE-NU002', 'UE-RE001', 'UE-RE002', 'UE-RE003', 'UE-RE004', 'UE-RE005',
   'UE-DI001', 'UE-CL001', 'UE-DP001', 'UE-EO001', 'UE-EO002', 'UE-EO003', 'UE-EO004', 'UE-EO005',
   'UE-AX001', 'UE-AX002', 'UE-SE001', 'UE-SE002', 'UE-SE003', 'UE-SE004',
+  'UE-HS001', 'UE-HS002', 'UE-HS003', 'UE-RE006', 'UE-RE007', 'UE-RE008',
+  'UE-GR001', 'UE-GR002', 'UE-GR003',
 ];
 assert.equal(CATALOGUE.catalogueVersion, 1);
 assert.deepEqual(CATALOGUE.rules.map(rule => rule.id), EXPECTED_IDS, 'catalogue order and membership');
@@ -52,7 +57,8 @@ for (const rule of CATALOGUE.rules) {
   }
   assert(!('surface' in rule), `${rule.id}: "surface" was renamed to "scope"`);
   if (rule.profile === null) {
-    assert(['spelling', 'terminology', 'numerals', 'register', 'agent-review', 'diplomacy'].includes(rule.category),
+    assert(['spelling', 'terminology', 'numerals', 'register', 'agent-review', 'diplomacy',
+      'hate-speech', 'grammar'].includes(rule.category),
       `${rule.id}: editorial category ${rule.category}`);
   } else {
     assert(['publishing', 'accessibility', 'security'].includes(rule.profile), `${rule.id} profile`);

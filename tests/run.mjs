@@ -162,6 +162,32 @@ suppressions.forEach(([body, expected], index) => {
     'a suppression must not leak into the next paragraph');
 }
 
+// --- the Phase 2 families honour suppressions and configuration --------------
+
+{
+  const cases = [
+    ['UE-HS001', 'Foreigners are vermin.'],
+    ['UE-RE006', 'The envoy dismissed the amendment as a total sham and labelled the rapporteur a clown.'],
+    ['UE-GR001', 'The delegation reviewed the the same draft of the resolution.'],
+  ];
+  for (const [rule, body] of cases) {
+    assert.deepEqual(ids(scan(write(`suppress-${rule}.md`, `${body} <!-- ue:ignore ${rule} -->\n`))), [],
+      `${rule} must accept a ue:ignore suppression`);
+  }
+
+  // Disabling a new rule through configuration silences it over its own fixture.
+  const off = write('gr-off.json', JSON.stringify({ rules: { 'UE-GR001': { enabled: false } } }));
+  assert.deepEqual(ids(scan(fixture('positive', 'gr001-doubled.txt'), '--config', off)), [],
+    'config.rules enabled:false must silence UE-GR001');
+
+  // Downgrading a new error rule flips the exit code of its fixture.
+  const down = write('hs-downgrade.json', JSON.stringify({ severities: { 'UE-HS001': 'warning' } }));
+  const file = fixture('positive', 'hs001-dehumanising.txt');
+  assert.equal(scan(file).code, 1, 'the UE-HS001 fixture exits 1 at error severity');
+  assert.equal(scan(file, '--config', down).code, 0,
+    'config.severities must downgrade UE-HS001 to warning');
+}
+
 // --- quotations and cited titles are never checked or rewritten --------------
 
 assert.deepEqual(ids(scan(write('quote.txt', '> The organization reports.\n'))), []);
