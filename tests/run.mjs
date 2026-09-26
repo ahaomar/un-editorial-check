@@ -19,6 +19,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { CATALOGUE, run } from '../bin/check.mjs';
+import { parseJsonStrict } from '../lib/config.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cli = path.join(root, 'bin', 'check.mjs');
@@ -166,6 +167,37 @@ suppressions.forEach(([body, expected], index) => {
 assert.deepEqual(ids(scan(write('quote.txt', '> The organization reports.\n'))), []);
 assert.deepEqual(ids(scan(write('cite.md', 'See <cite>Organization of African Unity</cite> here.\n'))), []);
 
+// --- fenced blocks in plain text are out of reach ----------------------------
+
+{
+  // The fence must open on its marker line, not close on it: when the open
+  // and close patterns are identical, the marker used to collapse its own
+  // region and the body below it reached the rules and the fixer.
+  const body = [
+    'The US reported 45% in the intro.',
+    '',
+    '```text',
+    'The US reported 45% inside the fence.',
+    '```',
+    '',
+  ].join('\n');
+  const result = json(scan(write('fence-body.txt', body)));
+  assert(result.findings.length > 0, 'the intro line outside the fence must be checked');
+  assert(result.findings.every(f => f.line === 1),
+    `findings may only come from outside the fence: ${JSON.stringify(result.findings.map(f => [f.ruleId, f.line]))}`);
+
+  assert.deepEqual(ids(scan(write('fence-open.txt', '```text\nThe US reported 45% in the open fence.\n'))), [],
+    'a fence left open masks to the end of the file');
+
+  // The reported --fix regression: a fenced body must survive --apply byte
+  // for byte, because no finding may exist inside the fence for a fix to use.
+  const fenced = 'Intro line.\n\n```text\nThe US delivered 45% of the supplies.\n```\n';
+  const target = write('fence-fix.txt', fenced);
+  const applied = capture([target, '--fix', '--apply']);
+  assert.equal(applied.code, 0, `a fully fenced file has nothing to fix: ${applied.stderr}`);
+  assert.equal(fs.readFileSync(target, 'utf8'), fenced, 'no part of a fenced block may ever be rewritten');
+}
+
 // --- --fix -------------------------------------------------------------------
 
 {
@@ -260,6 +292,23 @@ for (const name of ['page.html', 'script.js']) {
   assert.deepEqual(ids(scan(file)), [], 'the -ize review is opt-in');
   assert.deepEqual(ids(scan(file, '--config', review)), ['UE-SP003']);
   assert.equal(scan(file, '--config', review).code, 0, 'notes must not fail the run');
+  // Sentence-initial capitals are reviewed like any other occurrence.
+  const upper = write('ize-upper.txt', 'Optimize the annexes before publication.\n');
+  assert.deepEqual(ids(scan(upper, '--config', review)), ['UE-SP003'],
+    'a sentence-initial -ize form must be reviewed too');
+  // Words that end in -ize without being spelling variants are never flagged.
+  const nonCandidate = write('ize-noncandidate.txt', 'The file size grew. She won a prize for it.\n');
+  assert.deepEqual(ids(scan(nonCandidate, '--config', review)), [],
+    'size and prize are not -ise candidates');
+}
+// A qualifier must sit in the count's own sentence: a hedge in the next
+// sentence must not cover an unqualified figure.
+{
+  const cross = write('di001-cross.txt', 'The dashboard covers 127 countries. The total is confirmed.\n');
+  assert.deepEqual(ids(scan(cross)), ['UE-DI001'],
+    'a qualifier in the following sentence must not excuse the count');
+  const same = write('di001-same.txt', 'The survey covered 127 countries in total.\n');
+  assert.deepEqual(ids(scan(same)), [], 'a qualifier in the same sentence satisfies the rule');
 }
 {
   const allowed = write('allowed.json', JSON.stringify({ allowlist: { spellings: ['organization'] } }));
@@ -348,6 +397,18 @@ for (const name of ['page.html', 'script.js']) {
 }
 
 {
+  // Shapes the contested-claims knowledge base must reject: a claim entry is
+  // all required fields (the source citation is what makes it reviewable) and
+  // patterns may only use the {subject}/{claimant} placeholders with their own
+  // literal claim wording between them.
+  const claim = (overrides = {}) => ({
+    id: 'DP-X', topic: 'Test Region', subjects: ['Test Region'], claimants: ['Testland'],
+    patterns: ['{subject} is part of {claimant}'],
+    neutral: 'the disputed territory of Test Region',
+    unTerminology: 'the question of Test Region',
+    source: 'fixture source',
+    ...overrides,
+  });
   const invalidShapes = [
     {},
     { profileVersion: 1, name: '', source: 'x' },
@@ -360,6 +421,19 @@ for (const name of ['page.html', 'script.js']) {
     { profileVersion: 1, name: 'x', source: 'y', register: { unknown: [] } },
     { profileVersion: 1, name: 'x', source: 'y', rules: { 'UE-RE003': { enabled: true, extra: true } } },
     { profileVersion: 1, name: 'x', source: 'y', pageUrl: '/relative' },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: 'nope' },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { unknown: [] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: 'nope' } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [{}] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim(), claim()] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim({ source: '' })] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim({ neutral: '  ' })] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim({ subjects: [] })] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim({ patterns: ['{subject}'] })] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim({ patterns: ['{subject} is part of {bogus}'] })] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim({ patterns: [' is part of {claimant}'] })] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim({ patterns: ['{subject} is part of {claimant}'], claimants: [] })] } },
+    { profileVersion: 1, name: 'x', source: 'y', diplomacy: { claims: [claim({ bogus: true })] } },
     { auditVersion: 1, name: 'security', category: 'nope', rules: ['UE-SE001'] },
     { auditVersion: 1, name: 'security', category: 'security', rules: ['UE-NOPE'] },
   ];
@@ -371,6 +445,81 @@ for (const name of ['page.html', 'script.js']) {
   });
 }
 
+// --- contested claims: UE-DP001 -----------------------------------------------
+
+{
+  // Every finding carries what is currently written and what should replace
+  // it: the two halves of the current-to-should-be report.
+  const finding = json(scan(fixture('positive', 'dp001.txt'))).findings[0];
+  assert.equal(finding.ruleId, 'UE-DP001');
+  assert.equal(finding.current, 'Kashmir is part of India');
+  assert.equal(finding.proposed, 'the disputed territory of Jammu and Kashmir');
+  assert.equal(finding.severity, 'error');
+  assert.match(finding.suggestion, /Security Council resolution 47 \(1948\)/,
+    `the finding must cite its source: ${finding.suggestion}`);
+}
+{
+  // Deterministic replacements elsewhere report both halves too.
+  const finding = json(scan(fixture('positive', 'sp001.txt'))).findings[0];
+  assert.equal(finding.current, 'organization');
+  assert.equal(finding.proposed, 'organisation');
+}
+{
+  // A single claim can be opted out of by id without touching the others.
+  const file = write('claim-opt.txt', 'Kashmir is part of India.\n');
+  assert.deepEqual(ids(scan(file)), ['UE-DP001']);
+  const allowed = write('claim-allow.json', JSON.stringify({ allowlist: { claims: ['DP-KASHMIR'] } }));
+  assert.deepEqual(ids(scan(file, '--config', allowed)), []);
+}
+{
+  // Downgrading the rule keeps the finding visible but stops it failing the run.
+  const file = write('claim-severity.txt', 'Kashmir is part of India.\n');
+  const warn = write('claim-severity.json', JSON.stringify({ severities: { 'UE-DP001': 'warning' } }));
+  const result = scan(file, '--config', warn);
+  assert.deepEqual(ids(result), ['UE-DP001']);
+  assert.equal(json(result).findings[0].severity, 'warning',
+    'a config severity override must reach the finding as a plain severity');
+  assert.equal(result.code, 0, 'a downgraded claim must not fail the run');
+}
+{
+  // ue:ignore suppresses the rule in its copy span like any other.
+  const file = write('claim-ignore.md', 'Kashmir is part of India. <!-- ue:ignore UE-DP001 -->\n');
+  assert.deepEqual(ids(scan(file)), []);
+}
+{
+  // An organisation profile adds a claim the baseline does not know and
+  // replaces the baseline entry it names.
+  const profile = write('claims-profile.json', JSON.stringify({
+    profileVersion: 1, name: 'Claims', source: 'fixture',
+    diplomacy: {
+      claims: [
+        {
+          id: 'DP-TESTREGION', topic: 'Test Region',
+          subjects: ['Test Region'], claimants: ['Testland'],
+          patterns: ['{subject} is part of {claimant}'],
+          neutral: 'the disputed territory of Test Region',
+          unTerminology: 'the question of Test Region',
+          source: 'fixture source',
+        },
+        {
+          id: 'DP-KASHMIR', topic: 'Jammu and Kashmir',
+          subjects: ['Kashmir'], claimants: ['India'],
+          patterns: ['{subject} is sovereign territory of {claimant}'],
+          neutral: 'the disputed territory of Jammu and Kashmir',
+          unTerminology: 'the question of Jammu and Kashmir',
+          source: 'fixture source',
+        },
+      ],
+    },
+  }));
+  const added = write('claim-added.txt', 'Test Region is part of Testland.\n');
+  assert.deepEqual(ids(scan(added)), [], 'the baseline does not know this claim');
+  assert.deepEqual(ids(scan(added, '--profile', profile)), ['UE-DP001']);
+  const replaced = write('claim-replaced.txt', 'Kashmir is part of India.\n');
+  assert.deepEqual(ids(scan(replaced, '--profile', profile)), [],
+    'an organisation claim replaces the baseline entry with the same id');
+}
+
 // --- configuration validation ------------------------------------------------
 
 const configErrors = [
@@ -380,6 +529,7 @@ const configErrors = [
   [{ baseOrigin: null, spellingReview: 'false' }, /spellingReview must be a boolean/i],
   [{ allowlist: [] }, /allowlist must be an object/i],
   [{ allowlist: { spellings: 'organization' } }, /allowlist\.spellings must be an array/i],
+  [{ allowlist: { claims: 'DP-KASHMIR' } }, /allowlist\.claims must be an array/i],
   [{ rules: [] }, /rules must be an object/i],
   [{ severities: 'error' }, /severities must be an object/i],
   [{ severities: { 'UE-NOPE': 'error' } }, /severities contains unknown rule/i],
@@ -396,6 +546,19 @@ for (const [settings, pattern] of configErrors) {
 {
   const malformed = write('malformed.json', '{');
   assert.equal(capture(['--config', malformed]).code, 2);
+}
+{
+  // JSON.parse keeps only the last duplicate value, so the parsed tree can
+  // never show a duplicate — fail-closed rejection has to read the raw text.
+  const dup = write('dup-keys.json', '{"spellingReview": false, "spellingReview": true}');
+  const result = capture(['--config', dup]);
+  assert.equal(result.code, 2, 'a duplicate-key config must fail closed');
+  assert.match(result.stderr, /duplicate keys: spellingReview/);
+  assert.throws(() => parseJsonStrict('{"a": {"x": 1, "x": 2}}', 'nested.json'),
+    /duplicate keys: x/, 'a nested duplicate must be rejected too');
+  // Strings that merely contain separators are values, not keys.
+  assert.deepEqual(parseJsonStrict('{"a": "key: {value}", "b": [1, 2]}', 'ok.json'),
+    { a: 'key: {value}', b: [1, 2] });
 }
 
 // --- ignored paths and directory walking -------------------------------------

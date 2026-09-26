@@ -10,17 +10,18 @@ The product boundary is **report first**: a finding identifies a review requirem
 
 ## What it checks
 
-Editorial rules (16, always on):
+Editorial rules (17, always on):
 
 - British English spelling, mixed variants within a passage, and opt-in `-ize` review.
 - United Nations terminology: maternal mortality ratio, labour-force participation rates, lower-secondary completion rates, data centres’ share of electricity demand, “per cent” in running prose, “the United States”.
 - Day–month–year dates, en-dash ranges, hedged and sourced figures, counts that say what was counted, comparisons that align reference years.
 - Neutral register: promotional phrasing, rhetorical questions, exclamation marks, unsourced superlatives.
+- Contested territorial and sovereignty claims stated as fact: flagged for attribution or neutral United Nations wording, symmetrically for every party to the claim, with a cited source per claim.
 - Supplied organisation vocabulary through data-only profiles.
 
 Audit rules (11, only with `--profile publishing`, `--profile accessibility` or `--profile security`): page title, meta description, canonical link, heading structure and card metadata; image and form-control labelling; four bounded source-code policies. Audits are reported in their own section and never change the exit code.
 
-The v0.4.0 catalogue contains 27 stable rule IDs, indexed in [rules/catalogue.json](rules/catalogue.json). Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
+The catalogue contains 28 stable rule IDs, indexed in [rules/catalogue.json](rules/catalogue.json). Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
 
 ## What the CLI proves, and what it does not
 
@@ -76,6 +77,8 @@ npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editoria
 ```
 
 Use `--global` for a user-level installation. Use `--copy` instead of the CLI's default symbolic-link installation when the agent or filesystem does not support links. Review the target path shown by the CLI.
+
+In non-interactive shells — an agent, a CI job, a script — always pass `--yes` (`-y`). Without a confirmation flag, `skills add` waits for a prompt that never comes and exits `0` having installed nothing; an installer that checks only the exit code would record a success that never happened.
 
 ### OpenCode 1.x and 2.x
 
@@ -261,7 +264,7 @@ CI should treat exit code `1` as a requested policy failure and exit code `2` as
 ### Output formats
 
 - **Text:** sectioned report — `EDITORIAL ERRORS`, `EDITORIAL WARNINGS`, `EDITORIAL NOTES`, `AGENT REVIEW REQUIRED`, then `OPTIONAL AUDIT — <name>` for each audit that was requested.
-- **JSON:** the same findings as records carrying `file`, `line`, `column`, `ruleId`, `category`, `severity`, `confidence`, `scope`, `message` and `suggestion`; audit findings are tagged with their `audit`. Internal fields are stripped from every format.
+- **JSON:** the same findings as records carrying `file`, `line`, `column`, `ruleId`, `category`, `severity`, `confidence`, `scope`, `message`, `suggestion`, `current` and `proposed`; audit findings are tagged with their `audit`. Internal fields are stripped from every format.
 - **SARIF:** SARIF 2.1.0 for code-scanning tools that accept static-analysis output.
 
 A suppression belongs to the copy span that contains it — one paragraph in HTML or Markdown, one line in JavaScript. Keep it narrow and record the reason in version control:
@@ -311,7 +314,7 @@ Defaults live in [config/default.json](config/default.json). Override them with 
 }
 ```
 
-- `allowlist.spellings` names words the spelling rules leave alone. `allowlist.terminology` must repeat the unapproved term exactly as the profile writes it, and `allowlist.register` names phrases that are fine in this project.
+- `allowlist.spellings` names words the spelling rules leave alone. `allowlist.terminology` must repeat the unapproved term exactly as the profile writes it, and `allowlist.register` names phrases that are fine in this project. `allowlist.claims` names contested-claim knowledge-base entries (for example `DP-KASHMIR`) whose detection is switched off for this project.
 - `severities` promotes or downgrades one rule; `rules` carries `{"enabled": false}` to switch one off. Both are validated against the catalogue, so a mistyped rule ID fails with exit code `2` instead of quietly doing nothing.
 - `spellingReview` enables the `-ize` review (`UE-SP003`).
 - `renderTargets` adds project-specific identifiers to the JavaScript keys and calls treated as rendering copy.
@@ -348,7 +351,7 @@ A profile adds organisation-specific data without forking the skill:
 }
 ```
 
-Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling` (a word-to-word map; each key must already exist in the baseline vocabulary so a typo cannot disable a rule), `terminology.forbidden` (a list of pairs, or `{ "rule", "from", "to" }` objects to target one rule), `register` (an object with `forbidden` and `approved` lists), `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, and non-HTTP(S) page URLs fail closed with exit code `2`. Profiles contain data only and cannot execute JavaScript.
+Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling` (a word-to-word map; each key must already exist in the baseline vocabulary so a typo cannot disable a rule), `terminology.forbidden` (a list of pairs, or `{ "rule", "from", "to" }` objects to target one rule), `register` (an object with `forbidden` and `approved` lists), `diplomacy` (an object whose `claims` array adds or replaces contested-claim knowledge-base entries, merged by `id`), `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, incomplete claim entries and non-HTTP(S) page URLs fail closed with exit code `2`. Profiles contain data only and cannot execute JavaScript.
 
 A profile's `severities` and `rules` are applied to the run; where a configuration file sets the same key, the configuration file wins.
 
@@ -357,7 +360,7 @@ The packaged baseline is [config/profiles/un-v1.json](config/profiles/un-v1.json
 ### Extending an organisation profile
 
 1. Record an authoritative, reviewable source and its verification date outside the executable schema or in the profile name/source metadata.
-2. Add only bounded terminology, spelling, register, severity or rule-state differences.
+2. Add only bounded terminology, spelling, register, claim, severity or rule-state differences.
 3. Add positive and negative fixtures for each accepted and rejected case.
 4. Run `npm test` and the portability validator.
 5. Submit changes through the contribution and security review process; do not copy `SKILL.md` into an organisation-specific fork.
@@ -374,6 +377,7 @@ Important limitations:
 - The date rule detects slash dates in prose; it cannot infer the intended locale of an ambiguous numeric date.
 - Allowlists and suppressions are blunt: they silence a rule over a span without proving the copy is correct.
 - Promotional vocabulary and superlatives come from bounded lists in the profile and in `lib/rules.mjs`; an unlisted superlative is not reported. Extend them with a fixture, not by loosening the pattern.
+- Contested-claim detection (`UE-DP001`) is a bounded knowledge base: listed regions, literal status phrases and a cited source per entry. A paraphrase outside the listed patterns is not reported, and the rule never decides which party's claim is correct — it asks for attribution or neutral wording.
 - Grammar, source accuracy, neutrality, claim support and year alignment require human review.
 - A skill can direct an agent to read files or run tools. Audit skills and scripts as software, grant only necessary permissions and do not install a skill into a sensitive environment without review.
 
@@ -393,7 +397,7 @@ If an update cannot be applied cleanly:
 
 ```sh
 npx skills remove un-editorial-check
-npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check
+npx skills add https://github.com/ahaomar/un-editorial-check --skill un-editorial-check --yes
 npx skills list
 ```
 

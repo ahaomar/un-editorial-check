@@ -113,6 +113,83 @@
     "approved": []
   },
 
+  "diplomacy": {
+    "claims": [
+      {
+        "id": "DP-KASHMIR",
+        "topic": "Jammu and Kashmir",
+        "subjects": ["Jammu and Kashmir", "Kashmir"],
+        "claimants": ["India", "Pakistan"],
+        "patterns": [
+          "{subject} is part of {claimant}",
+          "{subject} is a part of {claimant}",
+          "{subject} belongs to {claimant}",
+          "{subject} is an integral part of {claimant}",
+          "{subject} is an inalienable part of {claimant}",
+          "{claimant} has sovereignty over {subject}",
+          "{subject} is an independent country"
+        ],
+        "neutral": "the disputed territory of Jammu and Kashmir",
+        "unTerminology": "the question of Jammu and Kashmir",
+        "source": "United Nations Security Council resolution 47 (1948) on the question of Jammu and Kashmir"
+      },
+      {
+        "id": "DP-TAIWAN",
+        "topic": "Taiwan",
+        "subjects": ["Taiwan"],
+        "claimants": ["China", "People's Republic of China"],
+        "patterns": [
+          "{subject} is part of {claimant}",
+          "{subject} is a part of {claimant}",
+          "{subject} belongs to {claimant}",
+          "{subject} is an integral part of {claimant}",
+          "{subject} is an inalienable part of {claimant}",
+          "{claimant} has sovereignty over {subject}",
+          "{subject} is an independent country"
+        ],
+        "neutral": "Taiwan",
+        "unTerminology": "Taiwan, province of China",
+        "source": "United Nations General Assembly resolution 2758 (1971) and the UN Terminology Bulletin"
+      },
+      {
+        "id": "DP-HONGKONG",
+        "topic": "Hong Kong",
+        "subjects": ["Hong Kong"],
+        "claimants": ["China", "People's Republic of China"],
+        "patterns": [
+          "{subject} is part of {claimant}",
+          "{subject} is a part of {claimant}",
+          "{subject} belongs to {claimant}",
+          "{subject} is an integral part of {claimant}",
+          "{subject} is an inalienable part of {claimant}",
+          "{claimant} has sovereignty over {subject}",
+          "{subject} is an independent country"
+        ],
+        "neutral": "Hong Kong",
+        "unTerminology": "the Hong Kong Special Administrative Region of China",
+        "source": "Sino-British Joint Declaration on the Question of Hong Kong, registered with the United Nations (1984)"
+      },
+      {
+        "id": "DP-CRIMEA",
+        "topic": "Crimea",
+        "subjects": ["Crimea", "the Crimean Peninsula"],
+        "claimants": ["Russia", "Ukraine"],
+        "patterns": [
+          "{subject} is part of {claimant}",
+          "{subject} is a part of {claimant}",
+          "{subject} belongs to {claimant}",
+          "{subject} is an integral part of {claimant}",
+          "{subject} is an inalienable part of {claimant}",
+          "{claimant} has sovereignty over {subject}",
+          "{subject} is an independent country"
+        ],
+        "neutral": "the Crimean Peninsula",
+        "unTerminology": "the Autonomous Republic of Crimea",
+        "source": "United Nations General Assembly resolution 68/262 (2014) on the territorial integrity of Ukraine"
+      }
+    ]
+  },
+
   "severities": {},
   "rules": {}
 }

@@ -16,6 +16,7 @@
   "di001.txt": ["UE-DI001"],
   "cl001.txt": ["UE-CL001"],
   "cl001-exceeded.txt": ["UE-CL001"],
+  "dp001.txt": ["UE-DP001"],
   "js-narrative-pct.js": ["UE-TE003"],
   "md-pct.md": ["UE-RE003", "UE-TE003"],
   "html-pct.html": ["UE-RE003", "UE-TE003"],

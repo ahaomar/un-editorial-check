@@ -10,7 +10,7 @@
 These three are reported as warnings in the `AGENT REVIEW REQUIRED` section. They are prompts for a reviewer, not verdicts, and never reach error severity.
 
 - **UE-RE003** — A prose figure needs a hedge such as “approximately”, “at least” or “an estimated”, and should identify source and date.
-- **UE-DI001** — A coverage count must state what is counted: member economies, economies with a value, or economies drawable on a map.
+- **UE-DI001** — A coverage count must state what is counted: member economies, economies with a value, or economies drawable on a map. The qualifying word must appear in the count's own sentence; a qualifier in the next sentence does not cover it.
 - **UE-CL001** — A comparison may be aligning different reference periods. Check that the compared values share a reference year, and say “reported on or before” when values are carried forward.
 
 The checker does not calculate ratios, validate years against source rows, or prove that prose matches rendered data. Ordinal ranks are not counts; verify off-by-one boundaries yourself.

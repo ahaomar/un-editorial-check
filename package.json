@@ -1,15 +1,56 @@
 {
   "name": "un-editorial-check",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Reads user-visible copy the way a UN editor would: language, wording, tone, spelling, terminology, dates, numbers, claims and register. Report-first, with a conservative opt-in fixer.",
   "type": "module",
-  "bin": { "un-editorial-check": "bin/check.mjs" },
-  "files": ["bin", "lib", "rules", "config", "scripts", "agents", "skills.sh.json", "SKILL.md", "README.md", "COMPATIBILITY.md", "LICENSE", "VERSION", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "MAINTAINING.md"],
-  "engines": { "node": ">=18" },
-  "scripts": { "test": "node tests/run.mjs && node tests/release-regressions.mjs && node tests/portability-frontmatter.mjs && node scripts/validate-portability.mjs", "check:portability": "node scripts/validate-portability.mjs", "check:syntax": "node --check bin/check.mjs && for f in lib/*.mjs tests/*.mjs scripts/*.mjs; do node --check \"$f\" || exit 1; done" },
-  "keywords": ["un", "editorial", "editorial-standards", "copy-check", "linter", "british-english", "sarif", "static-analysis", "zero-dependency"],
-  "repository": { "type": "git", "url": "git+https://github.com/ahaomar/un-editorial-check.git" },
+  "bin": {
+    "un-editorial-check": "bin/check.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "rules",
+    "config",
+    "scripts",
+    "agents",
+    "skills.sh.json",
+    "SKILL.md",
+    "README.md",
+    "COMPATIBILITY.md",
+    "LICENSE",
+    "VERSION",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "MAINTAINING.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node tests/run.mjs && node tests/release-regressions.mjs && node tests/portability-frontmatter.mjs && node scripts/validate-portability.mjs",
+    "check:portability": "node scripts/validate-portability.mjs",
+    "check:syntax": "node --check bin/check.mjs && for f in lib/*.mjs tests/*.mjs scripts/*.mjs; do node --check \"$f\" || exit 1; done"
+  },
+  "keywords": [
+    "un",
+    "editorial",
+    "editorial-standards",
+    "copy-check",
+    "linter",
+    "british-english",
+    "sarif",
+    "static-analysis",
+    "zero-dependency"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahaomar/un-editorial-check.git"
+  },
   "homepage": "https://github.com/ahaomar/un-editorial-check#readme",
-  "bugs": { "url": "https://github.com/ahaomar/un-editorial-check/issues" },
+  "bugs": {
+    "url": "https://github.com/ahaomar/un-editorial-check/issues"
+  },
   "license": "MIT"
 }

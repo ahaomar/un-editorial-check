@@ -1,7 +1,7 @@
 # Register
 
 - **UE-RE001** *(warning)* — Avoid loaded or informal phrases including “boom”, “appetite”, “furthest behind”, “on the line” and “as donors retreat”. Use a neutral factual construction.
-- **UE-RE004** *(warning)* — Do not use rhetorical questions in UN editorial copy; state the finding.
+- **UE-RE004** *(warning, heuristic)* — Do not use rhetorical questions in UN editorial copy; state the finding. The rule matches sentence-initial question openers only, and a genuine information question can match the same openers — the finding is routed to review, never declared a defect.
 - **UE-RE005** *(error)* — No exclamation marks in formal copy. Deterministic and fixable.
 
 ## Agent review required
