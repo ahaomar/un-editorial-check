@@ -1,6 +1,6 @@
 {
   "name": "un-editorial-check",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Reads user-visible copy the way a UN editor would: language, wording, tone, spelling, terminology, dates, numbers, claims and register. Report-first, with a conservative opt-in fixer.",
   "type": "module",
   "bin": {
