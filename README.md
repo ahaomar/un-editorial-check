@@ -1,6 +1,6 @@
 # un-editorial-check
 
-[![skills.sh](https://skills.sh/badge/ahaomar/un-editorial-check/un-editorial-check)](https://skills.sh/ahaomar/un-editorial-check/un-editorial-check)
+[![skills.sh](https://skills.sh/b/ahaomar/un-editorial-check)](https://skills.sh/ahaomar/un-editorial-check/un-editorial-check)
 
 A portable, zero-dependency Node.js CLI and Agent Skill that reads user-visible copy the way a United Nations editor would — language, wording, tone, spelling, terminology, dates, numbers, claims and register — and reports what fails.
 
