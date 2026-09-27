@@ -98,6 +98,27 @@ assert.equal(pkg.license, 'MIT');
 assert.equal(pkg.type, 'module');
 assert.equal(pkg.engines.node, '>=18');
 
+// --- doc truth: the --fix boundary claims -----------------------------------
+// The SKILL.md fix list and the UE-RE005 claim in rules/register.md both went
+// stale once — prose promised behaviour the engine does not have. These locks
+// pin the wording to the code's actual fixable set.
+{
+  const fixPara = skill.split('\n').find(line => line.startsWith('Never use `--fix`'));
+  assert(fixPara, 'SKILL.md must keep its --fix boundary paragraph');
+  for (const item of ['British spelling', 'per cent', 'en-dash ranges',
+    'the United States', 'a doubled word', 'a space before punctuation',
+    'a missing space between sentences']) {
+    assert(fixPara.includes(item), `SKILL.md --fix list must mention ${item}`);
+  }
+  assert(!fixPara.includes('exclamation marks) in'),
+    'SKILL.md must not claim exclamation marks are --fix-able');
+  const registerPage = fs.readFileSync(path.join(root, 'rules', 'register.md'), 'utf8');
+  const re005Line = registerPage.split('\n').find(line => line.startsWith('- **UE-RE005**'));
+  assert(re005Line, 'rules/register.md must document UE-RE005');
+  assert(re005Line.includes('report-only') && !re005Line.includes('fixable'),
+    'rules/register.md must call UE-RE005 report-only, never fixable');
+}
+
 const version = run('--version');
 assert.equal(version.status, 0, version.stderr);
 assert.equal(version.stdout.trim(), `un-editorial-check ${VERSION}`);

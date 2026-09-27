@@ -32,4 +32,4 @@ Composition over word lists: a frame, accusation or verb never matches on its ow
 
 ## Reporting
 
-Findings carry `current`, the matched wording, and a suggestion that cites the knowledge-base source behind the finding; UE-HS002 says `heuristic, routed to review` on every finding. Nothing here is rewritten by `--fix`: no finding carries replacement or proposed wording. A match is wording for human review, not a legal finding of incitement.
+Findings carry `current`, the matched wording, and a suggestion that cites the knowledge-base source behind the finding; UE-HS002 says `heuristic, routed to review` on every finding. Nothing here is rewritten by `--fix`: no finding carries a replacement, and `proposed` carries review guidance only. A match is wording for human review, not a legal finding of incitement.

@@ -4,8 +4,8 @@ description: Reads user-visible copy the way a United Nations editor would — l
 license: MIT
 compatibility: Requires Node.js 18 or later and a host that can load the portable Agent Skills SKILL.md format.
 metadata:
-  version: "0.6.0"
-  source-date: "2026-09-26"
+  version: "0.7.0"
+  source-date: "2026-09-27"
 ---
 
 # UN editorial check
@@ -16,7 +16,7 @@ Resolve `<skill-base>` from the directory containing this `SKILL.md`. All paths 
 
 ## Workflow
 
-1. Run `node <skill-base>/bin/check.mjs <paths>`.
+1. Run `node <skill-base>/bin/check.mjs <paths>`. Add `--report <path.pdf>` to write a current-to-should-be PDF of the same findings for the user.
 2. Address error-severity findings (exit code `1`). Review warnings; do not suppress them merely to obtain exit code `0`.
 3. Read the applicable files under [rules/](rules/): [spelling](rules/spelling.md), [terminology](rules/terminology.md), [numerals](rules/numerals.md), [register](rules/register.md), [diplomacy](rules/diplomacy.md), [hate speech](rules/hate-speech.md) and [grammar](rules/grammar.md). Do not restate or reinterpret them from memory.
 4. Work through `AGENT REVIEW REQUIRED` findings: whether claims match evidence, figures are sourced and dated, citations are complete, comparisons use aligned years, and labels say what was counted.
@@ -30,7 +30,7 @@ Code quality, accessibility, security and SEO findings are **audits**, not edito
 
 ## Boundaries
 
-Never use `--fix` without showing the user the target files first. `--fix` prints a `(proposed)` diff and writes nothing; `--fix --apply` writes and labels results `(applied)`. It is limited to deterministic replacements (spelling, `per cent`, en dashes, exclamation marks) in `.md`, `.markdown` and `.txt` files, and it refuses symbolic links, hard-linked files and anything that is not a regular file. Review every resulting diff. It does not rewrite dates, terminology or claims.
+Never use `--fix` without showing the user the target files first. `--fix` prints a `(proposed)` diff and writes nothing; `--fix --apply` writes and labels results `(applied)`. It is limited to deterministic replacements (British spelling, `per cent`, en-dash ranges, `the United States`, a doubled word, a space before punctuation and a missing space between sentences) in `.md`, `.markdown` and `.txt` files, and it refuses symbolic links, hard-linked files and anything that is not a regular file. Review every resulting diff. It does not rewrite dates, terminology, claims or exclamation marks.
 
 Exit codes: `0` no error-severity editorial findings, `1` error-severity editorial findings, `2` usage, configuration, scan or write failure. Audits never move the exit code.
 

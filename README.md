@@ -269,6 +269,8 @@ CI should treat exit code `1` as a requested policy failure and exit code `2` as
 - **JSON:** the same findings as records carrying `file`, `line`, `column`, `ruleId`, `category`, `severity`, `confidence`, `scope`, `message`, `suggestion`, `current` and `proposed`; audit findings are tagged with their `audit`. Internal fields are stripped from every format.
 - **SARIF:** SARIF 2.1.0 for code-scanning tools that accept static-analysis output.
 
+`--report <path.pdf>` writes the same review as a PDF, whatever `--format` says on stdout. It opens with the scan's scope and counts, then every finding grouped by file — what is currently written under `Current`, what should replace it under `Should be`, with a marker for findings that are `--fix-able` and findings that need a manual or agent rewrite — followed by a queue of heuristic findings for review and the knowledge-base sources behind contested-claim and hate-speech findings. The file is written before `--fix --apply`, so it records the pre-fix state of the copy, and each page carries a footer stating that the report changes nothing. `--quiet` still writes it; an unwritable path is a refusal with exit code `2`. The PDF uses Helvetica with WinAnsi encoding: typographic dashes and quotation marks are converted to their plain forms, and a character outside that encoding is replaced with `?`.
+
 A suppression belongs to the copy span that contains it — one paragraph in HTML or Markdown, one line in JavaScript. Keep it narrow and record the reason in version control:
 
 ```html

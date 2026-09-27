@@ -716,7 +716,73 @@ for (const format of ['json', 'sarif']) {
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /--fix/);
   assert.match(help.stdout, /--profile/);
+  assert.match(help.stdout, /--report/);
   assert.match(help.stdout, /EXIT CODES/);
+}
+
+// --- --report: the current-to-should-be PDF ----------------------------------
+
+{
+  const pdfText = file => fs.readFileSync(file, 'latin1');
+  const isPdf = bytes => bytes.startsWith('%PDF-1.4') && bytes.trimEnd().endsWith('%%EOF');
+
+  // A missing or empty value is a usage failure (exit 2), like every other flag.
+  // These two run the real binary: the suite's capture() appends --config, which
+  // would otherwise be swallowed as --report's value.
+  const missing = spawnSync(process.execPath, [cli, '--report'], { encoding: 'utf8' });
+  assert.equal(missing.status, 2, `--report without a value must refuse, got ${missing.status}`);
+  assert.match(missing.stderr, /--report requires a value/);
+  const empty = spawnSync(process.execPath, [cli, '--report=', fixture('negative', 'hs-clean-copy.txt')],
+    { encoding: 'utf8' });
+  assert.equal(empty.status, 2, '--report= must refuse');
+  assert.match(empty.stderr, /--report requires a value/);
+
+  // A clean scan writes a structurally valid PDF and does not move the exit code.
+  const clean = fixture('negative', 'hs-clean-copy.txt');
+  const without = capture([clean]);
+  const cleanPdf = path.join(tmp, 'clean.pdf');
+  const withReport = capture([clean, '--report', cleanPdf]);
+  assert.equal(withReport.code, without.code, '--report must not change the exit code');
+  assert(withReport.code === 0, 'the clean fixture must scan clean');
+  const cleanBytes = pdfText(cleanPdf);
+  assert(isPdf(cleanBytes), 'the report must be a structurally complete PDF');
+  assert.match(cleanBytes, /UN Editorial Review/, 'the report must carry its title');
+  assert.match(cleanBytes, /report only; findings are not changed by this report\./,
+    'every report must carry the report-only footer promise');
+
+  // The exit code is identical with and without --report on a failing corpus.
+  const dp = fixture('positive', 'dp001.txt');
+  const dpPlain = scan(dp);
+  assert.equal(dpPlain.code, 1, 'the contested-claims fixture must exit 1');
+  const dpPdf = path.join(tmp, 'dp.pdf');
+  const dpReported = capture([dp, '--report', dpPdf]);
+  assert.equal(dpReported.code, dpPlain.code, '--report must not change a failing exit code');
+  const dpBytes = pdfText(dpPdf);
+  assert(isPdf(dpBytes), 'the contested-claims report must be a complete PDF');
+  assert(dpPlain.stdout.includes('UE-DP001'), 'the fixture must fire UE-DP001');
+  assert.match(dpBytes, /resolution/, 'the Sources appendix must cite the claims knowledge base');
+
+  // Unwritable paths are refusals (exit 2), named in the error.
+  const bad = capture([clean, '--report', path.join(tmp, 'no-such-dir', 'x.pdf')]);
+  assert.equal(bad.code, 2, 'an unwritable report path must refuse with exit 2');
+  assert.match(bad.stderr, /cannot write report/);
+
+  // --report composes with --format json: stdout stays JSON, the file is written.
+  const jsonPdf = path.join(tmp, 'json.pdf');
+  const both = capture([dp, '--report', jsonPdf, '--format', 'json']);
+  assert.equal(both.code, 1);
+  assert.equal(json(both).findings.length > 0, true, 'stdout must still be the JSON report');
+  assert(isPdf(pdfText(jsonPdf)), '--report must write the file alongside --format json');
+
+  // --report with --fix --apply records the PRE-fix state of the copy.
+  const target = write('report-prefix.txt', 'We noted the the point twice.\n');
+  const fixPdf = path.join(tmp, 'prefix.pdf');
+  const applied = capture([target, '--report', fixPdf, '--fix', '--apply']);
+  assert.equal(applied.code, 0, 'a fixable warning-only file must exit 0');
+  assert.equal(fs.readFileSync(target, 'utf8').includes('the the'), false,
+    '--fix --apply must have corrected the doubled word');
+  assert.match(pdfText(fixPdf), /the the/,
+    'the report must record the pre-fix wording the user asked to see');
 }
 
 // --- packaging --------------------------------------------------------------
@@ -737,4 +803,4 @@ for (const format of ['json', 'sarif']) {
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('ok — corpus, exit codes, positions, suppressions, fixes, profiles, config, output, packaging');
+console.log('ok — corpus, exit codes, positions, suppressions, fixes, profiles, config, output, report, packaging');
