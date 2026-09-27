@@ -233,7 +233,9 @@ assert.deepEqual(full[hsIdx], {
   kind: 'error',
   text: bannerText('error', 'UE-HS002', 'hate-speech', 'heuristic', 3, 7),
 });
-assert.deepEqual(full[hsIdx + 1], { type: 'kv', label: 'Current', value: '(whole line context not captured)' });
+assert.deepEqual(full[hsIdx + 1], { type: 'kv', label: 'Current', value: '(not applicable)' });
+assert(!JSON.stringify(full).includes('whole line context'),
+  'no developer placeholder may reach the director-facing report');
 assert.deepEqual(full[hsIdx + 2], { type: 'kv', label: 'Should be', value: LONG_MESSAGE + MANUAL_SUFFIX });
 assert.deepEqual(full[hsIdx + 3], { type: 'paragraph', text: LONG_MESSAGE });
 assert.deepEqual(full[hsIdx + 4], { type: 'paragraph', text: 'Heuristic finding — routed to review.' },
@@ -312,12 +314,35 @@ for (const element of full.slice(iQueueHeading + 1)) {
   if (element.type === 'spacer') break;
   queueTexts.push(element.text);
 }
-const expectedFirstQueue = `docs/page.md:3:7 UE-HS002 — ${LONG_MESSAGE.slice(0, 80)}`;
+const expectedFirstQueue = `docs/page.md:3:7 UE-HS002 — ${LONG_MESSAGE.slice(0, 80) + '...'}`;
 assert.deepEqual(queueTexts, [
   expectedFirstQueue,
   'index.html:2:3 UE-AX001 — The image tag carries no alternative text.',
 ], 'review queue holds every heuristic finding in rendered order');
 assert(!queueTexts[0].includes(LONG_MESSAGE.slice(80)), 'queue excerpt stops at 80 characters');
+assert(queueTexts[0].endsWith('...'), 'a message longer than 80 characters is marked after the cut');
+assert(!queueTexts[1].endsWith('...'),
+  'a message of 80 characters or fewer is never suffixed');
+
+// The cut boundary itself: exactly 80 passes untouched, 81 is cut and marked.
+{
+  const boundary = buildReport(makeInput({ findings: [
+    finding({ line: 1, column: 1, ruleId: 'UE-HS001', severity: 'error',
+      confidence: 'heuristic', message: 'x'.repeat(80) }),
+    finding({ line: 2, column: 1, ruleId: 'UE-HS002', severity: 'error',
+      confidence: 'heuristic', message: 'y'.repeat(81) }),
+  ] }));
+  const queue = [];
+  for (const element of boundary.slice(
+    headingIndex(boundary, 'Review queue (heuristic findings)') + 1)) {
+    if (element.type === 'spacer') break;
+    if (element.type === 'paragraph') queue.push(element.text);
+  }
+  assert.equal(queue[0], `docs/page.md:1:1 UE-HS001 — ${'x'.repeat(80)}`,
+    'a message of exactly 80 characters is not suffixed');
+  assert.equal(queue[1], `docs/page.md:2:1 UE-HS002 — ${'y'.repeat(80)}...`,
+    'a message over 80 characters is cut at 80 and suffixed with ...');
+}
 
 const det = buildReport(makeInput());
 assert(!det.some(e => e.type === 'heading' && e.text === 'Review queue (heuristic findings)'),
@@ -338,7 +363,7 @@ assert.deepEqual(full[auditIdx], {
   kind: 'warning',
   text: bannerText('warning', 'UE-EO001', 'publishing', 'deterministic', 1, 1),
 });
-assert.deepEqual(full[auditIdx + 1], { type: 'kv', label: 'Current', value: '(whole line context not captured)' });
+assert.deepEqual(full[auditIdx + 1], { type: 'kv', label: 'Current', value: '(not applicable)' });
 assert.deepEqual(full[auditIdx + 4], { type: 'kv', label: 'Audit', value: 'publishing' });
 assert.equal(full[auditIdx + 5].type, 'banner', 'audit block ends after its Audit row');
 

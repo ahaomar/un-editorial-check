@@ -19,7 +19,7 @@ Bundled entries: Jammu and Kashmir (Security Council resolution 47 (1948)), Taiw
 
 ## What stays silent
 
-- Reported claims, where attribution such as `"Pakistan claims that Kashmir is part of Pakistan."` or `", the minister said."` names who advances the claim;
+- Reported claims, where attribution names who advances the claim — claim verbs such as `"Pakistan claims that Kashmir is part of Pakistan."`, trailing reporting clauses such as `", the minister said."` within six words of the claim with the comma optional, or a leading reporting clause whose verb belongs to the recognised set (states, confirmed, observed, told, underlined, highlighted, commented, warned, remarked, explained, clarified, and their other forms);
 - quoted, commented and cited copy, because extraction masks those spans before any rule runs;
 - regions the knowledge base does not list — the rule never guesses at a region it does not know.
 

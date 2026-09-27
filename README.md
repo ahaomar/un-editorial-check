@@ -303,6 +303,8 @@ node bin/check.mjs --self-scan --quiet
 
 `--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links, and hidden directories, `node_modules`, build output and fixtures are skipped unless you name them explicitly.
 
+The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts` or `.tsx`. Naming a file of any other type is a refusal, and so is a scan that ends up with no supported file to read.
+
 `--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; any other value is an organisation profile file merged over the bundled United Nations baseline. A missing or invalid profile is a usage failure (exit `2`), not a silent fallback.
 
 ### Exit codes
@@ -311,7 +313,7 @@ node bin/check.mjs --self-scan --quiet
 |---:|---|
 | `0` | No error-severity editorial findings; warnings, notes and every audit may remain |
 | `1` | One or more error-severity editorial findings |
-| `2` | Invalid options, path, JSON, profile or configuration; a scan or write failure |
+| `2` | Invalid options, path, JSON, profile or configuration; an unsupported file named explicitly, no supported files found in the scan, or a scan or write failure |
 
 CI should treat exit code `1` as a requested policy failure and exit code `2` as a tool failure. It should not silently merge the two. Audit findings never move the exit code, so `--profile security` cannot fail a build that the editorial rules passed.
 

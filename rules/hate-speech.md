@@ -2,7 +2,7 @@
 
 - **UE-HS001** *(error)* — A listed group of people is predicated of a listed dehumanising frame, such as `"Foreigners are vermin."` Deterministic and not fixable: the finding reports the matched wording and proposes no replacement.
 - **UE-HS002** *(error)* — Collective blame or an inherent trait attributed to a whole listed group, such as `"All Syrians are terrorists."` Heuristic, routed to review; it never claims proof of intent.
-- **UE-HS003** *(error)* — A call for exclusion or violence against a listed group, such as `"Deport all Iraqis."`, rather than individual legal process. Deterministic and not fixable.
+- **UE-HS003** *(error)* — A call for exclusion or violence against a listed group, such as `"Deport all Iraqis."`, rather than individual legal process. A modal plus an outcome verb counts only when the outcome ends the clause, for example `"Foreigners must go."`, or continues into an exclusion phrase, for example `"Foreigners should leave the country."`; operational copy that merely borrows an outcome verb stays silent. Deterministic and not fixable.
 
 ## How detection works
 
@@ -11,7 +11,7 @@ The knowledge base lives in `lib/rules-hs.mjs` under `HS_KB`, and every entry ca
 - `groups` — the shared vocabulary of groups of people (religions, ethnic and national groups, migration status, racialised groups) that feeds all three rules;
 - `dehumanisingFrames` — pest, disease, animal and filth imagery, used by UE-HS001;
 - `collectiveBlame` — accusation nouns, trait adjectives and inherent-trait markers, used by UE-HS002;
-- `exclusionCalls` — base-form verbs, modal verbs and outcome verbs, used by UE-HS003.
+- `exclusionCalls` — base-form verbs, modal verbs, outcome verbs and the exclusion continuations that may follow them, used by UE-HS003.
 
 Composition over word lists: a frame, accusation or verb never matches on its own — it fires only when predicated of, or aimed at, a listed group of people. Because one shared group vocabulary feeds all three rules, swapping which group is named cannot change whether a mirrored sentence fires. The rules run on extracted copy, so quotations, comments, URLs and code are already outside the span, and claims attributed to a reporting party are exempt through the same guard as `UE-DP001`.
 
@@ -22,6 +22,7 @@ Composition over word lists: a frame, accusation or verb never matches on its ow
 - quoted copy and block quotations, because extraction masks those spans before any rule runs;
 - pest, disease and animal wording with no human group in it, such as `"The inspection found rats in the store room."`;
 - individual legal process and past-tense narrative, for example `"The court ordered the deportations after individual hearings."` and `"Attackers killed the refugees in the camp."`;
+- operational copy where a modal outcome does not end the clause and does not continue into an exclusion phrase, such as `"Refugees should go through the registration process at the border."` and `"Migrants must leave their documents at the checkpoint."`;
 - a bare accusation without a quantifier, such as `"Foreigners are criminals."` — UE-HS002 requires the universal form or a trait predicate of the group.
 
 ## Extending and opting out

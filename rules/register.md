@@ -6,7 +6,7 @@
 
 ## Agent review required
 
-- **UE-RE002** *(warning)* — A superlative, ranking or ratio written into a JavaScript string needs a source or neutral wording. Derive it from the same data shown to the user and test the result; comparisons must use aligned reporting years.
+- **UE-RE002** *(warning)* — A superlative, ranking or ratio written into a JavaScript string needs a source or neutral wording. Derive it from the same data shown to the user and test the result; comparisons must use aligned reporting years. The fixed economic term *leading indicator* (and *leading indicators*) names an indicator rather than a ranking and is exempt.
 
 Register findings are guards against tone drift, not a substitute for reading the claim in context. Report them separately from the deterministic rules.
 

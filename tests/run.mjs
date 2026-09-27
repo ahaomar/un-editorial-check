@@ -188,6 +188,38 @@ suppressions.forEach(([body, expected], index) => {
     'config.severities must downgrade UE-HS001 to warning');
 }
 
+// --- W2 detection contract locks (guards: rules/hate-speech.md, rules/terminology.md) ---
+
+{
+  // UE-HS003 guard note: a modal outcome counts only when it ends its clause
+  // or continues into an exclusion phrase — operational copy stays silent.
+  const operational = [
+    'Refugees should go through the registration process at the border.\n',
+    'Migrants must leave their documents at the checkpoint.\n',
+    'Refugees must go to the reception centre.\n',
+  ];
+  for (const [index, sentence] of operational.entries()) {
+    assert.deepEqual(ids(scan(write(`hs003-operational-${index}.txt`, sentence))), [],
+      `${sentence.trim()} must produce no findings`);
+  }
+  // The exclusion continuation keeps firing, and `current` spans the whole phrase.
+  const exclusion = json(scan(write('hs003-continuation.txt', 'Foreigners should leave the country.\n')));
+  const hs003 = exclusion.findings.find(f => f.ruleId === 'UE-HS003');
+  assert(hs003, `UE-HS003 must fire on an exclusion continuation: ${exclusion.stdout}`);
+  assert.equal(hs003.current, 'Foreigners should leave the country');
+}
+
+{
+  // UE-TE004 guard note: a bare US at sentence final position is reported
+  // like any other occurrence, and the documented exemptions stay silent.
+  const finding = json(scan(write('te004-sentence-final.txt', 'Coverage was 1990-2025 in the US.\n')))
+    .findings.find(f => f.ruleId === 'UE-TE004');
+  assert(finding, 'a sentence-final bare US must be reported');
+  assert.equal(finding.current, 'US');
+  assert.deepEqual(ids(scan(fixture('negative', 'te004-exempt.txt'))), [],
+    'the UE-TE004 exemptions must stay silent');
+}
+
 // --- quotations and cited titles are never checked or rewritten --------------
 
 assert.deepEqual(ids(scan(write('quote.txt', '> The organization reports.\n'))), []);
@@ -251,7 +283,7 @@ assert.deepEqual(ids(scan(write('cite.md', 'See <cite>Organization of African Un
     '',
     '<!-- organization in a comment -->',
     '',
-    'organisation at last.',
+    'Organisation at last.',
     '',
   ].join('\n'), 'only bare prose may be rewritten');
 }

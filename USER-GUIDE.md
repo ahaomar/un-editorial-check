@@ -21,7 +21,7 @@ It then writes a PDF report named `un-editorial-review.pdf`. The report shows yo
 
 - **An AI assistant that can run tools on your computer.** This guide uses Claude Code as the example. Other assistants work too.
 - **Node.js version 18 or newer.** It is a free tool that lets your computer run programs like this one. If your computer does not have it, ask your IT colleague to install it — it takes a few minutes.
-- **Your document as a text file.** The tool reads Markdown (`.md`), plain text (`.txt`), web pages (`.html`) and script files. For a Word document or a PDF, copy the text into a `.txt` file first.
+- **Your document as a text file.** The tool reads Markdown (`.md`, `.markdown`), plain text (`.txt`), web pages (`.html`, `.htm`) and script files (`.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx`). For a Word document or a PDF, copy the text into a `.txt` file first. If the file uses any other format the tool reports exit code 2 and changes nothing.
 
 To confirm Node.js is ready, ask your AI assistant to run `node --version`. It should answer with version 18 or higher.
 
@@ -80,7 +80,7 @@ Your assistant runs the check one more time and tells you which issues remain. I
 
 - **Cost:** the tool itself is free to download and use, under the MIT licence. Your AI assistant subscription is separate.
 - **Language:** the checks are written for English copy in United Nations style.
-- **File formats:** Markdown, plain text, HTML and script files. For Word or PDF, paste the text into a `.txt` or `.md` file first.
+- **File formats:** Markdown (`.md`, `.markdown`), plain text (`.txt`), web pages (`.html`, `.htm`) and script files (`.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx`). For Word or PDF, paste the text into a `.txt` or `.md` file first. Any other format is reported as exit code 2 and nothing is changed.
 - **Slash command:** if your assistant supports commands, a technical colleague can install the `/un-diplomatic-agent` command once by following [README.md](README.md). After that you can start by typing that command instead of pasting the prompt.
 - **Where the rules come from:** the full list of checks, with institutional sources, is in [rules/catalogue.json](rules/catalogue.json) and explained in the README.
 

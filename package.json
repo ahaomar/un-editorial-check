@@ -1,6 +1,6 @@
 {
   "name": "un-editorial-check",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Reads user-visible copy the way a UN editor would: language, wording, tone, spelling, terminology, dates, numbers, claims and register. Report-first, with a conservative opt-in fixer.",
   "type": "module",
   "bin": {
@@ -31,7 +31,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node tests/run.mjs && node tests/report-model.mjs && node tests/pdf-structural.mjs && node tests/command-contract.mjs && node tests/release-regressions.mjs && node tests/portability-frontmatter.mjs && node scripts/validate-portability.mjs",
+    "test": "node tests/run.mjs && node tests/report-model.mjs && node tests/pdf-structural.mjs && node tests/command-contract.mjs && node tests/release-regressions.mjs && node tests/audit-extraction.mjs && node tests/audit-detection.mjs && node tests/audit-report-fix.mjs && node tests/portability-frontmatter.mjs && node scripts/validate-portability.mjs",
     "check:portability": "node scripts/validate-portability.mjs",
     "check:syntax": "node --check bin/check.mjs && for f in lib/*.mjs tests/*.mjs scripts/*.mjs; do node --check \"$f\" || exit 1; done"
   },

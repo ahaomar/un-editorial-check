@@ -273,8 +273,10 @@ const lines = assertLinesFit(pdf, 'report');
 const texts = lines.map((line) => line.text);
 assert(texts.some((t) => t.includes('UN Editorial Review')),
   'title banner text round-trips through extraction');
-assert(texts.some((t) => t.includes("'smart' - ok...")),
-  'curly quotes, en dash and ellipsis are transliterated');
+assert(texts.some((t) => t.includes("'smart' \u0096 ok...")),
+  'curly quotes and the ellipsis fold to ASCII; the en dash keeps WinAnsi byte 0x96');
+assert(!texts.some((t) => t.includes("'smart' - ok...")),
+  'the en dash must never fold to a plain hyphen (that hid UE-NU002\u2019s defect)');
 assert(!pdf.includes(Buffer.from('‘', 'utf8')), 'no raw left quote bytes in the file');
 assert(!texts.some((t) => /[‘’“”–—…]/.test(t)),
   'no typographic character survives in any extracted line');
