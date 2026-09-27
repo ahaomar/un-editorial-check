@@ -91,7 +91,7 @@ assert.equal(pkg.version, VERSION, 'package.json version');
 assert.equal(versionFile, VERSION, 'VERSION file');
 assert(new RegExp(`^## ${VERSION.replace(/\./g, '\\.')} `, 'm').test(changelog), `CHANGELOG has a ${VERSION} entry`);
 assert(skill.includes(`version: "${VERSION}"`), 'SKILL.md frontmatter version');
-for (const entry of ['bin', 'lib', 'config', 'rules', 'commands', 'VERSION', 'SKILL.md']) {
+for (const entry of ['bin', 'lib', 'config', 'rules', 'commands', 'VERSION', 'SKILL.md', 'USER-GUIDE.md']) {
   assert(pkg.files.includes(entry), `package.json files must include ${entry}`);
 }
 assert.equal(pkg.license, 'MIT');

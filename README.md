@@ -8,6 +8,8 @@ It is not a code-quality, accessibility, security or SEO linter. Copy is extract
 
 The product boundary is **report first**: a finding identifies a review requirement; it does not establish the truth of a claim. Deterministic rules prove the defect; where judgement is required the finding is labelled heuristic and moves to `AGENT REVIEW REQUIRED`.
 
+> **For researchers, students and United Nations staff:** the plain-language **[User Guide](USER-GUIDE.md)** explains, step by step and without technical words, how to check a document with your AI assistant — including a prompt you can copy and paste.
+
 ## What it checks
 
 Editorial rules (26, always on):
