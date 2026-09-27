@@ -273,17 +273,17 @@ assert.deepEqual(ids(scan(write('cite.md', 'See <cite>Organization of African Un
   assert.match(applied.stdout, /\(applied\)/);
   assert.match(applied.stdout, /^APPLIED — /m);
   assert.equal(fs.readFileSync(target, 'utf8'), [
-    'The organisation inside <cite>Organization</cite> and organisation outside.',
+    'The colour inside <cite>Organization</cite> and colour outside.',
     '',
-    'See "Organization of African Unity" for detail, and organisation in prose.',
+    'See "Organization of African Unity" for detail, and colour in prose.',
     '',
-    'Read https://example.test/organization and organisation again.',
+    'Read https://example.test/organization and colour again.',
     '',
     '> organization quoted here',
     '',
     '<!-- organization in a comment -->',
     '',
-    'Organisation at last.',
+    'Colour at last.',
     '',
   ].join('\n'), 'only bare prose may be rewritten');
 }
@@ -431,6 +431,9 @@ for (const name of ['page.html', 'script.js']) {
     name: 'Custom',
     source: 'fixture',
     spelling: { organization: 'organisation-custom' },
+    // Enforce the conflict family: a custom profile without the field would
+    // inherit the baseline stance and accept it silently.
+    spellingConflicts: [],
     terminology: { forbidden: [['old term', 'current term']] },
     register: { forbidden: ['bad phrase'] },
   }));
@@ -444,13 +447,13 @@ for (const name of ['page.html', 'script.js']) {
 // A profile must not leak into the next run in the same process.
 {
   const profileA = write('profile-a.json', JSON.stringify({
-    profileVersion: 1, name: 'A', source: 'fixture', spelling: { organization: 'organisation-custom' },
+    profileVersion: 1, name: 'A', source: 'fixture', spelling: { color: 'colour-custom' },
   }));
-  const file = write('leak.txt', 'The organization reports.\n');
+  const file = write('leak.txt', 'The color reports.\n');
   assert.equal(capture([file, '--format', 'json', '--profile', profileA]).code, 1);
   const baseline = scan(file);
   assert.equal(baseline.code, 1);
-  assert.equal(json(baseline).findings[0].suggestion, 'Use "organisation".',
+  assert.equal(json(baseline).findings[0].suggestion, 'Use "colour".',
     'a profile from an earlier run leaked into the baseline');
 }
 
@@ -519,8 +522,8 @@ for (const name of ['page.html', 'script.js']) {
 {
   // Deterministic replacements elsewhere report both halves too.
   const finding = json(scan(fixture('positive', 'sp001.txt'))).findings[0];
-  assert.equal(finding.current, 'organization');
-  assert.equal(finding.proposed, 'organisation');
+  assert.equal(finding.current, 'color');
+  assert.equal(finding.proposed, 'colour');
 }
 {
   // A single claim can be opted out of by id without touching the others.
@@ -689,7 +692,7 @@ for (const format of ['json', 'sarif']) {
 // Control characters in file names and content are escaped, never emitted raw.
 {
   const controls = 'A\x0B B\x7F C\n';
-  const file = write(`ctl ${String.fromCharCode(27)} name.txt`, `The organization ${controls}\n`); // ue:ignore UE-SP001  (deliberate test data)
+  const file = write(`ctl ${String.fromCharCode(27)} name.txt`, `The color ${controls}\n`); // ue:ignore UE-SP001  (deliberate test data)
   const result = capture([file]);
   assert.equal(result.code, 1);
   // The report may contain line breaks, nothing else.

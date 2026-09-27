@@ -143,7 +143,7 @@ for (const command of ['npm run check:syntax', 'npm test', 'npm pack --dry-run',
   assert.equal(run(clean).status, 0, 'a clean file exits 0');
   const warning = textFixture('Coverage was 1990-2025.');
   assert.equal(run(warning).status, 0, 'warnings alone exit 0');
-  const error = textFixture('The organization publishes an annual report.');
+  const error = textFixture('The color publishes an annual report.');
   assert.equal(run(error).status, 1, 'error-severity findings exit 1');
   assert.equal(run('--format', 'xml', clean).status, 2, 'usage errors exit 2');
   // Audit findings never change the exit code.
@@ -153,18 +153,21 @@ for (const command of ['npm run check:syntax', 'npm test', 'npm pack --dry-run',
 
 // --- --fix: protected material ------------------------------------------------
 
+// Bare occurrences must be fixable and protected ones untouched. The bare
+// words are non-conflict map entries (color): the -ize/-ise conflict family
+// is a profile choice and is never rewritten by default.
 const PROTECTED_FIXES = [
-  ['The organization inside <cite>Cite organization</cite> and organization outside.',
-    'The organisation inside <cite>Cite organization</cite> and organisation outside.'],
-  ['organization <!-- organization --> organization', 'Organisation <!-- organization --> organisation'],
-  ['<script>organization</script> organization', '<script>organization</script> organisation'],
-  ['<style>organization</style> organization', '<style>organization</style> organisation'],
-  ['> organization\n\norganization', '> organization\n\nOrganisation'],
-  ['`organization` and organization', '`organization` and organisation'],
-  ['"Organization" and organization', '"Organization" and organisation'],
-  ['“Organization” and organization', '“Organization” and organisation'],
-  ['https://example.test/organization and organization', 'https://example.test/organization and organisation'],
-  ['./organization and organization', './organization and organisation'],
+  ['The color inside <cite>Cite organization</cite> and color outside.',
+    'The colour inside <cite>Cite organization</cite> and colour outside.'],
+  ['color <!-- organization --> color', 'Colour <!-- organization --> colour'],
+  ['<script>organization</script> color', '<script>organization</script> colour'],
+  ['<style>organization</style> color', '<style>organization</style> colour'],
+  ['> organization\n\ncolor', '> organization\n\nColour'],
+  ['`organization` and color', '`organization` and colour'],
+  ['"Color" and color', '"Color" and colour'],
+  ['“Color” and color', '“Color” and colour'],
+  ['https://example.test/organization and color', 'https://example.test/organization and colour'],
+  ['./organization and color', './organization and colour'],
 ];
 for (const [input, expected] of PROTECTED_FIXES) {
   const file = textFixture(input);
@@ -251,6 +254,9 @@ for (const [input, expected] of PROTECTED_FIXES) {
   const profile = write('profile.json', JSON.stringify({
     profileVersion: 1, name: 'Test', source: 'test',
     spelling: { organization: 'organisation' },
+    // Enforce the conflict family so the severity downgrade below is what is
+    // being tested (without the field the family would be accepted silently).
+    spellingConflicts: [],
     terminology: { forbidden: [['old term', 'new term']] },
     register: { forbidden: ['bad'], approved: ['approved'] },
     severities: { 'UE-SP001': 'warning' },
@@ -382,7 +388,7 @@ for (const entity of ['&#x110000;', '&#999999999999;', '&#0;']) {
     const version = spawnSync(process.execPath, [path.join(installed, 'bin', 'check.mjs'), '--version'],
       { encoding: 'utf8' });
     assert.equal(version.stdout.trim(), `un-editorial-check ${VERSION}`, version.stderr);
-    const smoke = write('install-smoke.txt', 'The organization reports.');
+    const smoke = write('install-smoke.txt', 'The color reports.');
     const check = spawnSync(process.execPath, [path.join(installed, 'bin', 'check.mjs'), smoke],
       { cwd: installDir, encoding: 'utf8' });
     assert.equal(check.status, 1, `the installed CLI must report findings: ${check.stderr}`);

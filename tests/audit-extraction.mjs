@@ -38,8 +38,8 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-audit-'));
 // Deliberate rule-violating test data. Each constant carries a same-line
 // `ue:ignore` so the repository's own self-scan stays clean however the
 // sentence-like-literal rule classifies this file's own source.
-const ORG = 'The organization reports quarterly.'; // ue:ignore UE-SP001  (deliberate test data)
-const ORG_AGAIN = 'The organization reports again.'; // ue:ignore UE-SP001  (deliberate test data)
+const ORG = 'The color reports quarterly.'; // ue:ignore UE-SP001  (deliberate test data)
+const ORG_AGAIN = 'The color reports again.'; // ue:ignore UE-SP001  (deliberate test data)
 const DOUBLED = 'The delegation reviewed the the draft.'; // ue:ignore UE-GR001  (deliberate test data)
 const DOUBLED_NOPUNCT = 'The delegation reviewed the the draft'; // ue:ignore UE-GR001  (deliberate test data)
 

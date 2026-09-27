@@ -180,16 +180,18 @@ const applyFix = (name, body) => {
     'a replacement at the start of a line must be capitalised',
   );
   // Sentence-initial SP001: case-preservation already produces the capital.
+  // The word is a non-conflict map entry: the -ize family would be a profile
+  // choice and not fixable without a profile.
   assert.equal(
-    applyFix('cap-sp001.txt', 'Organization is key.\n'),
-    'Organisation is key.\n',
-    'a sentence-initial Organization stays grammatical after the fix',
+    applyFix('cap-sp001.txt', 'Color is key.\n'),
+    'Colour is key.\n',
+    'a sentence-initial Color stays grammatical after the fix',
   );
   // Whole-word upper-case preservation is untouched by the mechanism.
   assert.equal(
-    applyFix('cap-upper.txt', 'ORGANIZATION is key here.\n'),
-    'ORGANISATION is key here.\n',
-    'ORGANIZATION still maps to ORGANISATION',
+    applyFix('cap-upper.txt', 'COLOR is key here.\n'),
+    'COLOUR is key here.\n',
+    'COLOR still maps to COLOUR',
   );
 
   // No fixed file may start a sentence in lower case, and the reported

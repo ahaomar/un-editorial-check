@@ -1,7 +1,7 @@
 {
   "profileVersion": 1,
   "name": "United Nations baseline",
-  "source": "United Nations Editorial Manual Online (editorial.un.org); UN Geneva web style guide (ungeneva.org/en/styleguide); Concise Oxford English Dictionary, 12th edition. Checked 24 September 2026.",
+  "source": "United Nations Editorial Manual Online (https://www.un.org/dgacm/en/content/editorial-manual); UN Geneva web style guide (ungeneva.org/en/styleguide); Concise Oxford English Dictionary, 12th edition. Checked 24 September 2026.",
   "description": "British English, UN indicator terminology, neutral register, day-month-year dates and en-dash ranges for user-visible copy.",
 
   "spelling": {
@@ -89,6 +89,15 @@
     "skillful": "skilful",
     "aging": "ageing"
   },
+
+  "spellingConflicts": [
+    "organization",
+    "organizations",
+    "organize",
+    "organized",
+    "organizes",
+    "organizing"
+  ],
 
   "terminology": {
     "forbidden": [

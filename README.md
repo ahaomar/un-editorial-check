@@ -305,7 +305,7 @@ node bin/check.mjs --self-scan --quiet
 
 The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts` or `.tsx`. Naming a file of any other type is a refusal, and so is a scan that ends up with no supported file to read.
 
-`--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; any other value is an organisation profile file merged over the bundled United Nations baseline. A missing or invalid profile is a usage failure (exit `2`), not a silent fallback.
+`--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; a value that names a bundled organisation profile (`un-secretariat-document`, `un-v1`, `un-geneva-web`, `generic-british-english`) resolves to that bundled profile; any other value is an organisation profile file merged over the bundled United Nations baseline (an existing file of that name wins over the bundled name). A missing or invalid profile is a usage failure (exit `2`), not a silent fallback, and an unknown bare name is refused while listing the bundled profile names.
 
 ### Exit codes
 
@@ -409,9 +409,11 @@ A profile adds organisation-specific data without forking the skill:
 }
 ```
 
-Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling` (a word-to-word map; each key must already exist in the baseline vocabulary so a typo cannot disable a rule), `terminology.forbidden` (a list of pairs, or `{ "rule", "from", "to" }` objects to target one rule), `register` (an object with `forbidden` and `approved` lists), `diplomacy` (an object whose `claims` array adds or replaces contested-claim knowledge-base entries, merged by `id`), `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, incomplete claim entries and non-HTTP(S) page URLs fail closed with exit code `2`. Profiles contain data only and cannot execute JavaScript.
+Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling` (a word-to-word map; each key must already exist in the baseline vocabulary so a typo cannot disable a rule), `spellingConflicts` (the `-ize`-`ise` conflict-family keys the profile accepts; each entry must exist in the baseline vocabulary, and a profile that states the list replaces the baseline family rather than extending it), `terminology.forbidden` (a list of pairs, or `{ "rule", "from", "to" }` objects to target one rule), `register` (an object with `forbidden` and `approved` lists), `diplomacy` (an object whose `claims` array adds or replaces contested-claim knowledge-base entries, merged by `id`), `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, incomplete claim entries and non-HTTP(S) page URLs fail closed with exit code `2`. Profiles contain data only and cannot execute JavaScript.
 
 A profile's `severities` and `rules` are applied to the run; where a configuration file sets the same key, the configuration file wins.
+
+Whether the `-ize`-`ise` conflict family (`organization`, `organizations`, `organize`, `organized`, `organizes`, `organizing`) stands is a profile choice, not a rule verdict: with no `--profile` each occurrence is a warning that names the choice and is never rewritten; `--profile un-secretariat-document` (alias `un-v1`) and `--profile un-geneva-web` accept the `-ize` form silently; `--profile generic-british-english` enforces the `-ise` spelling as a fixable error. Words outside the family are ordinary fixable errors in every stance.
 
 The packaged baseline is [config/profiles/un-v1.json](config/profiles/un-v1.json). A discoverable project configuration example is [config/example.un-editorial.json](config/example.un-editorial.json).
 

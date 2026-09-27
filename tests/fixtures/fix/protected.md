@@ -1,11 +1,11 @@
-The organization inside <cite>Organization</cite> and organization outside.
+The color inside <cite>Organization</cite> and color outside.
 
-See "Organization of African Unity" for detail, and organization in prose.
+See "Organization of African Unity" for detail, and color in prose.
 
-Read https://example.test/organization and organization again.
+Read https://example.test/organization and color again.
 
 > organization quoted here
 
 <!-- organization in a comment -->
 
-organization at last.
+color at last.

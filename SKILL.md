@@ -34,7 +34,7 @@ Never use `--fix` without showing the user the target files first. `--fix` print
 
 Exit codes: `0` no error-severity editorial findings, `1` error-severity editorial findings, `2` usage, configuration, scan or write failure. Audits never move the exit code.
 
-Configuration comes from [config/default.json](config/default.json) plus an optional project `.un-editorial.json`, or `--config <file>`. A `--profile` value is either a built-in audit name (`publishing`, `accessibility`, `security`) or a path to an organisation profile JSON file merged over the bundled baseline in [config/profiles/un-v1.json](config/profiles/un-v1.json). Do not invent undocumented configuration keys; the maintained index of rule IDs is [rules/catalogue.json](rules/catalogue.json).
+Configuration comes from [config/default.json](config/default.json) plus an optional project `.un-editorial.json`, or `--config <file>`. A `--profile` value is either a built-in audit name (`publishing`, `accessibility`, `security`), a bundled profile name (`un-secretariat-document`, `un-v1`, `un-geneva-web`, `generic-british-english`) or a path to an organisation profile JSON file merged over the bundled baseline in [config/profiles/un-v1.json](config/profiles/un-v1.json). Do not invent undocumented configuration keys; the maintained index of rule IDs is [rules/catalogue.json](rules/catalogue.json).
 
 Suppress a single known-good case inside the copy span it belongs to, and record the reason in version control: `<!-- ue:ignore UE-SP001 -->`, `<!-- ue:ignore UE-SP* -->` or `<!-- ue:ignore all -->`. A suppression applies to its own paragraph only.
 

@@ -1,8 +1,8 @@
 # Spelling rules
 
-- **UE-SP001** *(error)* — Use British English in prose unless another standard is declared. The built-in map covers common variants; the fixer preserves case where practical.
+- **UE-SP001** *(error; the -ize/-ise conflict family is a warning by default)* — Use British English in prose unless another standard is declared. Whether the `-ize` family stands is a profile choice: with no `--profile` each occurrence is reported as a **warning** that names the choice and is never `--fix`-rewritten; `--profile un-secretariat-document` (alias `un-v1`) and `--profile un-geneva-web` accept the `-ize` form silently; `--profile generic-british-english` enforces the `-ise` spelling as a fixable error. Words outside that conflict family are ordinary fixable errors in every stance. The built-in map covers common variants; the fixer preserves case where practical.
 - **UE-SP002** *(warning)* — Flag a passage that uses both variants of the same word. Consistency is the finding, not which variant won.
-- **UE-SP003** *(info, opt-in)* — Report `-ize` forms that may require an `-ise` spelling under the named dictionary. Matching is case-insensitive (a sentence-initial `Optimize` is reviewed), and `size`/`prize` forms are not `-ise` candidates and are skipped. Off unless `spellingReview` is enabled in configuration, because Oxford spelling is legitimate and the UN framework does not settle every case.
+- **UE-SP003** *(info, opt-in)* — Report `-ize` forms that may require an `-ise` spelling under the named dictionary. Words the baseline spelling map owns are UE-SP001's and are never double-reported by this rule. Matching is case-insensitive (a sentence-initial `Optimize` is reviewed), and `size`/`prize` forms are not `-ise` candidates and are skipped. Off unless `spellingReview` is enabled in configuration, because Oxford spelling is legitimate and the UN framework does not settle every case.
 
 Published titles inside `<cite>`, quoted Markdown, block quotes, code and inline code retain their published or technical spelling. Add project and product names to `allowlist.spellings`.
 
