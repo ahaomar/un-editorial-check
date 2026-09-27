@@ -4,7 +4,7 @@
 
 A portable, zero-dependency Node.js CLI and Agent Skill that reads user-visible copy the way a United Nations editor would — language, wording, tone, spelling, terminology, dates, numbers, claims and register — and reports what fails.
 
-It is not a code-quality, accessibility, security or SEO linter. Copy is extracted first (HTML text nodes and copy-bearing attributes, Markdown paragraphs, plain-text blocks, JavaScript strings that demonstrably render) and only then checked, so CSS properties, comments, identifiers, URLs, quoted titles, block quotations and code never reach a rule. Those other concerns exist in this package solely as opt-in audits.
+It is not a code-quality, accessibility, security or SEO linter. Copy is extracted first (HTML text nodes and copy-bearing attributes, Markdown paragraphs, plain-text blocks, JavaScript strings that demonstrably render) and only then checked, so CSS properties, comments, identifiers, URLs and cited titles never reach a rule; block quotations and quoted material are classified with their context and reported separately where the review applies, never blended into authored copy. Those other concerns exist in this package solely as opt-in audits.
 
 The product boundary is **report first**: a finding identifies a review requirement; it does not establish the truth of a claim. Deterministic rules prove the defect; where judgement is required the finding is labelled heuristic and moves to `AGENT REVIEW REQUIRED`.
 
@@ -14,24 +14,26 @@ The product boundary is **report first**: a finding identifies a review requirem
 
 Editorial rules (26, always on):
 
-- British English spelling, mixed variants within a passage, and opt-in `-ize` review.
-- United Nations terminology: maternal mortality ratio, labour-force participation rates, lower-secondary completion rates, data centres’ share of electricity demand, “per cent” in running prose, “the United States”.
+- British English spelling, mixed variants within a passage, and opt-in `-ize` review. The `-ize`/`-ise` conflict family is resolved by the selected profile: a profile-selection warning by default, silent under `un-secretariat-document`, an error only under a profile that prefers `-ise`.
+- United Nations terminology: the `maternal mortality rate` versus ratio distinction (review-only, gated to the printed per-100 000-live-births statistic), `percent` written as `per cent`, and the country name `US` written in full.
 - Day–month–year dates, en-dash ranges, hedged and sourced figures, counts that say what was counted, comparisons that align reference years.
 - Neutral register and tone: promotional phrasing, rhetorical questions, exclamation marks, unsourced superlatives, direct insults and name-calling, threat or intimidation posture, and all-caps shouting.
-- Contested territorial and sovereignty claims stated as fact: flagged for attribution or neutral United Nations wording, symmetrically for every party to the claim, with a cited source per claim.
-- Hate speech: dehumanising frames, collective blame and calls for exclusion or violence against a group of people. Detection is composed over bounded pattern groups with a cited source each, is symmetric across groups, and never fires on attributed or quoted statements.
+- Contested territorial and sovereignty claims stated as fact: flagged for attribution or neutral United Nations wording, symmetrically for every party to the claim, with a cited source per claim, and reported as requiring diplomatic review rather than as a finding of fact.
+- Hate speech: dehumanising frames, collective blame and calls for exclusion or violence against a group of people. Detection is composed over bounded pattern groups with a cited source each, is symmetric across groups, and exempts attributed statements; quoted material is reported separately as quoted context rather than silently skipped.
+- Discriminatory or demeaning language beyond those frames — protected characteristics including gender, sex, disability, nationality, ethnicity, religion, sexual orientation, gender identity and age — routed to high-severity human review and never auto-rewritten. Quoted or reported material is classified and reported separately instead of being skipped.
 - High-precision grammar: unintentionally doubled words, a space between a word and its following punctuation, and a missing space between two sentences — all deterministic, all repairable with `--fix`.
+- Heuristic editorial review: sentence fragments, malformed wording, duplicated unrelated insertions, incoherent headings and broken quotations — review severity only, with no claim of full grammar checking.
 - Supplied organisation vocabulary through data-only profiles.
 
 Audit rules (11, only with `--profile publishing`, `--profile accessibility` or `--profile security`): page title, meta description, canonical link, heading structure and card metadata; image and form-control labelling; four bounded source-code policies. Audits are reported in their own section and never change the exit code.
 
-The catalogue contains 37 stable rule IDs, indexed in [rules/catalogue.json](rules/catalogue.json). Its institutional sources were checked on **24 September 2026**. Re-check current United Nations guidance before treating a release as institutional advice.
+The stable rule identifiers are indexed in [rules/catalogue.json](rules/catalogue.json); each entry names its severity, confidence and guard notes. Their institutional sources are recorded with URL, retrieval date, scope, evidence and rationale in [rules/sources.json](rules/sources.json). Re-check current United Nations guidance before treating a release as institutional advice.
 
 ## What the CLI proves, and what it does not
 
-**Deterministic rules** test a pattern with a documented boundary — a spelling map, a terminology pair, `%` in running prose, an exclamation mark. The rule, its exemption and its position are explicit, so results are suitable for local review and CI. A clean run is not a certificate of quality.
+**Deterministic rules** test a pattern with a documented boundary — a spelling map, a terminology pair, an exclamation mark, a doubled word. The rule, its exemption and its position are explicit, so results are suitable for local review and CI. A clean run is not a certificate of quality: when nothing is found, the tool says exactly one thing — `No findings under the enabled, documented local rules.` — and nothing more.
 
-**Heuristic rules and `AGENT REVIEW REQUIRED`** ask for judgement: whether a claim matches its evidence, figures are sourced and dated, citations are complete, comparisons use aligned years, register is proportionate, and labels describe what was counted. They are reported as warnings and are never promoted to errors.
+**Heuristic rules and `AGENT REVIEW REQUIRED`** ask for judgement: whether a claim matches its evidence, figures are sourced and dated, citations are complete, comparisons use aligned years, register is proportionate, and labels describe what was counted. By default they are reported as warnings and never fail a run; only an organisation that configures a heuristic to `error` severity makes it fail. What a clean run means is exactly this: `No findings under the enabled, documented local rules.`
 
 The skill requires the agent to work through those findings after running the CLI, and to keep deterministic findings, agent-review findings and its own editorial judgement separate in the report.
 
@@ -284,7 +286,7 @@ The agent must:
 2. address error-severity findings and review warnings, without suppressing them just to reach exit `0`;
 3. read the applicable bundled rule files relative to the skill base, not from memory;
 4. work through `AGENT REVIEW REQUIRED` findings against the available evidence;
-5. keep deterministic findings, agent-review findings and its own editorial judgement separate in the report; and
+5. keep deterministic findings, agent-review findings and its own editorial judgement separate in the report, following its five lanes — deterministic violations, heuristic review, harmful or discriminatory review, diplomatic sensitivity, audits; and
 6. request audits with `--profile publishing`, `--profile accessibility` or `--profile security` only when that audit was asked for — a default run is editorial only.
 
 ## CLI use
@@ -299,13 +301,18 @@ node bin/check.mjs content --profile editorial-org.json
 node bin/check.mjs content --profile publishing --profile accessibility --profile security
 node bin/check.mjs content --quiet
 node bin/check.mjs --self-scan --quiet
+node bin/check.mjs content --init
+node bin/check.mjs content --self-test
+node bin/check.mjs content --baseline .ue-baseline.json
 ```
 
 `--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links, and hidden directories, `node_modules`, build output and fixtures are skipped unless you name them explicitly.
 
 The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts` or `.tsx`. Naming a file of any other type is a refusal, and so is a scan that ends up with no supported file to read.
 
-`--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; any other value is an organisation profile file merged over the bundled United Nations baseline. A missing or invalid profile is a usage failure (exit `2`), not a silent fallback.
+`--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; a value that names a bundled profile (`un-secretariat-document`, its alias `un-v1`, `generic-british-english`, `un-geneva-web`) selects that baseline; any other value is an organisation profile file merged over the bundled United Nations baseline. A missing or invalid profile, or an unknown name, is a usage failure (exit `2`) that lists the bundled names rather than a silent fallback.
+
+Three additive helpers support adoption without changing any existing flag: `--init` writes a starter `.un-editorial.json` with a host and CI snippet for the current project; `--self-test` runs a bundled corpus and asserts the exact findings the package documents, so an installation can be verified without external files; `--baseline <path>` records the findings of a run into a baseline file and, once recorded, fails only on findings that are new — an established corpus keeps passing while new problems fail. Report previews cut off deterministically at a platform-specific length and mark the cut, so an agent never sees a silently truncated report. The package also ships a GitHub Action (`action.yml`), a pre-commit hook snippet and agent command templates for Claude Code, Codex, OpenCode and Cursor.
 
 ### Exit codes
 
@@ -319,11 +326,13 @@ CI should treat exit code `1` as a requested policy failure and exit code `2` as
 
 ### Output formats
 
-- **Text:** sectioned report — `EDITORIAL ERRORS`, `EDITORIAL WARNINGS`, `EDITORIAL NOTES`, `AGENT REVIEW REQUIRED`, then `OPTIONAL AUDIT — <name>` for each audit that was requested.
-- **JSON:** the same findings as records carrying `file`, `line`, `column`, `ruleId`, `category`, `severity`, `confidence`, `scope`, `message`, `suggestion`, `current` and `proposed`; audit findings are tagged with their `audit`. Internal fields are stripped from every format.
-- **SARIF:** SARIF 2.1.0 for code-scanning tools that accept static-analysis output.
+The report separates five lanes: deterministic rule violations, heuristic editorial review, harmful or discriminatory language review, diplomatic sensitivity, and — only when requested — optional audits. Every finding carries its rule source, the profile it ran under, its confidence, the limitation that bounds it and the recommended human action.
 
-`--report <path.pdf>` writes the same review as a PDF, whatever `--format` says on stdout. It opens with the scan's scope and counts, then every finding grouped by file — what is currently written under `Current`, what should replace it under `Should be`, with a marker for findings that are `--fix-able` and findings that need a manual or agent rewrite — followed by a queue of heuristic findings for review and the knowledge-base sources behind contested-claim and hate-speech findings. The file is written before `--fix --apply`, so it records the pre-fix state of the copy, and each page carries a footer stating that the report changes nothing. `--quiet` still writes it; an unwritable path is a refusal with exit code `2`. The PDF uses Helvetica with WinAnsi encoding: typographic dashes and quotation marks are converted to their plain forms, and a character outside that encoding is replaced with `?`.
+- **Text:** a sectioned report in that order — deterministic violations by severity, the heuristic review queue, the harmful and discriminatory review queue, the diplomatic sensitivity queue, then `OPTIONAL AUDIT — <name>` for each audit that was requested. Each finding shows its source, confidence and recommended action beside the file position.
+- **JSON:** the same findings as records carrying `file`, `line`, `column`, `ruleId`, `category`, `severity`, `confidence`, `scope`, `message`, `suggestion`, `current` and `proposed`, extended with the finding's lane, rule source, profile, limitation and recommended action; audit findings are tagged with their `audit`. Internal fields are stripped from every format.
+- **SARIF:** SARIF 2.1.0 for code-scanning tools that accept static-analysis output, with the same lane and provenance information.
+
+`--report <path.pdf>` writes the same review as a PDF, whatever `--format` says on stdout. It opens with the scan's scope and counts, then every finding grouped by file — what is currently written under `Current`, what should replace it under `Should be`, with a marker for findings that are `--fix-able` and findings that need a manual or agent rewrite — followed by a queue of heuristic findings for review and the knowledge-base sources behind contested-claim and hate-speech findings. The file is written before `--fix --apply`, so it records the pre-fix state of the copy, and each page carries a footer stating that the report changes nothing. `--quiet` still writes it; an unwritable path is a refusal with exit code `2`. The PDF uses Helvetica with WinAnsi encoding: typographic quotation marks and the ellipsis are converted to their plain forms, the en dash and the em dash keep their WinAnsi byte positions (0x96 and 0x97), and a character outside that encoding is replaced with `?`.
 
 A suppression belongs to the copy span that contains it — one paragraph in HTML or Markdown, one line in JavaScript. Keep it narrow and record the reason in version control:
 
@@ -343,7 +352,7 @@ Report-only operation is the default. `--fix` is opt-in and deliberately narrowe
 
 - `--fix` prints a diff labelled `(proposed)` and writes nothing; `--fix --apply` performs the same writes and labels them `(applied)`.
 - It accepts only regular prose files with `.txt`, `.md` or `.markdown` extensions. Anything else — HTML, JavaScript, JSON, configuration — is refused with exit code `2`.
-- It applies only deterministic replacements: British spelling (`UE-SP001`), `per cent` (`UE-TE003`), en-dash ranges (`UE-NU002`), `the United States` (`UE-TE004`), a doubled word (`UE-GR001`), a space before punctuation (`UE-GR002`) and a missing space between sentences (`UE-GR003`), honouring spelling allowlists.
+- It applies only deterministic replacements: British spelling outside the profile-dependent conflict family (`UE-SP001`), en-dash ranges (`UE-NU002`), a doubled word (`UE-GR001`), a space before punctuation (`UE-GR002`) and a missing space between sentences (`UE-GR003`), honouring spelling allowlists. Terminology, claims, dates, political wording, quotations, harmful wording and sources are never rewritten by `--fix`.
 - It masks comments, script and style blocks, fenced code, block quotations, inline code, cited titles, `<cite>`, `<q>` and `<blockquote>`, URLs and paths. An unrelated occurrence elsewhere in the same file can remain fixable.
 - A fix is skipped, never guessed: if the matched copy is not present exactly where the offset map says it is, the finding is left alone and reported.
 - It refuses symbolic links, non-regular files and regular files with multiple hard links, and re-checks type, descriptor identity and link count before writing. This reduces path-replacement races but is not a race-proof sandbox.
@@ -409,11 +418,15 @@ A profile adds organisation-specific data without forking the skill:
 }
 ```
 
-Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling` (a word-to-word map; each key must already exist in the baseline vocabulary so a typo cannot disable a rule), `terminology.forbidden` (a list of pairs, or `{ "rule", "from", "to" }` objects to target one rule), `register` (an object with `forbidden` and `approved` lists), `diplomacy` (an object whose `claims` array adds or replaces contested-claim knowledge-base entries, merged by `id`), `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, incomplete claim entries and non-HTTP(S) page URLs fail closed with exit code `2`. Profiles contain data only and cannot execute JavaScript.
+Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling` (a word-to-word map; each key must already exist in the baseline vocabulary so a typo cannot disable a rule), `spellingConflicts` (the subset of spelling keys whose `-ize`/`-ise` resolution is a profile choice rather than an error), `terminology.forbidden` (a list of pairs, or `{ "rule", "from", "to" }` objects to target one rule), `register` (an object with `forbidden` and `approved` lists), `diplomacy` (an object whose `claims` array adds or replaces contested-claim knowledge-base entries, merged by `id`), `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, incomplete claim entries and non-HTTP(S) page URLs fail closed with exit code `2`. Profiles contain data only and cannot execute JavaScript.
 
 A profile's `severities` and `rules` are applied to the run; where a configuration file sets the same key, the configuration file wins.
 
 The packaged baseline is [config/profiles/un-v1.json](config/profiles/un-v1.json). A discoverable project configuration example is [config/example.un-editorial.json](config/example.un-editorial.json).
+
+### Spelling across profiles
+
+Where British `-ise` and dictionary `-ize` forms conflict, the bundled baseline records the contested keys in `spellingConflicts` (every element must be a key of the profile's own spelling map; a value that is not fails with exit `2`, and `generic-british-english` sets an empty list). The default run reports that family as a profile-selection warning — it names the profile choice instead of calling any form wrong, is never auto-fixed, and does not fail the run. `--profile un-secretariat-document` (alias `un-v1`) stays silent on the family because the United Nations spelling list itself prints the `-ize` forms; `--profile un-geneva-web` behaves the same way, because the Geneva guide defers to the Editorial Manual; `--profile generic-british-english` reports the family as errors because that profile chooses `-ise`, and its message cites a retrievable source recorded in [rules/sources.json](rules/sources.json) or says plainly that the preference is configurable rather than a United Nations rule. Catalogue entries carry their registry sources in a `sources` key, so every spelling message can be traced to the document it came from.
 
 ### Extending an organisation profile
 
@@ -425,7 +438,7 @@ The packaged baseline is [config/profiles/un-v1.json](config/profiles/un-v1.json
 
 ## Rule catalogue and security limits
 
-The maintained index is [rules/catalogue.json](rules/catalogue.json). Detailed guidance is under [rules/](rules/). Rule IDs are stable for CI allowlists and inline suppressions.
+The maintained index is [rules/catalogue.json](rules/catalogue.json). Detailed guidance is under [rules/](rules/). Rule IDs are stable for CI allowlists and inline suppressions. Every claim this tool makes — whether it is supported, what limits it, and the test that locks it — is recorded in [docs/CLAIM-EVIDENCE-AUDIT.md](docs/CLAIM-EVIDENCE-AUDIT.md).
 
 Important limitations:
 
@@ -441,7 +454,7 @@ Important limitations:
 
 ## Upgrade and maintenance
 
-Review the release notes and diff before upgrading. Then inspect and update the installed skill:
+Review the release notes and diff before upgrading. An upgrade that changes defaults, severities, the fix set or the report shape is written up with per-change instructions in [docs/MIGRATION.md](docs/MIGRATION.md); read the matching section before re-running a pipeline that consumes the report. Then inspect and update the installed skill:
 
 ```sh
 npx skills list
@@ -471,7 +484,7 @@ node bin/check.mjs --self-scan --quiet
 npm pack --dry-run
 ```
 
-The suite covers positive and negative fixtures for every catalogue rule, offset-accuracy assertions, suppressions, protected and applied fixes, configuration and profile rejection, audit opt-in, output formats, exit codes, package contents, a packed installation and an executable smoke test. The portability validator uses Node.js built-ins only and checks the canonical frontmatter, identity, relative resources, package allowlist, host documentation, stale-version markers and all maintained JSON files. GitHub Actions runs both across supported Node.js versions.
+The suite covers positive and negative fixtures for every catalogue rule, offset-accuracy assertions, suppressions, protected and applied fixes, configuration and profile rejection, audit opt-in, output formats, exit codes, package contents, a packed installation and an executable smoke test. Three audit suites run alongside it: `tests/audit-registry.mjs` validates the source registry's schema, URLs, retrieval dates, identifier uniqueness and catalogue references; `tests/audit-mutation.mjs` proves, by mutated variants, that representative rules fire on their defect, fall silent when the defect is removed and obey configuration changes; `tests/audit-docs.mjs` locks the user-facing documents — house style in this guide's plain-language sibling, the banned-claim phrases, the clean-run wording on every surface, and zero npm dependencies. The portability validator uses Node.js built-ins only and checks the canonical frontmatter, identity, relative resources, package allowlist, host documentation, stale-version markers and all maintained JSON files. GitHub Actions runs all of it across supported Node.js versions, plus explicit source-registry validation, and fails if a suite writes anything into the working tree.
 
 The repository is a fixture for itself: `node bin/check.mjs . --self-scan --quiet` must exit `0`. Documentation and fixtures may still *mention* rule IDs, but they may not contain copy that breaks the rules.
 

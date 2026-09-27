@@ -29,13 +29,18 @@ node bin/check.mjs <paths> --report un-editorial-review.pdf
 The report is written before any fix, so it records the pre-fix state. Exit
 codes: `0` no error-severity findings, `1` error-severity findings present,
 `2` usage, configuration, scan or write failure. Heuristic findings are
-routed to review; they are review material, never proof.
+routed to review; they are review material, never proof. A run with no
+findings prints exactly `No findings under the enabled, documented local rules.` —
+report that wording and nothing stronger.
 
 ## 2. Summarise before you propose anything
 
 Present, in this order:
 
 - severity counts: errors, warnings and notes;
+- the five lanes — deterministic violations, heuristic editorial review, harmful
+  or discriminatory review, diplomatic sensitivity, audits — with each finding's
+  rule source, profile, confidence, limitation and recommended human action;
 - the most serious findings, each with file, line and rule identifier;
 - the current text and the `Should be` text for the top items, exactly as the
   report prints them;
@@ -58,11 +63,13 @@ are waiting for approval.
 After an explicit go-ahead only:
 
 1. Run the mechanical fixes with `--fix --apply`. The CLI rewrites only its
-   documented deterministic cases (British spelling, `per cent`, en-dash
-   ranges, `the United States`, a doubled word, a space before punctuation
-   and a missing space between sentences) in `.md`, `.markdown` and `.txt`
-   files, and it refuses symbolic links, hard-linked files and anything that
-   is not a regular file. Review every diff it prints.
+   documented deterministic cases (British spelling outside the
+   profile-dependent conflict family, en-dash ranges, a doubled word, a space
+   before punctuation and a missing space between sentences) in `.md`,
+   `.markdown` and `.txt` files, and it refuses symbolic links, hard-linked
+   files and anything that is not a regular file. Terminology, claims, dates,
+   political wording, quotations, harmful wording and sources are never
+   rewritten by `--fix`. Review every diff it prints.
 2. Rewrite the remaining findings by hand, taking wording only from the
    `Should be` line of the report: contested-claim findings (`UE-DP001`) get
    the neutral phrasing the entry carries, hate-speech and tone findings get
@@ -81,4 +88,6 @@ Re-run the scan from step 1 and tell the user what is left:
 - everything remaining in the review queue, and anything unresolved;
 - which corrections were applied and which still need a decision.
 
-Never claim the copy is clean unless the exit code is 0.
+Never claim the copy is clean unless the exit code is 0. When the exit code
+is 0, the honest report is the tool's own wording:
+`No findings under the enabled, documented local rules.`
