@@ -792,7 +792,8 @@ for (const format of ['json', 'sarif']) {
   assert.equal(pack.status, 0, pack.stderr);
   const files = JSON.parse(pack.stdout)[0].files.map(entry => entry.path);
   for (const required of ['lib/cli.mjs', 'lib/units.mjs', 'config/default.json',
-    'config/profiles/un-v1.json', 'rules/catalogue.json', 'bin/check.mjs', 'SKILL.md', 'VERSION']) {
+    'config/profiles/un-v1.json', 'rules/catalogue.json', 'bin/check.mjs', 'SKILL.md', 'VERSION',
+    'commands/un-diplomatic-agent.md']) {
     assert(files.includes(required), `npm pack must include ${required}`);
   }
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));

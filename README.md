@@ -194,6 +194,56 @@ npm install --save-dev un-editorial-check
 npx un-editorial-check content --format json
 ```
 
+### The `/un-diplomatic-agent` command
+
+The `/un-diplomatic-agent` command drives the whole flow as one approval-gated procedure: it runs the check, writes the PDF report, and summarises the findings with severity counts and current-to-should-be wording, then stops at an approval gate where nothing is written. Only after the user explicitly approves does the agent apply the mechanical `--fix --apply` corrections, rewrite the remaining findings from the report's `SHOULD-BE` wording, re-run the scan and report what honestly remains; it never claims the copy is clean unless the exit code is `0`.
+
+The canonical source is `commands/un-diplomatic-agent.md` in this repository — a single Markdown prompt, so any host that reads Markdown command files can load it. Copy the file into the command directory your host documents:
+
+**OpenCode**
+
+Project installation:
+
+```text
+.opencode/commands/un-diplomatic-agent.md
+```
+
+Global installation:
+
+```text
+~/.config/opencode/commands/un-diplomatic-agent.md
+```
+
+OpenCode documents both locations and still discovers the legacy singular `command/` directory. OpenCode reloads command files automatically; invoke `/un-diplomatic-agent`.
+
+**Claude Code**
+
+Project installation:
+
+```text
+.claude/commands/un-diplomatic-agent.md
+```
+
+User installation:
+
+```text
+~/.claude/commands/un-diplomatic-agent.md
+```
+
+Claude Code still loads `.claude/commands/` files although it now prefers skills for new work, so confirm the command directory for the installed version and restart after copying. Invoke `/un-diplomatic-agent`.
+
+**Codex**
+
+```text
+~/.codex/prompts/un-diplomatic-agent.md
+```
+
+Codex documents custom prompts as user-level only — they live under the Codex home directory rather than the repository — and marks them deprecated in favour of skills, so confirm the directory in the installed version. Codex invokes the file as `/prompts:un-diplomatic-agent`.
+
+**Other hosts covered above — Kimi Code CLI, Cursor, Gemini CLI, Windsurf, Cline, GitHub Copilot**
+
+No command directory is verified for these hosts in this repository. Copy `commands/un-diplomatic-agent.md` into the custom-command directory your installed version documents, or hand the agent the path to the file and ask it to follow the flow. Command discovery is version-specific, so use the path the host reports.
+
 ## Compatibility at a glance
 
 | Host | Status | Installer name | Portable project path |
