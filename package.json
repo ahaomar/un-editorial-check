@@ -45,7 +45,16 @@
     "british-english",
     "sarif",
     "static-analysis",
-    "zero-dependency"
+    "zero-dependency",
+    "united-nations",
+    "cli",
+    "agent-skill",
+    "editorial-review",
+    "neutral-language",
+    "markdown",
+    "html",
+    "pdf-report",
+    "writing-tools"
   ],
   "repository": {
     "type": "git",
