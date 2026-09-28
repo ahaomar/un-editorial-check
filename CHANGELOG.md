@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.2.0 – 28 September 2026
+
+## 1.2.0 – 28 September 2026
+
+The leftover release: everything deferred after 1.1.0, plus the three features parked for it. Three new opt-in capabilities (an HTML report, a reader-supplied glossary, a watch loop), one new P0 detection, and four honesty fixes where the tool could claim more than it had done. The five lanes, the `--fix` allow-list, the exact clean-run wording, the exit-code contract and report-first behaviour are unchanged.
+
+### Added
+
+- **`--report <path.html>`** — a self-contained HTML report beside the existing PDF, dispatched on the extension. The same five lanes, the same six fields on every finding, the same framing disclaimer, byte-identical output for identical input so it can be diffed. No external stylesheet, script or font; every value escaped. A report extension the tool does not render is a refusal with exit `2`, never a silent fall-back to PDF.
+- **`--glossary <file>`** (and a `glossary` key in `.un-editorial.json`) — the reader's own terminology: a term on their `forbiddenTerms` list that appears in the copy, and a term on their `requiredTerms` list that appears nowhere in a scanned file. New rules `UE-GL001` and `UE-GL002`, audit-lane, warning severity. Labelled user-supplied everywhere — the catalogue source names the mechanism rather than a file, the profile reads `glossary`, the report gives it its own `OPTIONAL AUDIT — glossary` section, and every message ends by saying it is the reader's house terminology and not a United Nations rule. It is never recorded in `rules/sources.json`, which holds sourced institutional rules, because a personal file has no URL and no retrieval date. It never changes the exit code, and `--fix` never rewrites it. Fails closed with exit `2` on a wrong `glossaryVersion`, an unknown key, a wrong type, an empty term, a term that can never match, a duplicate term, a replacement key that is not forbidden, a missing file and a directory.
+- **`--watch`** — re-scan whenever a scanned file changes, for one writer and one editor. Watches directories rather than files, because an editor that saves by rename replaces the file. Survives deletion, rename-replacement and directory removal. Resolves no exit code and says so; Ctrl+C exits `130`, never `0`. Every flag whose contract is an exit code or a single output document is refused up front rather than quietly ignored.
+- **`UE-HR003` cross-block form** — a long authored paragraph repeated verbatim inside the same file is now reported, with the line where the first copy was. A block is the *visual paragraph*, reassembled from the units the markup split, so bold, italics, a link or a highlighted span inside one copy cannot hide the repeat, whether it wraps whole words or breaks one word in half. No replacement is passed, so it stays out of the `--fix` set.
+- **JSX and TSX text children** are extracted by markup shape rather than by extension: `() => <p>The color reports quarterly.</p>` in a `.js` file is now scanned. The full HTML attribute grammar including the legal unquoted form, plus `aria-description`, `aria-roledescription` and `aria-valuetext`.
+- **Launch and discovery material**: `docs/LAUNCH.md`, a five-lane demo under `docs/demo/`, shareable copy under `templates/social/`, a README Quickstart with the output shape and a five-lane table, and expanded npm keywords.
+
+### Fixed
+
+- **The skill-root shield was too wide.** It deleted *every* input under the skill root, so `check.mjs README.md` printed `scanned 0 files`, the clean-run sentence and exit `0` — claiming clean after reading nothing. The shield now applies only when the input *is* the skill root; a named file or sub-directory is scanned. A scan of the root still exits `0`, as documented.
+- **A run could claim clean after reading nothing.** A file whose bytes are not decodable as UTF-8 — a misnamed binary, or a UTF-16 export saved as `.txt` — is now skipped, counted out of the scanned total and named in the header (`scanned 1 of 3 files — 2 skipped (not valid UTF-8)`) and in the JSON and SARIF output. A scan in which *every* candidate file was skipped is a refusal with exit `2`. Previously a binary renamed `.txt` produced findings invented from its file header, and `--fix --apply` rewrote the file.
+- **UTF-16 was not actually caught.** It is valid UTF-8, so the strict decode succeeded and NUL-interleaved bytes became copy that rules read at meaningless positions. The guard now checks for a NUL byte first, the same signal git uses to classify a file as binary.
+- **The PDF hid its own character loss.** A path outside WinAnsi still folds to `?`, but the report now says so, naming the encoding and warning that two names differing only in such a character will look alike, and that the JSON carries the exact name. A report that folded nothing is byte-identical to before.
+- **The PDF omitted the framing disclaimer** that claim row 22 promises for "the report". It now leads the PDF, identical to the HTML, before any finding.
+- **Four false-positive classes removed from `UE-HR002`.** `women are inferior`, `older people are inferior`, `refugees is inferior` and `migrants is inferior` were misparses of comparatives about rights, data and access. A preposition before the group now makes it the preposition's complement; partitives are exempt, so `All of the foreigners are criminals` still fires. Ten true positives still fire, verified by a 47-term × 3-template symmetry sweep.
+- **`lib/cli.mjs` no longer breaks the repository's own rules.** The watch help text contained a missing sentence space and an all-caps heading, which the tone and grammar corpus verifiers caught.
+
+### Changed behaviour to be aware of
+
+- The **skill-root carve-out is narrower**. Naming a file or sub-directory inside the skill root is now scanned where it was previously dropped silently.
+- **A run that reads nothing can now be refused.** An all-undecodable directory is exit `2` rather than a clean `0`.
+- **Two rules were added to the catalogue** (43 to 45) and three test suites to the chain (20 to 23).
+- **Guard notes narrowed to match the code.** `UE-HR003` no longer promises silence on "navigation" copy, because a Markdown document has no navigation surface: a standing paragraph repeated under your own section headings inside one Markdown file *is* reported, and `ue:ignore` silences it. A repeated paragraph is reported per file, never across files.
+
+### Verified, and how
+
+Full suite: 23 suites, 60 assertions groups, exit `0`. Corpus verifiers: 44 of 45 rules fire, `UE-TE003` documented-silent, no finding on a control line. Self-scan exits `0` with the repository scanning itself. Two independent adversarial QA passes over this release: the first returned **GO** with 13 findings, of which 4 Medium were all closed; a focused re-check of those fixes returned **GO** and found a regression the first pass had missed, which was also closed. Every claim in `docs/CLAIM-EVIDENCE-AUDIT.md` is re-verified against observed behaviour, and each new lock was shown to fail when its guarantee is removed.
+
+### Not changed
+
+The five lanes, the exact clean-run wording `No findings under the enabled, documented local rules.`, the `--fix` allow-list (`UE-GR001`, `UE-GR002`, `UE-GR003`, `UE-NU002`, `UE-SP001`), the exit-code mapping, the fact that heuristics are review severity by default, that audits never move the exit code, and the framing both report formats now state in full: the report never presents itself as verification of facts, legal opinion or United Nations endorsement. Zero npm dependencies. No rule change was made without a sourced fixture.
+
 ## 1.1.0 – 28 September 2026
 
 The Phase 6 completion release: five output lanes, the exact clean-run sentence, diplomatic claims as review, heuristic findings as review severity by default, and a full documentation truth-pass with a migration guide and an audit table. Report-first behaviour, zero npm dependencies, the approval-gated command and the exit-code contract are unchanged.
