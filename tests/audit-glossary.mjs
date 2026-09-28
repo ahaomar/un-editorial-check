@@ -481,11 +481,40 @@ console.log('ok — glossary fail-closed: 25 malformed shapes, each exit 2 with 
     'both rules can be switched off');
   // config.severities reaches a glossary rule too, which is how a reader
   // re-grades the finding without touching the catalogue.
+  // config.severities reaches a glossary rule, which is how a reader re-grades
+  // the finding without touching the catalogue. This case asserts the MECHANISM
+  // — that the configured grade really lands on the finding — and nothing about
+  // the exit code, because that is not what this grade can test.
+  //
+  // It previously asserted "still cannot fail the run" at info severity, which
+  // looked like it guarded the audit-lane exit-code invariant but could not:
+  // info is not error severity, so the assertion passed under any
+  // implementation of editorialErrors, including one with no !f.audit guard at
+  // all. QA finding D11. The invariant itself is now locked at error severity
+  // in tests/audit-lanes.mjs section 6b, where the mutation turns it red.
   const regraded = write('regraded-config.json', JSON.stringify({
     severities: { 'UE-GL002': 'info' },
   }));
-  assert.equal(scan(file, '--config', regraded, '--glossary', house).code, 0,
-    'a re-graded glossary severity still cannot fail the run: the finding is audit-lane');
+  const regradedRun = scan(file, '--config', regraded, '--glossary', house);
+  const regradedFindings = json(regradedRun).findings;
+  assert.ok(regradedFindings.length > 0, 'the re-graded run still reports findings');
+  assert.ok(regradedFindings.every(f => f.ruleId === 'UE-GL002'),
+    'the re-graded config reports only the re-graded rule');
+  assert.ok(regradedFindings.every(f => f.severity === 'info'),
+    `config.severities really re-grades the glossary finding: ${JSON.stringify(regradedFindings.map(f => [f.ruleId, f.severity]))}`);
+
+  // The escalation direction that matters is error, and it is asserted at
+  // error severity here too, so this file carries the property on its own
+  // terms rather than only by reference to another suite.
+  const escalated = write('escalated-config.json', JSON.stringify({
+    severities: { 'UE-GL002': 'error' },
+  }));
+  const escalatedRun = scan(file, '--config', escalated, '--glossary', house);
+  const escalatedFindings = json(escalatedRun).findings;
+  assert.ok(escalatedFindings.some(f => f.ruleId === 'UE-GL002' && f.severity === 'error'),
+    'config.severities can escalate a glossary rule to error severity');
+  assert.equal(escalatedRun.code, 0,
+    'audit-lane exit-code invariant: an error-severity glossary finding is audit-lane and does not fail the run');
 
   // --init and --self-test refuse a glossary, and say so.
   const withInit = capture(['--init', '--glossary', house]);

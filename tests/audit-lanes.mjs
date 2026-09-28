@@ -8,7 +8,9 @@
 // demeaning" high-severity human review, never auto-rewrite; quoted material
 // reported separately; diplomacy KB variant/negation/incomplete-assertion
 // coverage with the v8 web-corpus P0/P1 fixtures; PDF and --format JSON/SARIF
-// reflect the lanes.
+// reflect the lanes; and the audit lane's own contract, section 6b — an
+// audit-lane finding can never decide the process exit code, whatever severity
+// the reader escalates it to.
 //
 // Fixtures are copied out of the repository before use: the scanner never
 // reads files inside its own skill root unless --self-scan is given. Every
@@ -273,6 +275,165 @@ for (const [label, argv] of [
   assert.match(text, /OPTIONAL AUDIT — accessibility/);
 }
 
+// --- 6b: the audit lane can never decide the exit code ------------------------
+
+// The invariant: an audit-lane finding is reported, routed and graded like any
+// other finding, and it still cannot set the process exit code. It is the
+// audit lane's contract, not a glossary's, so it is locked here for the three
+// bundled audit profiles and for the reader's own glossary.
+//
+// The lock has to escalate a rule to `error` severity, because `info` and
+// `warning` cannot fail under ANY implementation of the filter — a test that
+// re-grades to `info` passes whether or not the `!f.audit` guard exists, and so
+// proves nothing. Each case below therefore also asserts that the finding
+// really did reach error severity, so the case cannot pass by accident through
+// a config key that silently did not apply.
+//
+// Mutation that must turn this section red:
+//   lib/output.mjs  editorialErrors: drop `!f.audit` from the filter.
+
+{
+  // One glossary rule and one bundled audit rule, each driven to error severity
+  // through the configuration path its own lane reads.
+  const dirtyDraft = write('escalate-glossary.txt',
+    'The programme reached 1,200 beneficiaries in the region.\n');
+  const glossaryFile = write('escalate-glossary.json', JSON.stringify({
+    glossaryVersion: 1, forbiddenTerms: ['beneficiaries'],
+  }));
+  const glossaryConfig = write('escalate-glossary-config.json', JSON.stringify({
+    severities: { 'UE-GL001': 'error' },
+  }));
+  // runAudits reads severity from config.rules[id].severity, not from
+  // config.severities, so an audit must be escalated through the key its own
+  // code path consults. The per-profile configs are built inside the loop below
+  // from whichever rules each profile raises.
+  const editorialConfig = write('escalate-editorial-config.json', JSON.stringify({
+    severities: { 'UE-SP001': 'error' },
+  }));
+  const spellings = write('escalate-editorial.txt', 'The color reports.\n');
+
+  // The positive control first, because without it the cases below would pass
+  // for the wrong reason: if severity escalation had stopped working, every
+  // "still exits 0" assertion here would be trivially true.
+  const control = scan(spellings, '--config', editorialConfig);
+  const controlFindings = json(control).findings;
+  assert.equal(controlFindings.length, 1, 'the control produces exactly one finding');
+  assert.equal(controlFindings[0].severity, 'error',
+    'the control is escalated to error severity, so the exit code below is decided by severity');
+  assert.ok(!controlFindings[0].audit,
+    'the control is an editorial finding, not an audit-lane one');
+  assert.equal(control.code, 1,
+    'CONTROL: an error-severity editorial finding does fail the run');
+
+  // The glossary, escalated to error.
+  const glossaryRun = scan(dirtyDraft, '--config', glossaryConfig, '--glossary', glossaryFile);
+  const glossaryFindings = json(glossaryRun).findings;
+  assert.equal(glossaryFindings.length, 1, 'the glossary case produces exactly one finding');
+  assert.equal(glossaryFindings[0].ruleId, 'UE-GL001', 'the glossary case raises UE-GL001');
+  assert.equal(glossaryFindings[0].severity, 'error',
+    'audit-lane exit-code invariant: the glossary finding really is error severity — this is the only grade that exercises the exit-code filter');
+  assert.equal(glossaryFindings[0].audit, 'glossary', 'the finding is audit-lane');
+  assert.equal(glossaryRun.code, 0,
+    'audit-lane exit-code invariant: an audit-lane glossary finding at error severity must not fail the run');
+
+  // The bundled audits, escalated to error, one profile at a time. Each case
+  // escalates whichever rule that profile actually raises, so the test does not
+  // depend on a rule id that a future audit change could rename.
+  for (const [profile, target, fixtureRule] of [
+    ['accessibility', fixture('audits', 'accessibility.html'), 'UE-AX001'],
+    ['security', fixture('audits', 'security.html'), 'UE-SE002'],
+  ]) {
+    // First, a plain run to learn which rules this profile raises here.
+    const plain = json(scan(target, '--profile', profile)).findings;
+    const present = plain.map(f => f.ruleId);
+    assert.ok(present.includes(fixtureRule),
+      `the ${profile} fixture still raises ${fixtureRule}, got ${present.join(', ')}`);
+    // Escalate every rule the profile raises, so the case cannot pass through
+    // a rule that happens to sit at warning while another one is escalated.
+    const escalateAll = write(`escalate-${profile}.json`, JSON.stringify({
+      rules: Object.fromEntries(present.map(id => [id, { severity: 'error' }])),
+    }));
+    const run = scan(target, '--profile', profile, '--config', escalateAll);
+    const findings = json(run).findings;
+    assert.ok(findings.length > 0, `the ${profile} case produces findings`);
+    assert.ok(findings.every(f => f.severity === 'error'),
+      `audit-lane exit-code invariant: every ${profile} finding is escalated to error severity, got ${JSON.stringify(findings.map(f => [f.ruleId, f.severity]))}`);
+    assert.ok(findings.every(f => f.audit === profile),
+      `every ${profile} finding is audit-lane`);
+    assert.equal(run.code, 0,
+      `audit-lane exit-code invariant: error-severity ${profile} audit findings must not fail the run`);
+  }
+
+  // Every audit profile at once, every rule it raises escalated to error: the
+  // strongest form of the case, since a single dropped guard anywhere in the
+  // filter is enough to fail it. The rule list is derived from a plain run, so
+  // the case does not rot when an audit gains or renames a check.
+  const combinedTarget = fixture('audits', 'publishing-missing.html');
+  const combinedArgs = [
+    '--profile', 'publishing', '--profile', 'accessibility', '--profile', 'security',
+  ];
+  const plainCombined = json(scan(combinedTarget, ...combinedArgs)).findings;
+  const combinedIds = [...new Set(plainCombined.map(f => f.ruleId))];
+  assert.ok(combinedIds.length >= 3,
+    `the combined case raises findings across profiles, got ${combinedIds.join(', ')}`);
+  assert.ok(plainCombined.every(f => f.audit),
+    'the combined case is entirely audit-lane before escalation too');
+  const allAudits = write('escalate-all-audits.json', JSON.stringify({
+    rules: Object.fromEntries(combinedIds.map(id => [id, { severity: 'error' }])),
+  }));
+  const combined = scan(combinedTarget, ...combinedArgs, '--config', allAudits);
+  const combinedFindings = json(combined).findings;
+  assert.ok(combinedFindings.length > 0, 'the combined case produces audit findings');
+  assert.ok(combinedFindings.every(f => f.severity === 'error'),
+    `every finding in the combined case is error severity, got ${JSON.stringify(combinedFindings.map(f => [f.ruleId, f.severity]))}`);
+  assert.ok(combinedFindings.every(f => f.audit),
+    'every finding in the combined case is audit-lane');
+  assert.equal(combined.code, 0,
+    'audit-lane exit-code invariant: with every audit finding at error severity the run still exits 0');
+
+  // The counter-case that keeps the lock honest in the other direction: the
+  // same error-severity glossary finding is still reported, still graded error,
+  // and still counted in the audit lane. A guard that "protects" the exit code
+  // by discarding the finding would satisfy the assertions above and fail here.
+  const text = capture([dirtyDraft, '--config', glossaryConfig, '--glossary', glossaryFile]).stdout;
+  assert.match(text, /OPTIONAL AUDIT — glossary \(1\)/,
+    'the escalated glossary finding is still reported, in its own section');
+  assert.match(text, /UE-GL001/,
+    'the escalated glossary finding is still reported by id');
+  assert.ok(!/EDITORIAL ERRORS/.test(text),
+    'an audit-lane finding never renders as an editorial error, even at error severity');
+
+  // JSON: a consumer must not be able to conclude the run failed. The summary
+  // counts audits separately from severity, so summary.errors stays 0 while the
+  // finding itself carries error severity — the two facts a consumer needs to
+  // tell "graded error" apart from "failed the run".
+  const glossaryJson = json(glossaryRun);
+  assert.equal(glossaryJson.summary.errors, 0,
+    'JSON: an error-severity audit finding is not counted as an editorial error');
+  assert.deepEqual(glossaryJson.summary.audits, { glossary: 1 },
+    'JSON: the audit is counted in the audits summary instead');
+  assert.equal(glossaryJson.lanes.audit, 1, 'JSON: the lane counts carry the audit');
+  assert.equal(glossaryJson.lanes.deterministic, 0,
+    'JSON: an audit finding never lands in the deterministic lane');
+  assert.equal(glossaryJson.findings[0].severity, 'error',
+    'JSON: the finding still reports its own escalated severity honestly');
+  assert.equal(glossaryJson.findings[0].audit, 'glossary',
+    'JSON: the audit tag is present, so a consumer can tell why the run passed');
+
+  // SARIF: the level is derived from severity, so an escalated audit finding is
+  // level "error" — and the properties must carry the audit tag, or a consumer
+  // would have no way to tell an audit from an editorial error. SARIF has no
+  // exit-code field, so `audit` is the only signal that keeps the two apart.
+  const sarif = json(capture([dirtyDraft, '--config', glossaryConfig, '--glossary', glossaryFile,
+    '--format', 'sarif']));
+  const result = sarif.runs[0].results[0];
+  assert.equal(result.ruleId, 'UE-GL001', 'SARIF: the escalated audit is reported');
+  assert.equal(result.level, 'error', 'SARIF: the level follows the escalated severity');
+  assert.equal(result.properties.audit, 'glossary',
+    'SARIF: the audit property is what stops a consumer reading level "error" as a failed run');
+  assert.equal(result.properties.lane, 'audit', 'SARIF: the lane property agrees');
+}
+
 // --- 7: SARIF carries the lanes ---------------------------------------------
 
 {
@@ -380,4 +541,4 @@ for (const output of rendered) {
 }
 
 console.log('ok — lanes: metadata, safety lane, diplomacy lane, sections, heuristic flip, '
-  + 'audit lane, SARIF, PDF, quoted context, banned phrases');
+  + 'audit lane, audit exit-code invariant, SARIF, PDF, quoted context, banned phrases');

@@ -97,10 +97,17 @@ true for a user-supplied check:
 
 ### The exit code
 
-**A glossary finding never changes the exit code.** The rules are warning
-severity and audit-lane, which is the same treatment `--profile security` gets:
-a house convention is not a United Nations requirement, so it must not decide
-whether a run claiming United Nations compliance passes.
+**A glossary finding never changes the exit code.** The rules are audit-lane,
+which is the same treatment `--profile security` gets: a house convention is
+not a United Nations requirement, so it must not decide whether a run claiming
+United Nations compliance passes.
+
+The audit lane is what does this, not the severity. Warning is the default a
+reader sees, but re-grading a glossary rule to `error` through
+`config.severities` still exits 0, and the finding is still reported in its
+audit section. The same holds for the bundled audit profiles, which is why
+this is the audit lane's contract rather than a glossary special case. The
+invariant is locked at error severity in `tests/audit-lanes.mjs`, section 6b.
 
 If a build should fail on your own terminology, assert on the output yourself:
 
