@@ -392,8 +392,8 @@ const sortMarks = list => [...list].sort((a, b) =>
   assert(expected.length >= 5, `the violation case must stay substantial, found ${expected.length}`);
   assert(new Set(expected.map(f => f.ruleId)).size >= 3,
     'the violation case must cover at least three distinct rules');
-  for (const file of CORPUS) {
-    assert(fs.existsSync(path.join(CORPUS_DIR, file)), `corpus file missing: ${file}`);
+  for (const entry of CORPUS) {
+    assert(fs.existsSync(path.join(CORPUS_DIR, entry.file)), `corpus file missing: ${entry.file}`);
   }
 
   // Cross-check: the real CLI scan of the same corpus files must produce
