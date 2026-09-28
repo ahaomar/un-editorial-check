@@ -24,6 +24,15 @@
 //      `--fix --apply` leaves a file containing all five findings byte
 //      identical, config.rules enabled:false and ue:ignore both silence.
 //
+// NOT COVERED HERE, ON PURPOSE: the proposed second form of UE-HR003 (a long
+// authored block repeated verbatim later in the same file, which is the
+// duplicated-insertion defect in .feedbacks/v8/web/01 lines 141 and 151). The
+// implementation lives in lib/rules.mjs, which the depth agent does not own,
+// so shipping the test without the implementation would fail this suite and
+// block every merge. The specification, the fixtures and the exact patch are
+// handed to the integrator instead; see the Phase-7 report. Nothing in this
+// file depends on it.
+//
 // TDD: written before the heuristic section landed in lib/rules.mjs.
 // Standalone: node tests/audit-heuristics.mjs
 // Prose in this file stays single-quoted: the repository self-scan extracts

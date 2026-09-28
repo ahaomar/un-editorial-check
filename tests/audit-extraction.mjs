@@ -10,6 +10,7 @@
 // Covered contract items:
 //   1. HTML `ue:ignore` suppression (README:329 example and scoping rules)
 //   2. Type-annotated TypeScript extraction
+//   2b. JSX and TSX text children — copy that is not inside a string literal
 //   3. Sentence-like literal promise + the self-scan hard gate
 //   4. Explicitly named unsupported files / zero-file scans / supported set
 //   5. `fixtures` directory skip at any depth + explicit-path override
@@ -18,6 +19,12 @@
 //   8. Non-regular existing input (FIFO) honesty
 //   9. `Report written:` announcement
 //  10. README / USER-GUIDE literal truth (targeted lines)
+//  11. binary-named-.txt: a file that is not UTF-8 yields no copy, and
+//      --fix --apply can no longer write the lossy round-trip over it, while
+//      every genuinely readable .txt still scans
+//  12. the attribute grammar: legal unquoted attribute values, the ARIA copy
+//      set (aria-label, -description, -valuetext, -roledescription), and the
+//      attributes that must stay unread because they are URLs or identifiers
 // plus regressions: MD/JS/TXT suppression matrix, directory exclusions,
 // `--report` value refusals, `--fix` refusal on non-prose types.
 
@@ -28,7 +35,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { run } from '../bin/check.mjs';
-import { EXTRACTABLE_EXTENSIONS, SUPPORTED_EXTENSIONS } from '../lib/extract.mjs';
+import { extractFile, EXTRACTABLE_EXTENSIONS, SUPPORTED_EXTENSIONS } from '../lib/extract.mjs';
 import { DEFAULT_EXCLUDES } from '../lib/scanner.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -186,6 +193,116 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
     assert.deepEqual(ids(scan(file)), jsIds,
       `the .ts twin must fire exactly like the .js twin: ${body.trim()}`);
   });
+}
+
+// --- 2b. JSX / TSX text children ---------------------------------------------
+//
+// Brief §6: "Improve JavaScript extraction … Add fixtures for … dynamically
+// rendered copy." A .jsx or .tsx file writes its copy in the markup, not in a
+// string literal: `<p>The organization reports.</p>` has no quotes anywhere, so
+// the tokenizer — which only classifies string and template tokens — returned
+// nothing at all for the file. That is the single largest extraction gap found
+// in the audit: an entire supported format contributed zero copy.
+
+{
+  const JSX_TEXT = 'The organization reports quarterly.';
+  const variants = [
+    ['arrow.tsx', `export const P = () => <p>${JSX_TEXT}</p>;\n`],
+    ['assign.jsx', `const p = <p>${JSX_TEXT}</p>;\n`],
+    ['nested.jsx', `const p = (\n  <section>\n    <p>${JSX_TEXT}</p>\n  </section>\n);\n`],
+    ['sibling.jsx', `const p = <div><h1>Heading</h1><p>${JSX_TEXT}</p></div>;\n`],
+    ['multiline.jsx', `const p = <p>\n  ${JSX_TEXT}\n</p>;\n`],
+    ['named.tsx', `function P() {\n  return <p>${JSX_TEXT}</p>;\n}\n`],
+  ];
+  for (const [name, body] of variants) {
+    assert.deepEqual(ids(scan(write(name, body))), ['UE-SP001'],
+      `JSX text child copy must be extracted: ${name}`);
+  }
+
+  // JSX attribute values are literals and were already covered; the text
+  // children above are the part that was missing.
+  assert.deepEqual(ids(scan(write('attr.jsx', `const p = <img alt="${JSX_TEXT}" />;\n`))),
+    ['UE-SP001'], 'JSX attribute copy keeps working');
+
+  // An expression child is code, not copy: a literal inside braces is already
+  // handled by the string path, and a bare expression child holds no prose.
+  assert.deepEqual(ids(scan(write('expr.jsx',
+    'const p = <p>{count}</p>;\n'))), [],
+    'an expression child with no literal is not copy');
+
+  // Structural text that is never user-visible must stay out.
+  assert.deepEqual(ids(scan(write('struct.jsx', `const p = <div className="x" id="y" />;\n`))), [],
+    'class and id values are identifiers, not copy');
+  assert.deepEqual(ids(scan(write('comment.jsx', `const p = <p>{/* ${JSX_TEXT} */}</p>;\n`))), [],
+    'a JSX comment is not copy');
+
+  // A .js file has no JSX, so the same text outside quotes is code, not copy.
+  assert.deepEqual(ids(scan(write('nojsx.js', `const p = The organization reports;\n`))), [],
+    'plain JavaScript prose outside a literal is not copy');
+
+  // --- the false-positive controls: the gate is structural, not an extension --
+  //
+  // TypeScript generics, type assertions, interfaces and comparisons all look
+  // like markup to a naive `<Tag>` scan. None of them may become copy, and this
+  // is the assertion that would fail first if the gate were ever loosened to
+  // "scan .jsx and .tsx by extension".
+  for (const [name, body] of [
+    ['generic-array.ts', 'const a: Array<string> = [];\nconst m = new Map<string, number>();\n'],
+    ['generic-fn.ts', 'function f<T>(x: T): T { return x; }\n'],
+    ['comparison.ts', 'if (a < b) { c(); }\nconst q = x < y;\n'],
+    ['type-alias.ts', 'type A = { a: string };\ninterface B { b: number }\n'],
+    ['code.js', 'const x = 1 + 2;\nfunction f(a) { return a * 2; }\n// done\n'],
+    ['imports.ts', "import React from 'react';\nimport { useState } from 'react';\n"],
+  ]) {
+    assert.deepEqual(ids(scan(write(name, body))), [],
+      `TypeScript syntax is not copy and must stay silent: ${name}`);
+  }
+
+  // JSX-specific exclusions. Each is text a reader does not see.
+  assert.deepEqual(ids(scan(write('expr-hole.jsx',
+    'const p = <p>{count} of them</p>;\n'))), [],
+  'an expression child is code, not copy');
+  assert.deepEqual(ids(scan(write('jsx-comment.jsx',
+    'const p = <p>{/* The organization reports. */}Visible copy</p>;\n'))), [],
+  'a JSX comment is not copy');
+  assert.deepEqual(ids(scan(write('void.jsx',
+    'const p = <div><br /><img src="a.png" /><hr />Copy text</div>;\n'))), [],
+  'a void or self-closing element has no text position');
+
+  // Entities are decoded, so copy containing an ampersand reads as published.
+  {
+    const entity = scan(write('entity.jsx', 'const p = <p>Terms &amp; conditions apply.</p>;\n'));
+    const unit = extractFile(path.join(tmp, 'entity.jsx'),
+      'const p = <p>Terms &amp; conditions apply.</p>;\n', {}).find(u => u.text.includes('Terms'));
+    assert(unit, 'a JSX element with entity copy must produce a unit');
+    assert.equal(unit.text, 'Terms & conditions apply.',
+      'a JSX entity reference must be decoded, not left as source');
+    assert.deepEqual(ids(entity), [], 'the decoded JSX copy is clean');
+  }
+
+  // Quoted material inside JSX copy is still quoted material, so it is masked
+  // out of the rules exactly as it would be in a literal.
+  {
+    const quoted = extractFile(path.join(tmp, 'quoted.jsx'),
+      'const p = <p>He said "the organization reports" today.</p>;\n', {});
+    const unit = quoted.find(u => u.text.includes('He said'));
+    assert(unit, 'JSX copy around a quotation must still be extracted');
+    assert.equal(unit.text, 'He said today.',
+      'a quotation inside JSX copy must be masked, as in any other copy span');
+  }
+
+  // Text before and after a nested element is three separate runs, in order.
+  {
+    const mixed = extractFile(path.join(tmp, 'mixed.jsx'),
+      'const p = <div>Before<p>The organization reports.</p>After</div>;\n', {});
+    assert.deepEqual(mixed.map(u => u.text), ['Before', 'The organization reports.', 'After'],
+      'JSX text runs are collected separately and in document order');
+    // Every run keeps an exact map, so a fix can land in the text and nowhere else.
+    for (const unit of mixed) {
+      const at = unit.raw.indexOf(unit.text);
+      assert(at >= 0, `each JSX run must sit verbatim in its own source slice: ${unit.text}`);
+    }
+  }
 }
 
 // --- 3. sentence-like literals ------------------------------------------------
@@ -428,6 +545,185 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
     `relative report paths must be echoed as given:\n${relative.stdout}`);
 }
 
+// --- 12. attribute grammar: unquoted values and the ARIA copy set ----------
+//
+// Brief §6 requires visible copy in "accessible labels" to be scanned. Two
+// gaps were open: the attribute pattern accepted only the two quoted forms, so
+// a legal unquoted value (`alt=organization`, which is what a hand-edited or
+// generated page looks like) was dropped entirely; and three ARIA properties a
+// screen reader announces as text — aria-description, aria-valuetext and
+// aria-roledescription — were not in the copy-bearing set at all.
+
+{
+  // An unquoted value ends at whitespace or `>`, so a legal unquoted value is
+  // a single token: that is the HTML grammar, not a limitation of the parser.
+  const W = 'organization';
+  const UNQUOTED = [
+    ['alt', `<img alt=${W}>\n`],
+    ['alt-self-closing', `<img alt=${W} />\n`],
+    ['alt-gt-terminated', `<img alt=${W}><p>Paragraph after.</p>\n`],
+    ['title', `<a title=${W} href=/x>Link text.</a>\n`],
+    ['aria-label', `<div aria-label=${W}></div>\n`],
+    ['placeholder', `<input placeholder=${W}>\n`],
+  ];
+  for (const [name, body] of UNQUOTED) {
+    assert.deepEqual(ids(scan(write(`unq-${name}.html`, body))), ['UE-SP001'],
+      `an unquoted ${name} value must be scanned: ${body.trim()}`);
+  }
+
+  // Only copy-bearing attributes are read. Reading href, src or class as prose
+  // would put URLs and CSS identifiers into editorial findings, which is the
+  // boundary the whole extraction layer exists to hold.
+  for (const [name, body] of [
+    ['href', `<a href=${W}>Link text.</a>\n`],
+    ['src', `<img src=${W}>\n`],
+    ['class', `<div class=${W}></div>\n`],
+    ['id', `<div id=${W}></div>\n`],
+    ['data-', `<div data-x=${W}></div>\n`],
+  ]) {
+    assert.deepEqual(ids(scan(write(`unq-silent-${name}.html`, body))), [],
+      `an unquoted ${name} value must not become copy`);
+  }
+
+  // A valueless attribute and an empty value produce no unit at all.
+  assert.deepEqual(ids(scan(write('unq-valueless.html', '<input disabled alt>\n'))), [],
+    'a valueless attribute is not an empty copy surface');
+  assert.deepEqual(ids(scan(write('unq-empty.html', '<img alt= >\n'))), [],
+    'an empty attribute value produces no unit');
+
+  // The ARIA copy set. Each of these is announced to a screen-reader user as
+  // text, which is why brief §6 puts them in scope.
+  const ARIA = [
+    ['aria-label', `<div aria-label="${ORG}"></div>\n`],
+    ['aria-description', `<div aria-description="${ORG}"></div>\n`],
+    ['aria-valuetext', `<div role="slider" aria-valuetext="${ORG}"></div>\n`],
+    ['aria-roledescription', `<div role="button" aria-roledescription="${ORG}"></div>\n`],
+  ];
+  for (const [name, body] of ARIA) {
+    assert.deepEqual(ids(scan(write(`aria-${name}.html`, body))), ['UE-SP001'],
+      `${name} is announced to assistive technology and must be scanned`);
+  }
+
+  // aria-labelledby names element IDs, not copy, so it carries no unit of its
+  // own — and the referenced element's own text is still extracted.
+  {
+    // The referenced element is a heading, so UE-HR004 also reports its full
+    // stop; the assertion here is about how many copy units exist, so it
+    // filters to the spelling defect rather than pinning the whole id set.
+    const byId = scan(write('aria-labelledby.html',
+      `<div aria-labelledby="hdr"></div><h2 id="hdr">${ORG}</h2>\n`));
+    const spelling = json(byId).findings.filter(f => f.ruleId === 'UE-SP001');
+    assert.equal(spelling.length, 1,
+      'the element an aria-labelledby points at must still be scanned exactly once');
+    const units = extractFile(
+      write('aria-labelledby-units.html',
+        `<div aria-labelledby="hdr"></div><h2 id="hdr">${ORG}</h2>\n`),
+      fs.readFileSync(path.join(tmp, 'aria-labelledby-units.html'), 'utf8'), {});
+    assert.equal(units.length, 1,
+      'aria-labelledby holds element IDs, not copy, so it adds no unit of its own');
+  }
+
+  // The ARIA additions are navigation copy, not authored narrative: a defect in
+  // one must not be reported as a narrative-paragraph defect.
+  {
+    const unit = json(scan(write('aria-context.html', `<div aria-valuetext="${ORG}"></div>\n`)))
+      .findings[0];
+    assert.equal(unit.context, 'nav',
+      'an ARIA property is interface copy and keeps the navigation context');
+  }
+}
+
+// --- 11. binary-named-.txt --------------------------------------------------
+//
+// A file whose bytes are not UTF-8 is not user-visible copy in any supported
+// format. Read with a lossy decode it looked like prose: a PNG header produced
+// a "Bare US in prose" finding invented from bytes that are not text, and
+// `--fix --apply` wrote the lossy round-trip back over the original file,
+// replacing every undecodable byte with U+FFFD. extractFile now returns no
+// units for such content, exactly as it does for an unsupported extension.
+
+{
+  // A real defect embedded in otherwise-binary bytes: before the guard this
+  // fired, and the finding was invented from a PNG header.
+  const binary = write('misnamed.png.txt', Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+    Buffer.from('The US delegation and the the report.'),
+    Buffer.from([0x00, 0x01, 0x02, 0xFF, 0xFE, 0x80, 0x81]),
+  ]));
+  const binaryResult = scan(binary);
+  assert.deepEqual(ids(binaryResult), [],
+    `a file that is not valid UTF-8 carries no copy and must produce no findings: ${binaryResult.stdout}`);
+  assert.equal(binaryResult.code, 0, 'a non-UTF-8 file is not an error-severity run');
+
+  // The decisive test: --fix --apply must not touch the bytes. Before the guard
+  // this rewrote the file and left U+FFFD where the original bytes had been.
+  const before = fs.readFileSync(binary);
+  const applied = capture([binary, '--fix', '--apply']);
+  assert.equal(applied.code, 0, `apply on a non-UTF-8 file must be a no-op: ${applied.stderr}`);
+  assert.doesNotMatch(applied.stdout, /APPLIED/,
+    '--fix must not claim a fix it did not make');
+  assert.deepEqual(fs.readFileSync(binary), before,
+    '--fix --apply must never write the lossy round-trip over non-UTF-8 bytes');
+  assert(!fs.readFileSync(binary).includes(Buffer.from([0xEF, 0xBF, 0xBD])),
+    'the original bytes must survive: no replacement characters may be written');
+
+  // A UTF-16 export called .txt is the same class: not UTF-8, so not scanned.
+  // It is silently skipped, never reported as clean copy.
+  const utf16 = write('utf16.txt', Buffer.from('The US delegation reviewed the report.\n', 'utf16le'));
+  assert.deepEqual(ids(scan(utf16)), [],
+    'a UTF-16 file named .txt is not UTF-8 copy and must yield no findings');
+
+  // --- the no-false-exclusion side: readable .txt files still scan --------
+
+  // Plain readable prose, the control for everything above.
+  assert.deepEqual(ids(scan(write('readable.txt', `${ORG}\n`))), ['UE-SP001'],
+    'a genuinely readable .txt must still be scanned and must still fire');
+
+  // A readable .txt in a non-Latin script: validity, not script, is the test.
+  for (const [name, prose] of [
+    ['cyrillic.txt', 'Отчёт секретариата.\n'],
+    ['greek.txt', 'Η αναφορά του γραφείου.\n'],
+    ['arabic.txt', 'تقرير الأمانة العامة.\n'],
+    ['han.txt', '秘书处报告草稿。\n'],
+    ['emoji.txt', 'The report \u{1f4c8} is ready.\n'],
+  ]) {
+    assert.deepEqual(ids(scan(write(name, prose))), [],
+      `a readable non-Latin .txt must scan without findings, not be excluded: ${name}`); // ue:ignore UE-GR002  (deliberate test data)
+  }
+
+  // Readable, non-Latin, and carrying a real defect: the rules must still see
+  // it, which proves the guard keys on encoding and not on script. The defect
+  // sits in the Latin clause because the Latin-script rules (UE-GR001 matches
+  // a Latin-alphabet word) cannot match a Cyrillic or Arabic word by design —
+  // the point of the probe is that the file is scanned at all, not that the
+  // Latin rules extend to other scripts.
+  const cyrillicDefect = write('cyrillic-defect.txt',
+    'Отчёт секретариата. The the delegation reviewed it.\n');
+  assert.deepEqual(ids(scan(cyrillicDefect)), ['UE-GR001'],
+    'a defect in a readable non-Latin .txt must still be found: the guard tests encoding, not script');
+
+  // A .txt that legitimately contains U+FFFD is valid UTF-8 and must NOT be
+  // excluded — this is the case a naive "contains U+FFFD" check would drop.
+  const genuineFffd = write('genuine-fffd.txt',
+    'The report notes a replacement \uFFFD marker and the the draft.\n');
+  assert.deepEqual(ids(scan(genuineFffd)), ['UE-GR001'],
+    'a .txt that genuinely contains U+FFFD is valid UTF-8 and must still be scanned');
+
+  // The guard is per-file: one binary file in a directory scan does not stop
+  // its readable neighbours from being scanned.
+  const mixedDir = path.join(tmp, 'binary-mixed');
+  fs.mkdirSync(mixedDir, { recursive: true });
+  fs.writeFileSync(path.join(mixedDir, 'blob.txt'),
+    Buffer.concat([Buffer.from([0x00, 0xFF, 0xFE]), Buffer.from('The US delegation.')]));
+  fs.writeFileSync(path.join(mixedDir, 'ok.txt'), `${ORG}\n`);
+  const mixed = json(capture([mixedDir, '--format', 'json']));
+  assert.equal(mixed.files, 2, 'both files are still collected and counted');
+  assert.deepEqual([...new Set(mixed.findings.map(f => f.ruleId))], ['UE-SP001'],
+    'only the readable file contributes findings');
+  assert.ok(mixed.findings[0].file.endsWith('ok.txt'),
+    `the finding must come from the readable file: ${mixed.findings[0].file}`);
+}
+
 // --- 10. documentation is literally true -------------------------------------
 
 {
@@ -483,4 +779,4 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('ok — HTML suppressions, TypeScript, sentence-like literals, unsupported files, fixtures, flags, FIFO, report line, docs, self-scan');
+console.log('ok — HTML suppressions, TypeScript, JSX text children, sentence-like literals, unsupported files, fixtures, flags, FIFO, report line, docs, self-scan, non-UTF-8 files yield no copy, unquoted attributes and the ARIA copy set');
