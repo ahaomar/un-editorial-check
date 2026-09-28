@@ -98,5 +98,20 @@
   ],
   "gr003-missing-space.txt": [
     "UE-GR003"
+  ],
+  "hr001-fragment.txt": [
+    "UE-HR001"
+  ],
+  "hr002-malformed.txt": [
+    "UE-HR002"
+  ],
+  "hr003-duplicate.md": [
+    "UE-HR003"
+  ],
+  "hr004-heading.md": [
+    "UE-HR004"
+  ],
+  "hr005-quotation.md": [
+    "UE-HR005"
   ]
 }
