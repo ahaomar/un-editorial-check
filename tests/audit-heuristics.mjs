@@ -24,6 +24,11 @@
 //      unit-at-a-time comparison could not see; the floor from both sides across
 //      a split, the quiet surfaces still quiet across one, the suppression
 //      interaction, and the block fields the reassembly reads;
+//   4e. the two edge defects in the reassembly — an open block keyed on a
+//      source offset alone, which made a repeat visible or not depending on what
+//      else was in the scan, and a fixed-space join, which split a word an inline
+//      element had broken in half; directory scans, five elements, and the seam
+//      read the way a reader reads it;
 //   4d. what the note promises, and only that — a standing disclaimer repeated
 //      in one file is reported, navigation copy is not, the per-file key holds
 //      in both directions, and the shipped wording in rules/catalogue.json and
@@ -793,6 +798,194 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005'];
       'the prose must agree with the note on the Markdown exemption');
     assert.match(prose, /Across two files the same paragraph is never reported/,
       'the prose must agree with the note on the per-file key');
+  }
+}
+
+// --- 4e. the two edge defects in the reassembly -----------------------------
+//
+// Two things the block comparison got wrong at the edges, both of which let an
+// exact repeat go unreported, and one of which also made a repeat's visibility
+// depend on which other files were in the same scan.
+//
+//   (a) the assembler keyed its open block on a source offset alone, and a block
+//       whose last unit was ineligible — a paragraph ending in an image whose
+//       `title` is navigation copy — was never closed at all, so the next
+//       file's copy was appended to it;
+//   (b) the pieces were joined on a fixed space, so inline markup that broke a
+//       word (`humanit<mark>arian</mark>`) read as two words and never matched
+//       the plain copy of the paragraph.
+//
+// Each test below asserts the precondition of its own fixture first, because a
+// fixture that does not exhibit the defect it claims to cover passes for the
+// wrong reason. The word-splitting fixtures in particular would pass under the
+// old fixed-space join if the fixture wrapped whole words, which is what the
+// section 4c fixtures do.
+
+{
+  const normalise = (t) => t.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const unitsOf = (file) => extractFile(file, fs.readFileSync(file, 'utf8'), {});
+  // The text a rule reassembles, joined the way the extractor says to join.
+  const joined = (units) => {
+    let out = '';
+    for (const u of units) {
+      if (u.attribute) continue;
+      if (out) out += u.joiner === undefined ? ' ' : u.joiner;
+      out += u.text;
+    }
+    return out;
+  };
+
+  // --- (a) an open block must not swallow the next file ---------------------
+  {
+    // A paragraph whose last unit carries running text is not eligible to close
+    // a block: the `title` of an image is navigation copy. Before the fix that
+    // unit never reached the assembler, so the block stayed open.
+    const dir = path.join(tmp, 'hr003-dangling-block');
+    fs.mkdirSync(dir, { recursive: true });
+    const PARA = 'The delegation reiterated that humanitarian access remains restricted and that the response is badly underfunded across the whole region today and in the coming quarter.';
+    const dangling = path.join(dir, 'a.html');
+    fs.writeFileSync(dangling, `<p>${PARA} <img src="chart.png" title="Trend since 2019"></p>\n`);
+
+    // The precondition, asserted: the block's last unit is ineligible copy, and
+    // it is the unit that would close the block.
+    const danglingUnits = unitsOf(dangling);
+    const last = danglingUnits[danglingUnits.length - 1];
+    assert.equal(last.context, 'nav',
+      `the fixture must end in ineligible copy, or the block was never left open: ${
+        JSON.stringify(danglingUnits.map(u => [u.context, !!u.blockLast]))}`);
+    assert.ok(last.blockLast,
+      'and that ineligible unit must be the one that closes the block');
+    assert.equal(danglingUnits[0].text, PARA,
+      'the paragraph itself is eligible, so only the closing unit is not');
+
+    // The repeat that must not depend on the scan: a genuine, plain, verbatim
+    // repeat in a second file, in the same directory.
+    const plain = path.join(dir, 'b.html');
+    fs.writeFileSync(plain, `<p>${PARA}</p>\n\n<p>${PARA}</p>\n`);
+
+    const alone = scan(plain).filter(f => f.ruleId === 'UE-HR003');
+    const together = scan(dir).filter(f => f.ruleId === 'UE-HR003');
+    assert.equal(alone.length, 1,
+      `scanned on its own the plain repeat is reported, got ${JSON.stringify(alone.map(f => [f.file, f.line]))}`);
+    assert.equal(together.length, 1,
+      `the same repeat must be reported in a directory scan too, and it must not depend on which other files are in the run, got ${
+        JSON.stringify(together.map(f => [path.basename(f.file), f.line, f.message]))}`);
+    assert.ok(together[0].file.endsWith('b.html'),
+      `the finding must come from the file that repeats: ${JSON.stringify(together.map(f => f.file))}`);
+    assert.match(together[0].message, /first seen at line 1/,
+      `and it must name the first copy in its own file: ${together[0].message}`);
+  }
+
+  // The same, in the other order and with a third file, because a scan-order
+  // dependency that one arrangement does not show is still a dependency.
+  {
+    const dir = path.join(tmp, 'hr003-dangling-block-order');
+    fs.mkdirSync(dir, { recursive: true });
+    const PARA = 'The delegation reiterated that humanitarian access remains restricted and that the response is badly underfunded across the whole region today and in the coming quarter.';
+    // a dangling block, then the repeat, then another dangling block
+    fs.writeFileSync(path.join(dir, '1-open.html'), `<p>${PARA} <img src="c.png" title="Trend since 2019"></p>\n`);
+    fs.writeFileSync(path.join(dir, '2-repeat.html'), `<p>${PARA}</p>\n\n<p>${PARA}</p>\n`);
+    fs.writeFileSync(path.join(dir, '3-open.html'), `<p>${PARA} <img src="c.png" title="Trend since 2019"></p>\n`);
+    const hits = scan(dir).filter(f => f.ruleId === 'UE-HR003');
+    assert.equal(hits.length, 1,
+      `a dangling block on either side of the repeat must not change it, got ${
+        JSON.stringify(hits.map(f => [path.basename(f.file), f.line, f.message]))}`);
+    assert.ok(hits[0].file.endsWith('2-repeat.html'),
+      `and the finding must be the repeat, not a block that swallowed it: ${JSON.stringify(hits.map(f => f.file))}`);
+  }
+
+  // --- (b) inline markup that broke a word ---------------------------------
+  {
+    // A paragraph of 25 words with one word broken by an inline element. The
+    // element wraps nothing: it sits inside a single word, as <mark> around a
+    // highlighted span inside an otherwise ordinary sentence does.
+    const HEAD = 'The delegation reiterated that humanit';
+    const TAIL = 'arian access remains restricted and that the response is badly underfunded across the whole region today and in the coming quarter.';
+    const PLAIN = HEAD + TAIL;
+    const SPLIT = (tag) => `<p>${HEAD}<${tag}>${TAIL}</p>`;
+
+    // The precondition, and the point of the whole case: the two copies are the
+    // same visible string, but joining the split copy on a space does not
+    // reproduce it, so a fixed-space reassembly cannot match. Asserted, because
+    // a fixture that wrapped a whole word would pass under that join and this
+    // test would prove nothing.
+    for (const [name, tag, why] of [
+      ['mark', 'mark', 'a highlighted span'],
+      ['strong', 'strong', 'emphasis'],
+      ['em', 'em', 'italics'],
+      ['u', 'u', 'an underline'],
+      ['span', 'span', 'a styled span'],
+    ]) {
+      const file = write(`hr003-wordsplit-${name}.html`, `<p>${PLAIN}</p>\n\n${SPLIT(tag)}\n`);
+      const parts = unitsOf(file);
+      const second = parts.filter(u => u.line === 3);
+      assert.equal(second.length, 2,
+        `${name}: the element must break the paragraph into two units, got ${JSON.stringify(parts.map(u => u.text.slice(0, 24)))}`);
+      assert.equal(normalise(joined(second)), normalise(PLAIN),
+        `${name}: the split copy is the plain copy, rejoined on the ${why}`);
+      assert.notEqual(normalise(second.map(u => u.text).join(' ')), normalise(PLAIN),
+        `${name}: the precondition — joining on a space must NOT reproduce the paragraph, or the fixture does not exercise the join and the test is vacuous`);
+      assert.equal(second[1].joiner, '',
+        `${name}: and the extractor must measure the seam as rendering nothing, not a space`);
+
+      const hits = hrOnly(file).filter(f => f.ruleId === 'UE-HR003');
+      assert.equal(hits.length, 1,
+        `${name}: a duplicated paragraph whose word ${why} split is the same defect as a whole word emphasised, got ${
+          JSON.stringify(hits.map(f => [f.line, f.message]))}`);
+      assert.equal(hits[0].line, 3, `${name}: the later copy is the one reported`);
+      assert.equal(hits[0].message,
+        'A block of 25 words is repeated verbatim in this file (first seen at line 1).',
+        `${name}: the message counts the rejoined paragraph's 25 words, not the 26 the split shows: ${hits[0].message}`);
+      assert.doesNotMatch(hits[0].current, /humanit arian|humanitarian <|<mark>|<strong>|<em>|<u>|<span>/,
+        `${name}: Current is the copy a reader sees, with the markup gone and the word whole: ${hits[0].current}`);
+    }
+
+    // The same element in both copies, which the old fixed-space join did
+    // catch. Kept, so the fix is shown to be a widening and not a change of
+    // what the rule considers a repeat.
+    {
+      const file = write('hr003-wordsplit-both.html',
+        `<p>${HEAD}<mark>${TAIL}</mark></p>\n\n<p>${HEAD}<mark>${TAIL}</mark></p>\n`);
+      const hits = hrOnly(file).filter(f => f.ruleId === 'UE-HR003');
+      assert.equal(hits.length, 1,
+        `a split in both copies is still a verbatim repeat, got ${JSON.stringify(hits.map(f => [f.line, f.message]))}`);
+    }
+
+    // A word broken in one copy and not in the other is a different sentence,
+    // and stays silent. This is the floor of the fix: it rejoins what a reader
+    // would read the same, and nothing beyond that.
+    {
+      const file = write('hr003-wordsplit-only-one.html',
+        `<p>${PLAIN}</p>\n\n<p>${HEAD} <mark>${TAIL}</mark></p>\n`);
+      assert.deepEqual(hrIds(file).filter(id => id === 'UE-HR003'), [],
+        'a space added inside the second copy makes it a different paragraph, and the rule must not match it');
+    }
+  }
+
+  // --- the seam, read the way a reader reads it ----------------------------
+  //
+  // Every case below is a paragraph whose pieces an inline element separated,
+  // and the exact string the reader sees. A fixed space gets the middle rows
+  // wrong in both directions, so this is where the join is pinned down.
+  {
+    const SEAMS = [
+      ['word broken, nothing at the seam', '<p>alpha<mark>beta</mark>gamma</p>', 'alphabetagamma'],
+      ['word broken, a space after', '<p>alpha<mark>beta</mark> gamma</p>', 'alphabeta gamma'],
+      ['a space before, none after', '<p>alpha <mark>beta</mark>gamma</p>', 'alpha betagamma'],
+      ['whole words either side', '<p>alpha <mark>beta</mark> gamma</p>', 'alpha beta gamma'],
+      ['a newline in the source', '<p>alpha\n<mark>beta</mark>\ngamma</p>', 'alpha beta gamma'],
+      ['a break', '<p>alpha<br><mark>beta</mark>gamma</p>', 'alpha betagamma'],
+      ['an image between the pieces', '<p>alpha<img src="x.png"><mark>beta</mark>gamma</p>', 'alpha betagamma'],
+      ['a link wrapping a word', '<p>alpha<a href="/x">beta</a>gamma</p>', 'alpha betagamma'],
+      ['two elements in a row', '<p>alpha<mark>be</mark><em>ta</em>gamma</p>', 'alphabetagamma'],
+      ['a non-breaking space alone in a node', '<p>alpha<mark>&nbsp;</mark>beta</p>', 'alpha beta'],
+      ['no markup at all', '<p>alpha beta gamma</p>', 'alpha beta gamma'],
+    ];
+    for (const [name, html, want] of SEAMS) {
+      const file = write('hr003-seam.html', `${html}\n`);
+      assert.equal(joined(unitsOf(file)), want,
+        `${name}: the reader sees ${JSON.stringify(want)}, so the pieces must rejoin to that`);
+    }
   }
 }
 
