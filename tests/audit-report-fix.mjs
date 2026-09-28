@@ -302,4 +302,4 @@ const applyFix = (name, body) => {
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('ok — audit report/fix: PDF en/em dash bytes, determinism, footers, '
-  + 'sentence-start capitalisation, offset-mismatch skip');
+  + 'sentence-start capitalisation, terminology never rewritten, offset-mismatch skip');
