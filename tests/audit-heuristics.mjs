@@ -12,9 +12,13 @@
 //   3. UE-HR002 malformed wording — tight collocations only, never the
 //      idiomatic "would of course", report-only with a suggestion and no
 //      replacement, silent on code-context units;
-//   4. UE-HR003 duplicate sentence — one finding per unit for a repeated
-//      4+ word sentence, silent across blocks (documented limitation) and
-//      silent inside tables (compact units);
+//   4. UE-HR003 duplication in two forms — a repeated 4+ word sentence inside
+//      one block, and a long authored block repeated verbatim later in the same
+//      file; section 4b covers the second form, its twenty-word threshold from
+//      both sides, and every context where a long repeat is legitimate;
+//   4b. the cross-block form — a nine-row fixture matrix, the exact shape of a
+//      positive finding, eight quiet contexts, and the no-replacement,
+//      exit-code, config, suppression, determinism and per-file boundaries;
 //   5. UE-HR004 incoherent heading — heading units ending in . or ; only;
 //   6. UE-HR005 broken quotation — a surviving unpaired quote mark, with
 //      paired quotes, apostrophes, code and compact units all silent;
@@ -24,14 +28,9 @@
 //      `--fix --apply` leaves a file containing all five findings byte
 //      identical, config.rules enabled:false and ue:ignore both silence.
 //
-// NOT COVERED HERE, ON PURPOSE: the proposed second form of UE-HR003 (a long
-// authored block repeated verbatim later in the same file, which is the
-// duplicated-insertion defect in .feedbacks/v8/web/01 lines 141 and 151). The
-// implementation lives in lib/rules.mjs, which the depth agent does not own,
-// so shipping the test without the implementation would fail this suite and
-// block every merge. The specification, the fixtures and the exact patch are
-// handed to the integrator instead; see the Phase-7 report. Nothing in this
-// file depends on it.
+// The duplicated-insertion defect this suite now covers: the same paragraph
+// inserted twice ten lines apart in .feedbacks/v8/web/01 (Omar's P0). It sat
+// in two separate units, so the per-block sentence form could not see it.
 //
 // TDD: written before the heuristic section landed in lib/rules.mjs.
 // Standalone: node tests/audit-heuristics.mjs
@@ -233,11 +232,14 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005'];
   const dup = hrIds(write('hr003-one-block.md', `${dupLine}\n`));
   assert.deepEqual(dup, ['UE-HR003'], `a repeated sentence must fire once, got ${JSON.stringify(dup)}`);
 
-  // Documented limitation: duplication is judged inside one unit only — the
-  // same sentence once in each of two paragraphs never fires.
+  // A short block repeated across two paragraphs is ordinary cross-referencing
+  // and stays silent. This is the false-positive control for the cross-block
+  // form and it predates that form: the sentence form's four-word threshold
+  // already covered it, and the twenty-word block threshold is what keeps the
+  // cross-block form silent here too.
   assert.deepEqual(hrIds(write('hr003-two-blocks.md',
     'The delegation arrived early and reviewed the agenda.\n\nThe delegation arrived early and reviewed the agenda.\n')).filter(id => id === 'UE-HR003'), [],
-  'the same sentence in two paragraphs is out of scope (documented limitation)');
+  'a short block repeated in two paragraphs is cross-referencing, not duplication');
 
   // Normalisation: case and terminal punctuation differences still match.
   assert.equal(hrIds(write('hr003-normalise.md',
@@ -252,6 +254,218 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005'];
   assert.deepEqual(hrIds(write('hr003-table.md',
     '| Note |\n| --- |\n| The delegation arrived early and reviewed the agenda. |\n| The delegation arrived early and reviewed the agenda. |\n')).filter(id => id === 'UE-HR003'), [],
   'identical table cells must never count as a duplicated sentence');
+}
+
+// --- 4b. UE-HR003 the cross-block form ---------------------------------------
+//
+// The second form: a whole authored block repeated verbatim later in the same
+// file. It exists because the sentence form is per-unit, so the paragraph
+// inserted twice ten lines apart in .feedbacks/v8/web/01 (Omar's P0, "duplicated
+// and materially unsuitable") sat in two separate units and nothing fired. An
+// exact comparison of a long authored block is the one repetition check that
+// needs no language model.
+//
+// The threshold is REPEATED_BLOCK_MIN_WORDS = 20. Measured over this repository
+// and both corpora — 223 files, 478 candidate blocks — the threshold yields
+// exactly one duplicate, the web/01 insertion, and any threshold from 10 to 25
+// yields the same single result; 30 and above lose it. Twenty sits inside that
+// plateau with room below for a shorter genuine insertion, and above the length
+// at which two paragraphs sharing a sentence is ordinary cross-referencing. The
+// boundary is tested from both sides here so a later change to the number has
+// to be deliberate.
+
+{
+  // A block of a known word count, so the boundary can be probed exactly.
+  const words = (count) => Array.from({ length: count },
+    (_, i) => ['The', 'delegation', 'arrived', 'early', 'on', 'the', 'morning',
+      'of', 'the', 'session'][i % 10]).join(' ');
+
+  // --- the matrix, one row per case -------------------------------------
+  const matrix = [
+    // Short block, repeated: silent. The cross-referencing case.
+    { name: 'short-repeated', body: `${words(19)}.\n\n${words(19)}.\n`, fires: false,
+      why: 'a nineteen-word block repeated in two paragraphs is cross-referencing' },
+    // One word under the threshold: still silent, and the silence is the point.
+    { name: 'boundary-below', body: `${words(19)}.\n\n${words(19)}.\n`, fires: false,
+      why: 'nineteen words is one below the threshold' },
+    // Exactly at the threshold: fires.
+    { name: 'boundary-at', body: `${words(20)}.\n\n${words(20)}.\n`, fires: true,
+      why: 'twenty words is the threshold and must fire' },
+    // One word over: fires.
+    { name: 'boundary-above', body: `${words(21)}.\n\n${words(21)}.\n`, fires: true,
+      why: 'twenty-one words is over the threshold and must fire' },
+    // A long block that is repeated nowhere: silent. Nothing to compare against.
+    { name: 'long-single', body: `${words(30)}.\n\nThe chair thanked the secretariat for its support.\n`, fires: false,
+      why: 'a long block appearing once is not a duplicate' },
+    // Two different long blocks: silent.
+    { name: 'long-distinct', body: `${words(21)}.\n\n${words(21)} differs from the first block entirely.\n`, fires: false,
+      why: 'two long blocks that differ are not duplicates' },
+    // A long block repeated three times: the first is never reported, each
+    // repeat after it is.
+    { name: 'long-thrice', body: `${words(21)}.\n\n${words(21)}.\n\n${words(21)}.\n`, fires: 2,
+      why: 'every repeat after the first is reported' },
+    // A long block repeated with case and punctuation differences only: still
+    // the same block, because the comparison normalises both.
+    { name: 'long-normalised', body: `${words(21)}.\n\n${words(21).toUpperCase()}!\n`, fires: true,
+      why: 'case and terminal punctuation must not hide a repeated block' },
+    // A long block with one clause added: a different block.
+    { name: 'long-partial', body: `${words(21)}.\n\n${words(21)} One clause was added here.\n`, fires: false,
+      why: 'a block with one clause added is not a duplicated block' },
+  ];
+
+  for (const row of matrix) {
+    const file = write(`hr003-matrix-${row.name}.md`, `${row.body}\n`);
+    const hits = hrOnly(file).filter(f => f.ruleId === 'UE-HR003');
+    const want = row.fires === true ? 1 : row.fires === false ? 0 : row.fires;
+    assert.equal(hits.length, want,
+      `${row.name}: ${row.why} — expected ${want} finding(s), got ${JSON.stringify(hits.map(f => [f.line, f.message]))}`);
+  }
+
+  // --- the shape of a positive ------------------------------------------
+  const positive = hrOnly(write('hr003-block-positive.md',
+    `${words(21)}.\n\n${words(21)}.\n`)).filter(f => f.ruleId === 'UE-HR003')[0];
+  assert.equal(positive.line, 3, 'the later occurrence is the one reported');
+  assert.equal(positive.severity, 'warning', 'still review-only, never error');
+  assert.equal(positive.confidence, 'heuristic', 'still heuristic confidence');
+  assert.equal(positive.category, 'agent-review', 'still the agent-review category');
+  assert.equal(positive.context, 'authored', 'the repeated copy is authored narrative');
+  assert.match(positive.message, /A block of 21 words is repeated verbatim in this file/,
+    `the message names the length and the file: ${positive.message}`);
+  assert.match(positive.message, /first seen at line 1/,
+    `the message names the first occurrence: ${positive.message}`);
+  assert.equal(positive.suggestion,
+    'Remove the repeated block, or replace the repetition with a cross-reference.',
+    'the suggestion is review guidance and names the remedy');
+
+  // The report shows the offending copy under Current, capped like every other
+  // excerpt, and never under Should be as an automatic rewrite.
+  assert.equal(positive.current, `${words(21)}.`,
+    'Current carries the repeated block, with its terminal full stop, so a reader can find it');
+  assert.equal(positive.proposed, null,
+    'proposed is null: there is no single right replacement for a duplicated block');
+  assert.equal(positive._replacement, undefined,
+    'no replacement is passed, so the finding can never be rewritten by --fix');
+
+  // --- the false-positive controls --------------------------------------
+  // A long string repeated in a surface where that is legitimate must be
+  // silent. This is why the form is authored-only, and each of these is a real
+  // document pattern rather than a synthetic one.
+  const LONG = words(21);
+  // A <label> is deliberately absent from this list: it is authored copy, so two
+  // identical labels in one document are reported, which is the right verdict
+  // rather than a false positive. Asserted here so that a later widening of the
+  // authored set cannot quietly change it in either direction.
+  {
+    const labels = hrIds(write('hr003-block-labels.html',
+      `<label>${LONG}</label><label>${LONG}</label>\n`)).filter(id => id === 'UE-HR003');
+    assert.equal(labels.length, 1,
+      'two identical form labels in one document are a duplicated block, not a legitimate repeat');
+  }
+
+  for (const [name, body] of [
+    ['quoted.html', `<blockquote><p>${LONG}</p></blockquote><blockquote><p>${LONG}</p></blockquote>\n`],
+    ['cited.html', `<cite>${LONG}</cite><cite>${LONG}</cite>\n`],
+    ['nav.html', `<nav><a href="/x">${LONG}</a><a href="/y">${LONG}</a></nav>\n`],
+    ['metadata.html', `<p>${LONG}</p>\n<meta name="description" content="${LONG}">\n`],
+    ['code.js', `const a = "${LONG}";\nconst b = "${LONG}";\n`],
+    ['heading.md', `# ${LONG}\n\n# ${LONG}\n`],
+    ['table.md', `| Note |\n| --- |\n| ${LONG} |\n| ${LONG} |\n`],
+  ]) {
+    assert.deepEqual(hrIds(write(`hr003-block-quiet-${name}`, body)).filter(id => id === 'UE-HR003'), [],
+      `${name} may legitimately repeat a long string, so UE-HR003 must stay silent`);
+  }
+
+  // A long block repeated across two different files is a shared boilerplate
+  // paragraph — a standard disclaimer, a standing mandate — and never a
+  // duplicated block.
+  {
+    const dir = path.join(tmp, 'hr003-block-boilerplate');
+    fs.mkdirSync(dir, { recursive: true });
+    const disclaimer = `${words(21)}. This paragraph is identical in every file of the set.`;
+    fs.writeFileSync(path.join(dir, 'a.md'), `${disclaimer}\n`);
+    fs.writeFileSync(path.join(dir, 'b.md'), `${disclaimer}\n`);
+    assert.deepEqual(scan(dir).filter(f => f.ruleId === 'UE-HR003'), [],
+      'a boilerplate paragraph shared across files is legitimate, not a duplicated block');
+  }
+
+  // --- the boundaries this form keeps -----------------------------------
+  // Never error-severity, so a duplicated block can never fail a build on its
+  // own; never in the fix set; silenceable by config and by ue:ignore.
+  assert.equal(capture([write('hr003-block-exit.md', `${words(21)}.\n\n${words(21)}.\n`)]).code, 0,
+    'a duplicated block is review-only: the run must still exit 0');
+  assert(!FIXABLE_RULE_IDS.has('UE-HR003'),
+    'UE-HR003 must never be --fix-able, in either form');
+
+  {
+    const file = write('hr003-block-apply.md', `${words(21)}.\n\n${words(21)}.\n`);
+    const before = fs.readFileSync(file, 'utf8');
+    const applied = capture([file, '--fix', '--apply']);
+    assert.equal(applied.code, 0, `apply must exit 0 with a review-only finding: ${applied.stderr}`);
+    assert.equal(fs.readFileSync(file, 'utf8'), before,
+      '--fix --apply must never remove a duplicated block');
+    assert.doesNotMatch(applied.stdout, /APPLIED/,
+      '--fix must not claim a fix it did not make');
+  }
+
+  {
+    const file = write('hr003-block-off.md', `${words(21)}.\n\n${words(21)}.\n`);
+    const off = write('hr003-block-off.json', JSON.stringify({ rules: { 'UE-HR003': { enabled: false } } }));
+    const disabled = capture([file, '--format', 'json', '--config', off]);
+    assert.notEqual(disabled.code, 2, `the disable config must be accepted: ${disabled.stderr}`);
+    assert.deepEqual(JSON.parse(disabled.stdout).findings.filter(f => f.ruleId === 'UE-HR003'), [],
+      'config.rules enabled:false must silence the cross-block form');
+
+    const downgraded = write('hr003-block-sev.json', JSON.stringify({ severities: { 'UE-HR003': 'error' } }));
+    const escalated = capture([file, '--format', 'json', '--config', downgraded]);
+    assert.equal(escalated.code, 1,
+      'an organisation may still escalate the rule to error severity by configuration');
+  }
+
+  {
+    const ignored = capture([write('hr003-block-ignore.md',
+      `${words(21)}.\n\n${words(21)}. <!-- ue:ignore UE-HR003 -->\n`), '--format', 'json']);
+    assert.deepEqual(JSON.parse(ignored.stdout).findings.filter(f => f.ruleId === 'UE-HR003'), [],
+      'ue:ignore must suppress the cross-block form');
+  }
+
+  // --- determinism and isolation ----------------------------------------
+  // The per-run registry hangs off the run context, so the same document
+  // scanned twice in one process gives the same answer both times: a leaked
+  // registry would report the first copy on the second scan.
+  {
+    const file = write('hr003-block-twice.md', `${words(21)}.\n\n${words(21)}.\n`);
+    const first = hrOnly(file).filter(f => f.ruleId === 'UE-HR003').length;
+    const second = hrOnly(file).filter(f => f.ruleId === 'UE-HR003').length;
+    assert.equal(first, 1, 'the first scan reports the repeat once');
+    assert.equal(second, first, 'a repeated scan in one process must give a repeated answer');
+  }
+
+  // The same block in two different files is not a duplicate: the key is
+  // per-file, so a shared boilerplate string across a documentation set is
+  // never reported.
+  {
+    const dir = path.join(tmp, 'hr003-block-files');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'a.md'), `${words(21)}.\n`);
+    fs.writeFileSync(path.join(dir, 'b.md'), `${words(21)}.\n`);
+    const both = scan(dir).filter(f => f.ruleId === 'UE-HR003');
+    assert.deepEqual(both, [],
+      'the same block in two different files is not a duplicated block');
+  }
+
+  // Three files in one directory scan, one of which duplicates: only that file
+  // reports, which proves the per-file key holds in a multi-file run.
+  {
+    const dir = path.join(tmp, 'hr003-block-mixed');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'one.md'), `${words(21)}.\n\n${words(21)}.\n`);
+    fs.writeFileSync(path.join(dir, 'two.md'), 'The chair thanked the secretariat.\n');
+    const mixed = scan(dir).filter(f => f.ruleId === 'UE-HR003');
+    assert.equal(mixed.length, 1,
+      `only the file that repeats reports: ${JSON.stringify(mixed.map(f => f.file))}`);
+    assert.ok(mixed[0].file.endsWith('one.md'),
+      `the finding must come from the repeating file: ${mixed[0].file}`);
+  }
 }
 
 // --- 5. UE-HR004 incoherent heading ------------------------------------------
@@ -370,4 +584,5 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005'];
   assert.deepEqual(ignored, [], `ue:ignore must suppress UE-HR001, got ${JSON.stringify(ignored)}`);
 }
 
-console.log('ok — heuristic review rules: catalogue, gates, fixtures, fix boundary, disable');
+console.log('ok — heuristic review rules: catalogue, gates, fixtures, fix boundary, disable, '
+  + 'duplication in both forms');
