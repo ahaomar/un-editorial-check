@@ -219,15 +219,17 @@ const applyFix = (name, body) => {
   // UE-TE003 and UE-TE004 pass no replacement (rules/terminology.md), so the
   // sign and the country name are not rewrite candidates even on a line where
   // the fixer does write a spelling replacement. The unfixed terminology
-  // error still fails the run, which is the exit-code promise.
+  // error still fails the run, which is the exit-code promise. The word is a
+  // non-conflict spelling (W2a: the -ize family is a profile choice and would
+  // not be fixable without a profile).
   const file = write('te-no-fix.txt',
-    'The US organization reported approximately 25% coverage.\n');
+    'The US color reported approximately 25% coverage.\n');
   const before = fs.readFileSync(file, 'utf8');
   const result = capture([file, '--fix', '--apply']);
   assert.equal(result.code, 1,
     `an unfixed terminology error must still fail the run: ${result.stderr}`);
   assert.equal(fs.readFileSync(file, 'utf8'),
-    'The US organisation reported approximately 25% coverage.\n',
+    'The US colour reported approximately 25% coverage.\n',
     '--fix may write the spelling only: bare US and the sign must survive');
   assert.match(result.stdout, /APPLIED — /,
     'the spelling replacement on the same line must still be applied');
