@@ -19,12 +19,18 @@
 //   8. Non-regular existing input (FIFO) honesty
 //   9. `Report written:` announcement
 //  10. README / USER-GUIDE literal truth (targeted lines)
-//  11. binary-named-.txt: a file that is not UTF-8 yields no copy, and
-//      --fix --apply can no longer write the lossy round-trip over it, while
-//      every genuinely readable .txt still scans
+//  11. unreadable files: a file whose bytes are not readable UTF-8 text yields
+//      no copy and is never rewritten, the report says so in the header and in
+//      the machine-readable forms, a run that read nothing at all refuses with
+//      exit 2, and every genuinely readable .txt still scans — including
+//      non-Latin scripts, a file that legitimately contains U+FFFD, and the
+//      documented `check .` skill-root carve-out
 //  12. the attribute grammar: legal unquoted attribute values, the ARIA copy
 //      set (aria-label, -description, -valuetext, -roledescription), and the
 //      attributes that must stay unread because they are URLs or identifiers
+//  13. mutation checks on the unreadable-file contract: the header skip, the
+//      read-nothing refusal, the honest file count and the NUL signal each have
+//      to break the suite when removed
 // plus regressions: MD/JS/TXT suppression matrix, directory exclusions,
 // `--report` value refusals, `--fix` refusal on non-prose types.
 
@@ -650,16 +656,27 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
     Buffer.from('The US delegation and the the report.'),
     Buffer.from([0x00, 0x01, 0x02, 0xFF, 0xFE, 0x80, 0x81]),
   ]));
-  const binaryResult = scan(binary);
-  assert.deepEqual(ids(binaryResult), [],
-    `a file that is not valid UTF-8 carries no copy and must produce no findings: ${binaryResult.stdout}`);
-  assert.equal(binaryResult.code, 0, 'a non-UTF-8 file is not an error-severity run');
+  // A file that is its own only input was never read, so the run is a refusal
+  // rather than a clean run: "scanned 0 files" plus the canonical clean sentence
+  // is the exact shape of QA finding F1, where a run reported success having
+  // read nothing. The same three cases are now consistent: an unsupported named
+  // file refuses, a directory with no supported files refuses, and a file whose
+  // bytes are not readable refuses.
+  const binaryOnly = capture([binary]);
+  assert.equal(binaryOnly.code, 2,
+    `a run that read nothing must refuse with exit 2: ${binaryOnly.stdout}${binaryOnly.stderr}`);
+  assert.match(binaryOnly.stderr, /no readable files found/,
+    `the refusal must say so: ${binaryOnly.stderr}`);
+  assert.ok(binaryOnly.stderr.includes(binary),
+    `the refusal must name the path: ${binaryOnly.stderr}`);
+  assert.doesNotMatch(binaryOnly.stdout, /No findings under/,
+    'a run that read nothing must never print the clean-run sentence');
 
   // The decisive test: --fix --apply must not touch the bytes. Before the guard
   // this rewrote the file and left U+FFFD where the original bytes had been.
   const before = fs.readFileSync(binary);
   const applied = capture([binary, '--fix', '--apply']);
-  assert.equal(applied.code, 0, `apply on a non-UTF-8 file must be a no-op: ${applied.stderr}`);
+  assert.notEqual(applied.code, 1, 'a refusal is not an error-severity run');
   assert.doesNotMatch(applied.stdout, /APPLIED/,
     '--fix must not claim a fix it did not make');
   assert.deepEqual(fs.readFileSync(binary), before,
@@ -667,11 +684,23 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
   assert(!fs.readFileSync(binary).includes(Buffer.from([0xEF, 0xBF, 0xBD])),
     'the original bytes must survive: no replacement characters may be written');
 
-  // A UTF-16 export called .txt is the same class: not UTF-8, so not scanned.
-  // It is silently skipped, never reported as clean copy.
+  // A UTF-16 export called .txt is the same class, and it is the case that
+  // needs the NUL signal: UTF-16 is *valid* UTF-8, so a strict decode of it
+  // succeeds and the file decodes to NUL-interleaved text the extractors would
+  // wrap into copy. It must be refused, not scanned as garbage.
   const utf16 = write('utf16.txt', Buffer.from('The US delegation reviewed the report.\n', 'utf16le'));
-  assert.deepEqual(ids(scan(utf16)), [],
-    'a UTF-16 file named .txt is not UTF-8 copy and must yield no findings');
+  const utf16Only = capture([utf16]);
+  assert.equal(utf16Only.code, 2,
+    `a UTF-16 file named .txt is not readable copy: ${utf16Only.stderr}`);
+  assert.match(utf16Only.stderr, /not valid UTF-8/,
+    `the refusal must give the reason: ${utf16Only.stderr}`);
+
+  // A NUL byte inside otherwise readable text is the same proof: no editorial
+  // copy contains NUL, so a file that does is not the text it claims to be.
+  const withNul = write('nul-inside.txt', 'The report is ready.\u0000The delegation left.\n');
+  const withNulOnly = capture([withNul]);
+  assert.equal(withNulOnly.code, 2,
+    `a NUL byte makes a file unreadable: ${withNulOnly.stderr}`);
 
   // --- the no-false-exclusion side: readable .txt files still scan --------
 
@@ -710,18 +739,200 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
     'a .txt that genuinely contains U+FFFD is valid UTF-8 and must still be scanned');
 
   // The guard is per-file: one binary file in a directory scan does not stop
-  // its readable neighbours from being scanned.
+  // its readable neighbours from being scanned, and the skipped file is named
+  // in the report rather than counted as scanned. This is the assertion that
+  // encodes the honest shape: `files` counts only files that were decoded, and
+  // the skip is visible in both the header and the JSON.
   const mixedDir = path.join(tmp, 'binary-mixed');
   fs.mkdirSync(mixedDir, { recursive: true });
   fs.writeFileSync(path.join(mixedDir, 'blob.txt'),
     Buffer.concat([Buffer.from([0x00, 0xFF, 0xFE]), Buffer.from('The US delegation.')]));
   fs.writeFileSync(path.join(mixedDir, 'ok.txt'), `${ORG}\n`);
   const mixed = json(capture([mixedDir, '--format', 'json']));
-  assert.equal(mixed.files, 2, 'both files are still collected and counted');
+  assert.equal(mixed.files, 1,
+    `files must count only the files that were decoded: ${JSON.stringify(mixed)}`);
+  assert.equal(mixed.skipped.length, 1,
+    `the skipped file must be reported: ${JSON.stringify(mixed.skipped)}`);
+  assert.ok(mixed.skipped[0].file.endsWith('blob.txt'),
+    `the skipped entry must name the unreadable file: ${JSON.stringify(mixed.skipped)}`);
+  assert.equal(mixed.skipped[0].reason, 'not valid UTF-8',
+    'the skipped entry must carry the reason');
   assert.deepEqual([...new Set(mixed.findings.map(f => f.ruleId))], ['UE-SP001'],
     'only the readable file contributes findings');
   assert.ok(mixed.findings[0].file.endsWith('ok.txt'),
     `the finding must come from the readable file: ${mixed.findings[0].file}`);
+
+  // The same run in text: the header says how many were scanned of how many,
+  // and gives the reason, and the clean sentence follows it. The readable
+  // neighbour is clean prose, so the run is a clean run *of the file that was
+  // read* — which is exactly the distinction the header now makes visible.
+  const mixedText = capture([mixedDir]);
+  assert.equal(mixedText.code, 1,
+    `the readable neighbour carries the deliberate spelling defect: ${mixedText.stderr}`);
+  assert.match(mixedText.stdout, /scanned 1 of 2 files — 1 skipped \(not valid UTF-8\)/,
+    `the header must name the skip: ${mixedText.stdout}`);
+
+  // The clean-sentence case, with a clean readable neighbour: the sentence is
+  // printed, and the skip is stated above it rather than hidden below.
+  const cleanDir = path.join(tmp, 'binary-clean-neighbour');
+  fs.mkdirSync(cleanDir, { recursive: true });
+  fs.writeFileSync(path.join(cleanDir, 'blob.txt'),
+    Buffer.concat([Buffer.from([0x00, 0xFF, 0xFE]), Buffer.from('The US delegation.')]));
+  fs.writeFileSync(path.join(cleanDir, 'ok.txt'), 'The organisation reports the figure.\n');
+  const cleanText = capture([cleanDir]);
+  assert.equal(cleanText.code, 0,
+    `one unreadable file beside clean copy is a skip, not a refusal: ${cleanText.stderr}`);
+  assert.match(cleanText.stdout, /scanned 1 of 2 files — 1 skipped \(not valid UTF-8\)/,
+    `the header must name the skip: ${cleanText.stdout}`);
+  assert(cleanText.stdout.includes('No findings under the enabled, documented local rules.'),
+    'the clean sentence is still printed, because the file that was read was clean');
+  assert(cleanText.stdout.indexOf('skipped') < cleanText.stdout.indexOf('No findings under'),
+    'the skip must be stated above the clean sentence, not hidden below it');
+
+  // Two unreadable files among three: the count and the plural both move. The
+  // readable neighbour is clean, so the run exits 0 and the clean sentence
+  // follows the skip line.
+  const twoSkipped = path.join(tmp, 'binary-two');
+  fs.mkdirSync(twoSkipped, { recursive: true });
+  fs.writeFileSync(path.join(twoSkipped, 'a.txt'),
+    Buffer.from([0x00, 0xFF, 0xFE, 0x89, 0x50, 0x4E, 0x47]));
+  fs.writeFileSync(path.join(twoSkipped, 'b.txt'),
+    Buffer.from('The report was reviewed.\n', 'utf16le'));
+  fs.writeFileSync(path.join(twoSkipped, 'ok.txt'), 'The organisation reports the figure.\n');
+  const twoText = capture([twoSkipped]);
+  assert.equal(twoText.code, 0, `two skips are still a skip: ${twoText.stderr}`);
+  assert.match(twoText.stdout, /scanned 1 of 3 files — 2 skipped \(not valid UTF-8\)/,
+    `two unreadable files must be counted and pluralised: ${twoText.stdout}`);
+
+  // The singular/plural forms across the whole range. One file and one skip,
+  // many files and many skips, and many files with no skip at all: none of
+  // them may produce a header that miscounts, and none of them may carry a
+  // skip clause when nothing was skipped.
+  const plural = [
+    ['one file, no skip', 'The organisation reports the figure.\n', 0, /— scanned 1 file —/, null],
+    ['many files, no skip', 'The organisation reports the figure.\n', 0, /— scanned 1 file —/, null],
+  ];
+  for (const [label, body, , want, absent] of plural) {
+    const file = write(`plural-${label.replace(/\W+/g, '-')}.txt`, body);
+    const out = capture([file]).stdout.split('\n')[0];
+    assert.match(out, want, `${label}: ${out}`);
+    if (absent) assert(!out.includes('skipped'), `${label}: must carry no skip clause: ${out}`);
+  }
+  // One file, no skip: the singular, with no "of N" and no skip clause.
+  {
+    const out = capture([write('plural-single.txt', 'The organisation reports the figure.\n')])
+      .stdout.split('\n')[0];
+    assert.match(out, /scanned 1 file —/,
+      `one readable file keeps the singular and no skip clause: ${out}`);
+    assert(!out.includes('of '), `one file with no skip must not read "of": ${out}`);
+    assert(!out.includes('skipped'), `one file with no skip must not mention skipping: ${out}`);
+  }
+  // Many readable files: the plural, and no skip clause.
+  {
+    const many = path.join(tmp, 'plural-many');
+    fs.mkdirSync(many, { recursive: true });
+    for (let i = 0; i < 3; i++) {
+      fs.writeFileSync(path.join(many, `f${i}.txt`), 'The organisation reports the figure.\n');
+    }
+    const out = capture([many]).stdout.split('\n')[0];
+    assert.match(out, /scanned 3 files —/, `three readable files use the plural: ${out}`);
+    assert(!out.includes('skipped'), `no skip means no skip clause: ${out}`);
+  }
+  // One readable file, one skip: the "of N" total is plural because the total
+  // is two, and the skipped count is singular because one was skipped.
+  {
+    const out = capture([cleanDir]).stdout.split('\n')[0];
+    assert.match(out, /scanned 1 of 2 files — 1 skipped \(not valid UTF-8\)/,
+      `the total is plural and the skip count is singular: ${out}`);
+  }
+  // A single undecodable file named on its own: the refusal names the path, the
+  // reason and the count, and the clean sentence is never printed.
+  {
+    const only = capture([binary]);
+    assert.equal(only.code, 2, `a lone unreadable file must refuse: ${only.stderr}`);
+    assert.match(only.stderr, /no readable files found/,
+      `the refusal must say so: ${only.stderr}`);
+    assert.match(only.stderr, /1 candidate file skipped: not valid UTF-8/,
+      `the refusal must give the count and the reason: ${only.stderr}`);
+    assert.doesNotMatch(only.stdout, /No findings under/,
+      'a run that read nothing must never print the clean-run sentence');
+  }
+
+  // A NUL byte is its own signal, and the refusal must name it: a UTF-16 file
+  // is *valid* UTF-8, so it is the NUL that proves the bytes are not the text
+  // they claim to be. Without that signal the extractors would wrap
+  // NUL-interleaved text into copy spans and the rules would read positions
+  // that mean nothing to a reader.
+  {
+    const nulOnly = capture([withNul]);
+    assert.equal(nulOnly.code, 2, `a NUL byte makes a run read nothing: ${nulOnly.stderr}`);
+    assert.match(nulOnly.stderr, /not valid UTF-8/,
+      `the NUL case is reported with the same reason: ${nulOnly.stderr}`);
+  }
+
+  // The documented `check .` carve-out must survive: the skill-root shield
+  // explains an empty scan with no error, and that is not the same case as a
+  // scan whose candidates all turned out to be unreadable.
+  {
+    const shield = spawnSync(process.execPath, [cli, '.'],
+      { cwd: root, encoding: 'utf8' });
+    assert.equal(shield.status, 0,
+      `node bin/check.mjs . must still exit 0: ${shield.stdout}${shield.stderr}`);
+    assert.match(shield.stdout, /scanned 0 files/,
+      `the carve-out prints the zero-file header it always did: ${shield.stdout}`);
+    assert(!/skipped/.test(shield.stdout),
+      `the carve-out is not a skip: the shield explains it, so no file was skipped: ${shield.stdout}`);
+  }
+
+  // A directory whose every candidate file is unreadable is the F1 shape: the
+  // run must refuse, name the path, and never print the clean sentence.
+  const allBad = path.join(tmp, 'binary-all');
+  fs.mkdirSync(allBad, { recursive: true });
+  fs.writeFileSync(path.join(allBad, 'a.txt'),
+    Buffer.concat([Buffer.from([0x89, 0x50, 0x4E, 0x47]), Buffer.from('The US delegation.')]));
+  fs.writeFileSync(path.join(allBad, 'b.txt'), Buffer.from('The report was read.\n', 'utf16le'));
+  const allText = capture([allBad]);
+  assert.equal(allText.code, 2,
+    `a run that read nothing must refuse: ${allText.stdout}${allText.stderr}`);
+  assert.match(allText.stderr, /no readable files found/,
+    `the refusal must say so: ${allText.stderr}`);
+  assert.ok(allText.stderr.includes(allBad),
+    `the refusal must name the directory: ${allText.stderr}`);
+  assert.match(allText.stderr, /2 candidate files skipped/,
+    `the refusal must say how many were skipped: ${allText.stderr}`);
+  assert.doesNotMatch(allText.stdout, /No findings under/,
+    'a run that read nothing must never print the clean-run sentence');
+
+  // The `skipped` field is always present, so a consumer never has to tell
+  // absent from empty, and a clean run over readable files writes it empty. The
+  // probe is clean prose, so the run exits 0 in every form.
+  const cleanProbe = write('skipped-field-clean.txt', 'The organisation reports the figure.\n');
+  const cleanJson = json(capture([cleanProbe, '--format', 'json', '--quiet']));
+  assert.deepEqual(cleanJson.skipped, [],
+    'a run that skipped nothing writes an empty skipped array');
+  assert('skipped' in cleanJson,
+    'the skipped field is always present in the JSON output');
+  assert.deepEqual(json(capture([cleanProbe, '--format', 'sarif'])).runs[0].properties.skipped, [],
+    'the SARIF run property bag carries the same empty skipped array');
+  assert.equal(json(capture([cleanProbe, '--format', 'sarif'])).runs[0].properties.files, 1,
+    'the SARIF run property bag carries the decoded-file count too');
+  // A skipped file reaches the SARIF property bag by path, so a SARIF consumer
+  // can see the gap without parsing stdout.
+  assert.equal(json(capture([cleanDir, '--format', 'sarif'])).runs[0].properties.skipped.length, 1,
+    'the SARIF run property bag names the skipped file');
+  assert.ok(json(capture([cleanDir, '--format', 'sarif'])).runs[0].properties.skipped[0]
+    .file.endsWith('blob.txt'),
+  'the SARIF skipped entry names the unreadable file');
+
+  // The clean-run sentence is printed only on a zero-finding run, and the
+  // three-case consistency that motivated the refusal: two refusals and one
+  // skip, all naming themselves.
+  assert.equal(capture([write('zero-finding.txt', 'The organisation reports the figure.\n')]).code, 0,
+    'a readable clean file still exits 0');
+  assert.equal(capture([cleanProbe, '--format', 'json', '--quiet']).code, 0,
+    'a clean readable probe exits 0 in JSON form too');
+  assert.equal(capture([path.join(tmp, 'only-unsupported')]).code, 2,
+    'a directory with no supported files still refuses with exit 2');
 }
 
 // --- 10. documentation is literally true -------------------------------------
@@ -778,5 +989,143 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
     `node bin/check.mjs . must exit 0:\n${plain.stdout}\n${plain.stderr}`);
 }
 
+// --- 13. mutation checks: the honest shape must be load-bearing ---------------
+//
+// An assertion that passes whether or not the behaviour exists is worth
+// nothing. Each mutation below removes one half of the change in a scratch copy
+// of the tree and requires the probe to observe the break, so a later refactor
+// that drops the skip from the header, or turns the all-unreadable refusal back
+// into a clean run, cannot pass review unnoticed. The worktree is never
+// mutated: the scratch copy is removed in a finally block.
+
+{
+  // The probe is this suite's own subject, reduced to the four facts the
+  // mutations must change: the header line, the exit code of a directory with a
+  // clean neighbour, the exit code and output of an all-unreadable directory,
+  // and the skipped entries in the JSON. It takes the entry point to load as an
+  // argument, so a mutated tree is exercised through its own module graph
+  // rather than through the original.
+  const probeSource = (entryPoint) => `
+    import { run } from ${JSON.stringify(entryPoint)};
+    import fs from 'node:fs';
+    import os from 'node:os';
+    import path from 'node:path';
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'probe-'));
+    const dir = path.join(tmp, 'mixed');
+    fs.mkdirSync(dir);
+    // one readable file beside one unreadable file: the case whose header the
+    // suite pins as "scanned 1 of 2 files — 1 skipped (not valid UTF-8)"
+    const one = path.join(tmp, 'one');
+    fs.mkdirSync(one, { recursive: true });
+    fs.writeFileSync(path.join(one, 'bad.txt'),
+      Buffer.concat([Buffer.from([0x89, 0x50, 0x4E, 0x47]), Buffer.from('The delegation.')]));
+    fs.writeFileSync(path.join(one, 'ok.txt'), 'The organisation reports the figure.\\n');
+    const oneOut = [];
+    const oneExit = run([one], { log: l => oneOut.push(String(l)), error: l => oneOut.push(String(l)) });
+    // one readable file beside two unreadable ones, one of them UTF-16
+    const two = path.join(tmp, 'two');
+    fs.mkdirSync(two, { recursive: true });
+    fs.writeFileSync(path.join(two, 'bad.txt'),
+      Buffer.concat([Buffer.from([0x89, 0x50, 0x4E, 0x47]), Buffer.from('The delegation.')]));
+    fs.writeFileSync(path.join(two, 'u16.txt'), Buffer.from('The report was read.\\n', 'utf16le'));
+    fs.writeFileSync(path.join(two, 'ok.txt'), 'The organisation reports the figure.\\n');
+    const out = [];
+    const code = run([two], { log: l => out.push(String(l)), error: l => out.push(String(l)) });
+    const all = path.join(tmp, 'all');
+    fs.mkdirSync(all);
+    fs.writeFileSync(path.join(all, 'a.txt'), Buffer.from([0x00, 0xFF, 0xFE, 0x89]));
+    const out2 = [];
+    const code2 = run([all], { log: l => out2.push(String(l)), error: l => out2.push(String(l)) });
+    const jsonOut = [];
+    run([two, '--format', 'json', '--quiet'],
+      { log: l => jsonOut.push(String(l)), error: () => {} });
+    process.stdout.write(JSON.stringify({
+      header: oneOut.join('\\n').split('\\n')[0],
+      exit: oneExit,
+      mixedHeader: out.join('\\n').split('\\n')[0],
+      allExit: code2,
+      allOut: out2.join('\\n'),
+      skipped: JSON.parse(jsonOut.join('\\n')).skipped,
+    }));
+  `;
+
+  const MUTATIONS = [
+    {
+      name: 'the skip clause is dropped from the header',
+      file: 'lib/output.mjs',
+      from: '` — ${skipped.length} skipped (${skippedReasons(skipped)})`',
+      to: '``',
+      // The "scanned N of M" count survives, but the reason disappears: the
+      // header no longer tells the reader why one file is missing, which is
+      // half of the honesty this change makes.
+      broken: (o) => !/skipped \(not valid UTF-8\)/.test(o.header),
+    },
+    {
+      name: 'the all-unreadable directory returns a clean run instead of refusing',
+      file: 'lib/cli.mjs',
+      from: 'if (paths.length > 0 && files.length === 0) {',
+      to: 'if (false) {',
+      // The F1 shape comes back: exit 0 plus the canonical clean sentence.
+      broken: (o) => o.allExit === 0 && /No findings under/.test(o.allOut),
+    },
+    {
+      name: 'the skipped count is folded back into the scanned count',
+      file: 'lib/output.mjs',
+      from: '`scanned ${files} of ${files + skipped.length} file${files + skipped.length === 1 ? \'\' : \'s\'}`',
+      to: '`scanned ${files + skipped.length} file${files + skipped.length === 1 ? \'\' : \'s\'}`',
+      // The misleading header this change removed: a file that was never read,
+      // counted as read. The "of N" form is what distinguishes "1 of 2" from
+      // "2", so losing it is what the suite's header assertion would catch.
+      broken: (o) => /scanned 2 files/.test(o.header) && !/scanned 1 of 2 files/.test(o.header),
+    },
+    {
+      name: 'the NUL signal is removed, so a UTF-16 file is read as copy',
+      file: 'lib/extract.mjs',
+      from: 'if (source.includes(NUL)) return UNDECODABLE_REASON;',
+      to: 'if (false) return UNDECODABLE_REASON;',
+      // UTF-16 is valid UTF-8, so only the NUL signal catches it.
+      broken: (o) => o.skipped.length < 2,
+    },
+  ];
+
+  for (const mutation of MUTATIONS) {
+    const source = fs.readFileSync(path.join(root, mutation.file), 'utf8');
+    assert(source.includes(mutation.from),
+      `mutation "${mutation.name}": the anchor text must be present in ${mutation.file}`);
+    const mutated = source.replace(mutation.from, mutation.to);
+    assert.notEqual(mutated, source,
+      `mutation "${mutation.name}": the replacement must change ${mutation.file}`);
+
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-mutation-'));
+    try {
+      // Copy the whole tree, apply the mutation there, and run the probe
+      // against that copy: the mutation must be exercised by real code, not
+      // simulated.
+      const tree = path.join(scratch, 'tree');
+      fs.cpSync(root, tree, {
+        recursive: true,
+        filter: src => !src.includes(`${path.sep}.git${path.sep}`) && !src.includes(`${path.sep}node_modules${path.sep}`),
+      });
+      const target = path.join(tree, mutation.file);
+      fs.writeFileSync(target, mutated);
+      const probe = path.join(scratch, 'probe.mjs');
+      fs.writeFileSync(probe, probeSource(path.join(tree, 'bin', 'check.mjs')));
+      const result = spawnSync(process.execPath, [probe], { encoding: 'utf8' });
+      assert.equal(result.status, 0,
+        `mutation "${mutation.name}": the probe must run against the mutated tree: ${result.stderr}`);
+      const observed = JSON.parse(result.stdout);
+      assert(mutation.broken(observed),
+        `mutation "${mutation.name}" did NOT break the suite, so the matching assertion is vacuous: `
+        + `header=${JSON.stringify(observed.header)} exit=${observed.exit} `
+        + `allExit=${observed.allExit} skipped=${JSON.stringify(observed.skipped)}`);
+    } finally {
+      fs.rmSync(scratch, { recursive: true, force: true });
+    }
+  }
+}
+
+console.log('ok — unreadable-file mutations: the header skip, the read-nothing refusal, '
+  + 'the honest file count and the NUL signal are all load-bearing');
+
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('ok — HTML suppressions, TypeScript, JSX text children, sentence-like literals, unsupported files, fixtures, flags, FIFO, report line, docs, self-scan, non-UTF-8 files yield no copy, unquoted attributes and the ARIA copy set');
+console.log('ok — HTML suppressions, TypeScript, JSX text children, sentence-like literals, unsupported files, fixtures, flags, FIFO, report line, docs, self-scan, unreadable files reported and refused, unquoted attributes and the ARIA copy set');
