@@ -78,7 +78,8 @@ const sentence = (body) => write(`fixture-${sequence++}.txt`, `${body}\n`);
   assert.equal(second.confidence, 'heuristic');
   assert.match(second.message, /denominator could not be determined offline/,
     `state 2 must say the denominator is unknown offline: ${second.message}`);
-  assert.doesNotMatch(second.message, /error|defect is/, `state 2 claims no defect: ${second.message}`);
+  assert.match(second.message, /no defect is claimed/,
+    `state 2 must claim no defect: ${second.message}`);
 
   // State 3: no printed statistic anywhere near the term — no finding at all.
   const silent = sentence('The maternal mortality rate is discussed in the annex.');
@@ -88,8 +89,9 @@ const sentence = (body) => write(`fixture-${sequence++}.txt`, `${body}\n`);
   // The window is the whole of the detection: a statistic outside it is not
   // "nearby", so the gate stays shut.
   const far = sentence('The maternal mortality rate is reported for the period'
-    + ' and the annex reviews the series across every region covered by the'
-    + ' programme before the value 850 is reached at the end.');
+    + ' and the annex reviews the series across every region and every demographic'
+    + ' indicator covered by the wider programme reporting cycle before the final'
+    + ' figure of 850 is reached at the end.');
   assert.deepEqual(of(far, 'UE-TE001'), [],
     'a statistic beyond the evidence window must not open the gate');
 }
@@ -146,9 +148,10 @@ const sentence = (body) => write(`fixture-${sequence++}.txt`, `${body}\n`);
     'UE-SP001 carries the per cent replacement');
 
   // A suppression naming the silent rule is still accepted: the id, its
-  // catalogue entry and its configuration switch all survive.
+  // catalogue entry and its configuration switch all survive. The figure is
+  // hedged so that only the suppression under test can explain a clean file.
   const suppressed = write('te003-suppressed.txt',
-    'Progress reached 25% this year. <!-- ue:ignore UE-TE003 -->\n');
+    'Progress reached approximately 25% this year. <!-- ue:ignore UE-TE003 -->\n');
   assert.deepEqual(findings(suppressed), []);
 }
 
