@@ -47,6 +47,7 @@ const EXPECTED_IDS = [
   'UE-AX001', 'UE-AX002', 'UE-SE001', 'UE-SE002', 'UE-SE003', 'UE-SE004',
   'UE-HS001', 'UE-HS002', 'UE-HS003', 'UE-RE006', 'UE-RE007', 'UE-RE008',
   'UE-GR001', 'UE-GR002', 'UE-GR003',
+  'UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005',
 ];
 assert.equal(CATALOGUE.catalogueVersion, 1);
 assert.deepEqual(CATALOGUE.rules.map(rule => rule.id), EXPECTED_IDS, 'catalogue order and membership');

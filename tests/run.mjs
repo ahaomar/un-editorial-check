@@ -288,15 +288,26 @@ assert.deepEqual(ids(scan(write('cite.md', 'See <cite>Organization of African Un
   ].join('\n'), 'only bare prose may be rewritten');
 }
 
-for (const name of ['ranges.txt', 'states.txt']) {
-  const target = write(`fix-${name}`, fs.readFileSync(fixture('fix', name), 'utf8'));
+// Brief §8: terminology findings are reported, never rewritten. Neither file
+// may exit clean any more: ranges.txt still receives the allow-listed
+// numeral-range fix (UE-NU002) while the UE-TE003 error stays and keeps the
+// exit code at 1, and states.txt (UE-TE004 only) is left byte-for-byte alone.
+{
+  const target = write('fix-ranges.txt', fs.readFileSync(fixture('fix', 'ranges.txt'), 'utf8'));
   const result = capture([target, '--fix', '--apply']);
-  assert.equal(result.code, 0, `${name}: ${result.stderr}`);
+  assert.equal(result.code, 1, `ranges.txt: ${result.stderr}`);
+  assert.equal(fs.readFileSync(target, 'utf8'),
+    'Coverage was 1990–2025 and reached 25% of the total.\n',
+    'only the numeral-range fix may be applied; terminology is never rewritten');
 }
-assert.equal(fs.readFileSync(path.join(tmp, 'fix-ranges.txt'), 'utf8'),
-  'Coverage was 1990–2025 and reached 25 per cent of the total.\n');
-assert.equal(fs.readFileSync(path.join(tmp, 'fix-states.txt'), 'utf8'),
-  'The United States reported US$ 4.1 billion in aid.\n');
+{
+  const target = write('fix-states.txt', fs.readFileSync(fixture('fix', 'states.txt'), 'utf8'));
+  const before = fs.readFileSync(target, 'utf8');
+  const result = capture([target, '--fix', '--apply']);
+  assert.equal(result.code, 1, `states.txt: ${result.stderr}`);
+  assert.equal(fs.readFileSync(target, 'utf8'), before,
+    'a file whose only findings are terminology must never be rewritten');
+}
 
 // Non-prose files are refused with exit code 2 and left untouched.
 for (const name of ['page.html', 'script.js']) {

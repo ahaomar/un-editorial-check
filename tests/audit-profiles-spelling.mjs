@@ -171,9 +171,11 @@ section('2. default run: conflict warns, names the choice, not fixable', () => {
   assert.match(text.stdout, /EDITORIAL WARNINGS/);
   assert.equal(text.code, 0);
 
-  // Every persisted family key behaves the same way by default.
+  // Every persisted family key behaves the same way by default. The fixture
+  // carries a finite verb so the UE-HR001 review heuristic stays silent and
+  // this section counts the family warning alone.
   FAMILY.forEach((key, index) => {
-    const target = write(`family-${index}.txt`, `The ${key} of the matter.\n`);
+    const target = write(`family-${index}.txt`, `The ${key} publishes an annual report.\n`);
     const scanResult = scan(target);
     const entry = one(scanResult);
     assert.equal(entry.severity, 'warning', `${key} must warn by default`);
@@ -181,7 +183,7 @@ section('2. default run: conflict warns, names the choice, not fixable', () => {
   });
 
   // organisational sits outside the family: an ordinary error.
-  const ordinary = write('family-ordinary.txt', 'The organizational of the matter.\n');
+  const ordinary = write('family-ordinary.txt', 'The organizational publishes an annual report.\n');
   const ordinaryResult = scan(ordinary);
   assert.equal(one(ordinaryResult).severity, 'error',
     'organizational is outside the conflict family and stays an error');

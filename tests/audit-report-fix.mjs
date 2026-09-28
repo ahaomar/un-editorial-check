@@ -10,6 +10,10 @@
 //            replacement that lands at a sentence start is capitalised, a
 //            mid-sentence replacement keeps its lower case, and the existing
 //            case-preservation is untouched. The fixed file re-scans clean.
+//            The probes use UE-SP001: brief §8 removed the terminology
+//            replacement that used to drive them from the fix set, and the
+//            mechanism under test never depended on which rule supplied the
+//            lower-case replacement.
 //   Item 5 — README's "A fix is skipped, never guessed": a finding whose
 //            reported offset does not hold the matched copy produces no plan,
 //            no write and no exception.
@@ -161,22 +165,28 @@ const applyFix = (name, body) => {
 };
 
 {
-  // The reported corruption defect: `. US` fixed to `. the United States`.
+  // The reported corruption defect, re-based on UE-SP001 (brief §8: the
+  // terminology replacement that used to drive these probes is no longer
+  // --fix-able). The mechanism under test is the same one: a lower-case
+  // replacement landing right after ". " must be capitalised.
+  // Probes use non-conflict map entries (color, center): the
+  // organisation/organization family is profile-choice — warning, not
+  // fixable by default — after W2a's spelling inversion.
   assert.equal(
-    applyFix('cap-sentence.txt', 'The report lands here. US reported gains for the region.\n'),
-    'The report lands here. The United States reported gains for the region.\n',
+    applyFix('cap-sentence.txt', 'The report lands here. color begins the annex.\n'),
+    'The report lands here. Colour begins the annex.\n',
     'a replacement at a sentence start must be capitalised',
   );
   // Mid-sentence stays lower case.
   assert.equal(
-    applyFix('cap-mid.txt', 'Gains from US were reported.\n'),
-    'Gains from the United States were reported.\n',
+    applyFix('cap-mid.txt', 'Gains from center were reported.\n'),
+    'Gains from centre were reported.\n',
     'a mid-sentence replacement must keep its lower case',
   );
   // Start of line is a sentence start too.
   assert.equal(
-    applyFix('cap-line.txt', 'US reported gains for the region.\n'),
-    'The United States reported gains for the region.\n',
+    applyFix('cap-line.txt', 'color begins the annex.\n'),
+    'Colour begins the annex.\n',
     'a replacement at the start of a line must be capitalised',
   );
   // Sentence-initial SP001: case-preservation already produces the capital.
