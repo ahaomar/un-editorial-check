@@ -12,7 +12,11 @@
 //      the CLI prints precisely that sentence on a clean run — and only then;
 //   4. the changelog carries the released 1.0.0 section and no Unreleased
 //      placeholder;
-//   5. package.json declares no dependencies or devDependencies.
+//   5. package.json declares no dependencies or devDependencies;
+//   6. the README exit-code rows are literally true against live runs: a
+//      file or sub-directory named inside the skill root is scanned, the
+//      skill root itself is the documented carve-out, and the two exit-2
+//      refusals still refuse.
 //
 // Probe prose reaches the scanner through call names that are not render
 // surfaces, so the repository self-scan never extracts this file's test data
@@ -22,10 +26,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { run } from '../bin/check.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const cli = path.join(root, 'bin', 'check.mjs');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const list = directory => fs.readdirSync(path.join(root, directory))
   .filter(name => name.endsWith('.md'))
@@ -145,3 +151,73 @@ console.log('ok — changelog: 1.0.0 section present, no Unreleased placeholder'
 }
 
 console.log('ok — package manifest: no dependencies, no devDependencies');
+
+// --- 6. README exit-code rows, checked against live runs ----------------------
+
+{
+  // The rows and the exit-prose describe three behaviours: a named file or
+  // sub-directory inside the skill root is scanned, the skill root itself is
+  // the carve-out that reads nothing and exits 0, and the two exit-2
+  // refusals still refuse. Each is re-run here rather than re-read (QA F1:
+  // prose that described only a plain scan of the root).
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-docs-exit-'));
+  const config = path.join(tmp, 'config.json');
+  fs.writeFileSync(config, '{}');
+  const capture = (argv) => {
+    const out = [];
+    const err = [];
+    const code = run([...argv, '--config', config], {
+      log: line => out.push(String(line)),
+      error: line => err.push(String(line)),
+    });
+    return { code, stdout: out.join('\n'), stderr: err.join('\n') };
+  };
+
+  // A file named inside the skill root is scanned, not shielded: README's
+  // own scan must read exactly one file and report what it found.
+  const namedFile = capture([path.join(root, 'README.md'), '--format', 'json']);
+  const parsed = JSON.parse(namedFile.stdout);
+  assert.equal(parsed.files, 1,
+    `README.md must be scanned as a named file, not dropped:\n${namedFile.stdout}`);
+  assert.equal(namedFile.code, 0,
+    `README.md must scan clean with exit 0:\n${namedFile.stdout}\n${namedFile.stderr}`);
+  const namedText = capture([path.join(root, 'README.md')]).stdout;
+  assert.match(namedText, /scanned 1 file\b/,
+    `the report must count the named file:\n${namedText}`);
+  assert.equal(namedText.includes(CLEAN), parsed.findings.length === 0,
+    `the clean-run sentence appears exactly when the named-file scan found nothing:\n${namedText}`);
+
+  // A sub-directory named inside the skill root is scanned as well.
+  const subdir = capture([path.join(root, 'docs'), '--format', 'json']);
+  const subdirParsed = JSON.parse(subdir.stdout);
+  assert(subdirParsed.files >= 1, `docs/ must be scanned as a named sub-directory:\n${subdir.stdout}`);
+  assert.equal(subdir.code, 0, `docs/ must scan without error-severity findings:\n${subdir.stderr}`);
+
+  // The skill root itself is the documented carve-out (README's exit-2 row):
+  // it reads nothing, says so, and exits 0.
+  const carveOut = spawnSync(process.execPath, [cli, '.'], { cwd: root, encoding: 'utf8' });
+  assert.equal(carveOut.status, 0,
+    `a scan whose target is the skill root must exit 0:\n${carveOut.stdout}\n${carveOut.stderr}`);
+  assert.match(carveOut.stdout, /scanned 0 files/,
+    `the carve-out must be honest about reading nothing:\n${carveOut.stdout}`);
+
+  // README's exit-2 row: an unsupported named file and an empty scan are
+  // still refusals.
+  const unsupported = path.join(tmp, 'doc.docx');
+  fs.writeFileSync(unsupported, 'copy that must never be read');
+  const badExt = capture([unsupported]);
+  assert.equal(badExt.code, 2, `an unsupported named file must exit 2:\n${badExt.stderr}`);
+  assert.match(badExt.stderr, /unsupported file type/,
+    `stderr must name the refusal:\n${badExt.stderr}`);
+
+  const emptyDir = path.join(tmp, 'empty');
+  fs.mkdirSync(emptyDir);
+  const empty = capture([emptyDir]);
+  assert.equal(empty.code, 2, `an empty scan must exit 2:\n${empty.stderr}`);
+  assert.match(empty.stderr, /no supported files found/,
+    `stderr must name the empty-scan refusal:\n${empty.stderr}`);
+
+  fs.rmSync(tmp, { recursive: true, force: true });
+}
+
+console.log('ok — README exit-code rows: named file scanned, skill-root carve-out, exit-2 refusals');

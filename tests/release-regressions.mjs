@@ -370,10 +370,16 @@ for (const entity of ['&#x110000;', '&#999999999999;', '&#0;']) {
 // --- installable package -------------------------------------------------------
 
 {
-  const pack = spawnSync('npm', ['pack', '--json'], { cwd: root, encoding: 'utf8' });
+  // The release/package test must never write into the protected source
+  // directory: the tarball goes under this suite's own tmp directory and the
+  // finally block still removes it (the tmp sweep below removes the rest).
+  const packDir = path.join(tmp, 'pack');
+  fs.mkdirSync(packDir, { recursive: true });
+  const pack = spawnSync('npm', ['pack', '--json', '--pack-destination', packDir],
+    { cwd: root, encoding: 'utf8' });
   assert.equal(pack.status, 0, pack.stderr);
   const packed = JSON.parse(pack.stdout)[0];
-  const tarball = path.join(root, packed.filename);
+  const tarball = path.join(packDir, packed.filename);
   try {
     const installDir = path.join(tmp, 'install');
     fs.mkdirSync(installDir, { recursive: true });
