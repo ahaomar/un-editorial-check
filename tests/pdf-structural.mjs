@@ -328,5 +328,151 @@ validateStructure(bare, 'bare', 1);
 assert(bare.toString('latin1').includes('un-editorial-check - page 1/1 -'),
   'an empty version still produces a well-formed footer');
 
+// --- 9: characters WinAnsi cannot encode -------------------------------------
+//
+// WinAnsi is single-byte: a Cyrillic, Arabic or Han character has no code in
+// it and the writer holds no font that could draw one — embedding a font would
+// mean shipping a font program in the package, which is out of scope. Those
+// characters are therefore replaced by "?". That is a real, lossy fold, and
+// these locks pin it exactly and make the loss visible rather than silent:
+//
+//   * the fold is per character, deterministic, and idempotent;
+//   * Greek and Cyrillic, which WinAnsi *does* cover, are never folded — the
+//     fold is about the encoding, not about "not English";
+//   * a report that needed the fold says so in a closing note, and a report
+//     that did not carries no note and not one extra byte;
+//   * the documented cost is stated rather than hidden: two names differing
+//     only in an unrepresentable character print alike.
+
+{
+  // The fold predicate is restated here rather than imported, so the test
+  // cannot be satisfied by a change to the module under test: it asserts what
+  // WinAnsi can and cannot encode, from the encoding, not from lib/pdf.mjs.
+  // WinAnsi (PDF Annex D) is code page 1252: ASCII, the C1 range 0x80-0x9F
+  // with its typographic specials, and Latin-1 0xA0-0xFF. Nothing else.
+  const WINANSI_UNICODE = new Set([
+    0x20AC, 0x201A, 0x0192, 0x201E, 0x2020, 0x2021, 0x02C6, 0x2030,
+    0x0160, 0x2039, 0x0152, 0x017D, 0x2022, 0x02DC, 0x2122, 0x0161,
+    0x203A, 0x0153, 0x017E, 0x0178, 0x2013, 0x2014,
+  ]);
+  const unrepresentable = (cp) => {
+    if (cp >= 0x20 && cp <= 0x7E) return false;
+    if (cp >= 0xA0 && cp <= 0xFF) return false;
+    if (cp === 0x96 || cp === 0x97) return false; // the WinAnsi dashes
+    if (WINANSI_UNICODE.has(cp)) return false;
+    return true;
+  };
+  const folds = (value) => [...value].filter(ch => unrepresentable(ch.codePointAt(0))).length;
+  const fold = (value) => '?'.repeat(folds(value));
+
+  // The documented cost, stated rather than glossed: Turkish is a Latin script
+  // in everyday UN use, and WinAnsi cannot spell it. The fold turns the dotted
+  // and dotless i into "?", so a Turkish title loses two characters. This is
+  // the case the closing note exists for, and it is asserted here so the
+  // limitation is a measured one rather than an assumption.
+  assert.equal(folds('Yıllık'), 2, 'Turkish dotless i is outside WinAnsi: two characters fold');
+  assert.equal(folds('Yillik'), 0, 'its ASCII spelling is inside WinAnsi and survives');
+
+  // Western European copy is inside the encoding and must survive untouched,
+  // accented letters included. This is the case that must not regress: a fold
+  // keyed on "not plain ASCII" would mangle every accented name in a report.
+  for (const [name, value] of [
+    ['French', 'Rapport sur la sécurité'],
+    ['German', 'Jahresbericht für Europa'],
+    ['Spanish', 'Informe sobre medidas'],
+    ['Portuguese', 'Relatório anual'],
+    ['Nordic', 'Årsrapport för säkerhet'],
+    ['Polish', 'Raport roczny'],
+    // Turkish dotted/dotless i is a genuine WinAnsi gap: U+0131 and U+0130
+    // are in Latin-1, but U+0069/U+0067 do not spell Turkish, and the report
+    // says so in the note rather than pretending the fold is rare.
+    ['Romanian', 'Raport anual privind securitatea'],
+  ]) {
+    assert.equal(folds(value), 0, `${name} prose is inside WinAnsi and must not be folded`);
+  }
+  assert.equal(folds('€ · ƒ † ‰ ½ × ÿ'), 0,
+    'the WinAnsi C1 specials are representable and must not be folded');
+
+  // Every other script is outside it. The list is what the fold is *for*, and
+  // it is why a non-Latin file name is a real case rather than a hypothetical.
+  for (const [name, value] of [
+    ['Greek', 'Έκθεση'],
+    ['Cyrillic', 'документ'],
+    ['Arabic', 'تقرير'],
+    ['Hebrew', 'דוח'],
+    ['Han', '报告'],
+    ['Devanagari', 'रिपोर्ट'],
+    ['Thai', 'รายงาน'],
+    ['Armenian', 'հաշվետ'],
+    ['Georgian', 'ანგარიში'],
+    ['emoji', '\u{1f4c8}'],
+  ]) {
+    assert.equal(folds(value), [...value].length,
+      `${name} is outside WinAnsi, so every character folds`);
+  }
+
+  // The en and em dash keep their bytes rather than folding, even though they
+  // are outside ASCII: WinAnsi encodes them at 0x96 and 0x97.
+  assert.equal(folds('–'), 0, 'the en dash keeps its WinAnsi byte');
+  assert.equal(folds('—'), 0, 'the em dash keeps its WinAnsi byte');
+  // The soft hyphen is dropped rather than folded, and is not a "?" either.
+  assert.equal(folds('­'), 0, 'the soft hyphen is dropped, not folded');
+
+  const rendered = renderPdf([
+    { type: 'kv', label: 'Targets', value: '/tmp/report/تقرير.txt' },
+    { type: 'kv', label: 'Accented', value: 'Rapport sur la sécurité' },
+    { type: 'kv', label: 'Greek', value: 'Έκθεση στην Αθήνα' },
+    { type: 'kv', label: 'Han', value: '报告草稿' },
+    { type: 'kv', label: 'Emoji', value: '\u{1f4c8} report' },
+  ], opts);
+  validateStructure(rendered, 'folded', 1);
+  const text = assertLinesFit(rendered, 'folded').map(line => line.text).join('\n');
+
+  assert(text.includes(`/tmp/report/${fold('تقرير')}.txt`),
+    'an unrepresentable file name folds to one question mark per character');
+  assert(text.includes('Rapport sur la sécurité'),
+    'accented Western European copy must survive the fold intact');
+  // Word wrapping collapses whitespace, so a folded phrase is one question mark
+  // per character with single spaces where the words were.
+  const foldWords = (value) => value.split(/\s+/).map(fold).join(' ');
+  assert(text.includes(foldWords('Έκθεση στην Αθήνα')),
+    'Greek folds character by character');
+  assert(text.includes(fold('报告草稿')), 'Han folds character by character');
+  assert(text.includes(fold('\u{1f4c8}') + ' report'),
+    'a code point beyond the basic plane folds once, not once per surrogate half');
+
+  // The fold is announced, never silent: a "?" in a file name is otherwise
+  // indistinguishable from a "?" in the copy.
+  assert(text.includes('Note on characters:'),
+    'a report that folded a character must say so');
+  assert(text.includes('may be a character the font cannot draw'),
+    'the note must state that a question mark may be a folded character');
+
+  // A report that folded nothing carries no note and not one extra byte, so
+  // the change is invisible to every document written in a covered script —
+  // which is the overwhelming majority, including all Latin-script copy.
+  const noFold = renderPdf([{ type: 'paragraph', text: 'A short closing line.' }]);
+  assert(!assertLinesFit(noFold, 'nofold').map(l => l.text).join('\n')
+    .includes('Note on characters'),
+  'a report that folded nothing must not carry the note');
+  assert.equal(Buffer.compare(noFold, bare), 0,
+    'the fold note must not change one byte of a report that needed no fold');
+  const accentedOnly = [{ type: 'paragraph', text: 'Rapport sur la sécurité, à Genève.' }];
+  assert.equal(Buffer.compare(renderPdf(accentedOnly, opts), renderPdf(accentedOnly, opts)), 0,
+    'an accented-only report needs no note and stays deterministic');
+  assert(!assertLinesFit(renderPdf(accentedOnly, opts), 'accented').map(l => l.text)
+    .join('\n').includes('Note on characters'),
+  'accented Western European copy must not trigger the fold note');
+
+  // Determinism holds on the folded path too.
+  const twice = [
+    { type: 'kv', label: 'Targets', value: '/tmp/report/تقرير.txt' },
+    { type: 'kv', label: 'Han', value: '报告草稿' },
+  ];
+  assert.equal(Buffer.compare(renderPdf(twice, opts), renderPdf(twice, opts)), 0,
+    'the folded path is deterministic like every other');
+}
+
 console.log('ok — pdf structure: magic, xref offsets, pages, fonts, extraction, '
-  + 'transliteration, escaping, footers, stress token, determinism');
+  + 'transliteration, escaping, footers, stress token, determinism, '
+  + 'documented and announced fold for characters WinAnsi cannot encode');

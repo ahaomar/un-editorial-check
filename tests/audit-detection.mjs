@@ -13,7 +13,12 @@
 //   4. UE-RE004: `current` is the full question (300-character cap with
 //      "..." beyond), not a 40-character prefix, and the rule is never fixable;
 //   5. UE-TE004: sentence-final bare `US.` is reported, the currency,
-//      acronym and URL exemptions still hold.
+//      acronym and URL exemptions still hold;
+//   6. UE-HS002: the group must be the subject of the copula. A preposition
+//      immediately before it makes the group the preposition's complement, so a
+//      comparative about rights, conditions, services or data is no longer
+//      reported as collective blame — and every required true positive, partitive
+//      included, still fires.
 //
 // Every prose string below reaches the scanner through a call name that is
 // not a render surface (scan/fires/silent), so the repository self-scan never
@@ -222,5 +227,124 @@ console.log('ok — UE-RE004: full-sentence current, 300-character cap, never fi
 
 console.log('ok — UE-TE004: sentence-final US reported, exemptions intact, US-based pinned');
 
+// --- 6. UE-HS002: the group must be the subject of the copula ----------------
+//
+// The false positives this removes are not marginal. "The rights of women are
+// inferior to those guaranteed to men" is a statement about rights: the copula's
+// subject is *rights*, and women is the object of a preposition. The rule
+// matched it, and the tool then told an editor to rewrite wording it had
+// misparsed. Same for data, welfare, access and outcomes.
+//
+// The lock moves with the change: every required true positive — the two
+// guard-note templates, the bare trait form, and the partitive "All of the …"
+// that .feedbacks/old/verify-hs.mjs and the dummydata corpus both depend on —
+// is asserted below over the whole shared group vocabulary, and the gate is
+// proved to apply to UE-HS002 alone.
+
+{
+  // --- the true positives, which must all still fire ---------------------
+  const mustFire = [
+    'All Syrians are criminals.',
+    'All of the foreigners are criminals.',
+    'Muslims are inherently violent.',
+    'Kurds are dangerous by nature.',
+    'Migrants are dangerous.',
+    'Women are inferior to men in the published ranking.',
+    'The men were dangerous because they were armed.',
+    'All of the women are criminals.',
+    'All of the older people are criminals.',
+    'All of those refugees are criminals.',
+  ];
+  for (const prose of mustFire) {
+    const result = scan(prose);
+    const finding = result.findings.find(entry => entry.ruleId === 'UE-HS002');
+    assert(finding,
+      `UE-HS002 must still fire on the true positive ${JSON.stringify(prose)}`
+      + ` (got ${ids(result).join(', ') || 'no findings'})`);
+    // The finding is still a review-lane heuristic, not an error.
+    assert.equal(finding.severity, 'warning', `${prose}: UE-HS002 stays a warning`);
+    assert.match(finding.message, /routed to review/,
+      `${prose}: UE-HS002 must still say it is routed to review`);
+  }
+
+  // --- the full group vocabulary through the two guard-note templates ------
+  // The symmetry sweep in .feedbacks/old/verify-hs.mjs is the contract; this is
+  // the same sweep as an in-repo lock, so the gate cannot be widened later
+  // without a test failing here first.
+  const { HS_KB } = await import('../lib/rules-hs.mjs');
+  const groups = HS_KB.groups.terms;
+  assert(groups.length >= 30, 'the shared group vocabulary must stay substantial');
+  for (const group of groups) {
+    for (const template of ['All %s are criminals.', '%s are inherently violent.',
+      'All of the %s are criminals.']) {
+      const prose = template.replace('%s', group);
+      const result = scan(prose);
+      assert(result.findings.some(entry => entry.ruleId === 'UE-HS002'),
+        `symmetry: ${JSON.stringify(prose)} must fire UE-HS002`
+        + ` (got ${ids(result).join(', ') || 'no findings'})`);
+    }
+  }
+
+  // --- the false positives, which must now be silent --------------------
+  // Each is a comparative about rights, conditions, services, data or
+  // outcomes: the group is the complement of a preposition, and the trait is
+  // predicated of the head noun instead.
+  for (const prose of [
+    'The rights of women are inferior to those guaranteed to men.',
+    'The situation for women is inferior to the situation for men.',
+    'Data on older people are inferior in quality to other data.',
+    'The welfare of refugees is inferior to that of others.',
+    'Access to justice for migrants is inferior to that for others.',
+    'Outcomes for girls are inferior to those for boys.',
+    'The situation with refugees is dire.',
+    'Attitudes to migrants are negative in several countries.',
+    'Statistics about disabled people are inferior in quality.',
+    'Concern about asylum seekers is growing.',
+    'The report on Roma communities is critical.',
+    'Standards for wheelchair users are inferior to those for others.',
+  ]) {
+    const result = scan(prose);
+    assert(!result.findings.some(entry => entry.ruleId === 'UE-HS002'),
+      `UE-HS002 must not fire on the comparative ${JSON.stringify(prose)}`
+      + ` (got ${JSON.stringify(result.findings.filter(f => f.ruleId === 'UE-HS002').map(f => f.current))})`);
+  }
+
+  // --- the gate is bounded: a comma or any other word ends the phrase ----
+  // The window is a fixed 60 characters, so a prepositional phrase that is not
+  // immediately adjacent to the group leaves the group as the subject and the
+  // finding stands. The trait form is used because it matches without a
+  // quantifier; the accusation noun needs "all", which is why the quantified
+  // variants below carry one.
+  fires('UE-HS002', 'In Europe, refugees are inherently violent.');
+  fires('UE-HS002', 'Of all the groups, migrants are dangerous by nature.');
+  fires('UE-HS002', 'Under review by the committee, all foreigners are criminals.');
+  fires('UE-HS002', 'Since the report appeared, all Syrians are criminals.');  // ue:ignore UE-HS002  (deliberate test data)
+  // A prepositional phrase that ends well before the group, by length alone.
+  fires('UE-HS002',
+    `A committee of experts on humanitarian law and procedure ${'and practice ' * 8}reported that all Syrians are criminals.`);  // ue:ignore UE-HS002  (deliberate test data)
+
+  // --- the gate belongs to UE-HS002 alone --------------------------------
+  // UE-HS001 and UE-DM001 keep matching their own compositions: a
+  // dehumanising frame and a demeaning predicate still fire after the same
+  // preposition, because their guard notes promise exactly that.
+  {
+    const hs1 = scan('The report on refugees is vermin in tone.');
+    assert(hs1.findings.some(f => f.ruleId === 'UE-HS001'),
+      'the subject gate must not reach UE-HS001: its guard note promises the frame fires on its own composition');
+  }
+  {
+    const dm = scan('The report on women is a burden on the process.');
+    assert(dm.findings.some(f => f.ruleId === 'UE-DM001'),
+      'the subject gate must not reach UE-DM001: its guard note promises the predicate fires on its own composition');
+  }
+  // And the two rules that consume the same vocabulary keep their symmetry.
+  fires('UE-HS001', 'Foreigners are vermin.');
+  fires('UE-HS001', 'Muslims are vermin.');
+  fires('UE-DM001', 'Women are a burden.');
+  fires('UE-DM001', 'Men are a burden.');
+}
+
+console.log('ok — UE-HS002: subject gate on comparatives, every true positive still fires');
+
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('ok — detection contracts: attribution, HS003, RE002, RE004, TE004');
+console.log('ok — detection contracts: attribution, HS003, RE002, RE004, TE004, HS002 subject gate');
