@@ -320,6 +320,19 @@
       ],
       "evidence": "Entry \"-ze endings\", quoted exactly: \"use -se, even if this upsets your (American) spellchecker, eg emphasise, realise; but capsize\".",
       "note": "Retrieved 27 September 2026 as HTML. The guide is a newsroom house style, not a UN authority; the profile source field says so explicitly."
+    },
+    {
+      "id": "un-cprd-demeaning",
+      "title": "United Nations Convention on the Rights of Persons with Disabilities (A/RES/61/106)",
+      "publisher": "United Nations General Assembly",
+      "url": "https://www.un.org/en/development/desa/disabilities/convention-on-the-rights-of-persons-with-disabilities.html",
+      "retrieved": "2026-09-28",
+      "scope": "Basis for refusing demeaning and pity-framed descriptions of persons with disabilities (UE-DM001); the sex-or-gender branch additionally cites the Convention on the Elimination of All Forms of Discrimination against Women (CEDAW, 1979) inside lib/rules-hs.mjs.",
+      "appliesTo": [
+        "UE-DM001"
+      ],
+      "evidence": "",
+      "note": "HONEST NEGATIVE (retrieval only): no live fetch was performed for this entry on 2026-09-28 — verify that the URL resolves before release. The CRPD was adopted by General Assembly resolution A/RES/61/106 on 13 December 2006."
     }
   ]
 }

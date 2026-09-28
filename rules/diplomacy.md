@@ -1,6 +1,6 @@
 # Diplomacy
 
-- **UE-DP001** *(error)* — A contested sovereignty or territorial-status claim about a listed region is stated as fact. Attribute the claim to the party advancing it, or use the neutral wording the finding proposes. Deterministic and not fixable.
+- **UE-DP001** *(warning)* — A contested sovereignty or territorial-status claim about a listed region is stated as fact. Attribute the claim to the party advancing it, or use the neutral wording the finding proposes. Deterministic and not fixable. The finding **requires diplomatic review** — it is never a claim that the text is factually false — and it is routed to the diplomacy lane; escalate it deliberately with `config.severities` if a stricter gate is wanted.
 
 ## How detection works
 
@@ -16,6 +16,8 @@ The knowledge base lives in `config/profiles/un-v1.json` under `diplomacy.claims
 Every claimant fires on the same pattern, so both directions of a dispute are caught and neither side is privileged. The rule never decides whose claim is correct; it asks for attribution or neutral wording, and the suggestion cites the entry's source.
 
 Bundled entries: Jammu and Kashmir (Security Council resolution 47 (1948)), Taiwan (General Assembly resolution 2758 (1971)), Hong Kong (the Joint Declaration registered with the United Nations) and Crimea (General Assembly resolution 68/262 (2014)).
+
+The v8 web-corpus regressions showed the same status claims arriving as negations ("Kashmir is not part of India."), corpus variants ("Hong Kong is not the china part.") and assertions whose claimant never appears ("Kashmir is part of the broader dispute both delegations are negotiating."). Wave 3 adds exactly those forms in `lib/diplomacy-ext.mjs` — a data file compiled by `lib/rules-hs.mjs` and emitted through this same `UE-DP001` rule id, so the attribution guard, the `config.allowlist.claims` suppression and the never-false-by-default framing apply unchanged. Subjects and claimants mirror the profile's own entry, a bare status word still never matches, an unlisted region stays silent, and the extension invents no positive phrasing of its own.
 
 ## What stays silent
 

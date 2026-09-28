@@ -81,6 +81,32 @@ function bannersFrom(report, index) {
   return report.slice(index).filter(e => e.type === 'banner');
 }
 
+// Lane metadata rows (Wave 3) close every finding block. Collect the block
+// from its banner up to the next banner and assert the kv tail is exactly
+// the five lane rows — a stronger check than a single offset: the rows must
+// be present, in order, last, and the block must end there.
+const LANE_LABELS = ['Lane', 'Source', 'Profile', 'Limitation', 'Action'];
+function blockKvLabels(report, startIndex) {
+  const labels = [];
+  for (let i = startIndex + 1; i < report.length && report[i].type !== 'banner'; i++) {
+    if (report[i].type === 'kv') labels.push(report[i].label);
+  }
+  return labels;
+}
+function assertLaneBlock(report, startIndex) {
+  const sequence = [];
+  for (let i = startIndex + 1; i < report.length
+    && report[i].type !== 'banner' && report[i].type !== 'spacer' && report[i].type !== 'heading'; i++) {
+    sequence.push(report[i]);
+  }
+  const labels = sequence.filter(e => e.type === 'kv').map(e => e.label);
+  assert.deepEqual(labels.slice(-LANE_LABELS.length), LANE_LABELS,
+    `lane rows must close the finding block at index ${startIndex}: ${labels.join(', ')}`);
+  const after = report[startIndex + sequence.length + 1];
+  assert(after && (after.type === 'banner' || after.type === 'spacer' || after.type === 'heading'),
+    'nothing may follow the lane rows inside a finding block');
+}
+
 function deepFreeze(value) {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) deepFreeze(child);
@@ -240,7 +266,7 @@ assert.deepEqual(full[hsIdx + 2], { type: 'kv', label: 'Should be', value: LONG_
 assert.deepEqual(full[hsIdx + 3], { type: 'paragraph', text: LONG_MESSAGE });
 assert.deepEqual(full[hsIdx + 4], { type: 'paragraph', text: 'Heuristic finding — routed to review.' },
   'heuristic finding carries the routed-to-review paragraph');
-assert.equal(full[hsIdx + 5].type, 'banner', 'blocks follow each other directly');
+assertLaneBlock(full, hsIdx);
 
 const errIdx = full.findIndex(e => e.type === 'banner' && e.text.includes('UE-RE005'));
 assert.deepEqual(full[errIdx], {
@@ -262,7 +288,8 @@ assert.deepEqual(full[errIdx + 3], {
   type: 'paragraph',
   text: 'An exclamation mark is not used in formal copy.',
 });
-assert.equal(full[errIdx + 4].type, 'banner', 'editorial block carries no audit row');
+assert(!blockKvLabels(full, errIdx).includes('Audit'), 'editorial block carries no audit row');
+assertLaneBlock(full, errIdx);
 
 const warnIdx = full.findIndex(e => e.type === 'banner' && e.text.includes('UE-GR002'));
 assert.deepEqual(full[warnIdx], {
@@ -365,7 +392,8 @@ assert.deepEqual(full[auditIdx], {
 });
 assert.deepEqual(full[auditIdx + 1], { type: 'kv', label: 'Current', value: '(not applicable)' });
 assert.deepEqual(full[auditIdx + 4], { type: 'kv', label: 'Audit', value: 'publishing' });
-assert.equal(full[auditIdx + 5].type, 'banner', 'audit block ends after its Audit row');
+assert(blockKvLabels(full, auditIdx).includes('Audit'), 'audit block keeps its Audit row');
+assertLaneBlock(full, auditIdx);
 
 const heuristicAuditIdx = full.findIndex(e => e.type === 'banner' && e.text.includes('UE-AX001'));
 assert.deepEqual(full[heuristicAuditIdx + 4], { type: 'kv', label: 'Audit', value: 'accessibility' });
@@ -373,6 +401,7 @@ assert.deepEqual(full[heuristicAuditIdx + 5], {
   type: 'paragraph',
   text: 'Heuristic finding — routed to review.',
 });
+assertLaneBlock(full, heuristicAuditIdx);
 assert(!det.some(e => e.type === 'kv' && e.label === 'Audits'), 'no audit row without audits');
 
 // --- sources appendix -------------------------------------------------------
@@ -454,4 +483,70 @@ assert.deepEqual(JSON.parse(JSON.stringify(frozen)), snapshot, 'input findings a
 assert.deepEqual(fromFrozen, one, 'a deep-frozen input renders identically');
 assertElements(fromFrozen, 'frozen-run output stays inside the union');
 
-console.log('ok — report model: union, order, blocks, should-be, queue, audits, sources, empty, sorting, purity');
+// --- Wave 3 lanes: counts, lane rows, quoted material -----------------------
+
+// The lane counts sit directly after the severity counts, and only on a
+// non-empty scan. full holds two deterministic findings, one harmful-
+// discriminatory (HS002), two audits and nothing quoted.
+const lanesIdx = full.findIndex(e => e.type === 'paragraph' && e.text.startsWith('lanes:'));
+assert.equal(lanesIdx, iCounts + 1, 'lane counts follow the severity counts');
+assert.equal(full[lanesIdx].text,
+  'lanes: deterministic 2 · heuristic-review 0 · harmful-discriminatory 1 · diplomacy 0 · audit 2 · quoted 0',
+  'lane counts name all five lanes plus quoted');
+assert(!empty.some(e => e.type === 'paragraph' && e.text.startsWith('lanes:')),
+  'no lane counts on an empty scan');
+
+// HS002 sits in the harmful-discriminatory lane: high-severity human review,
+// never auto-rewritten, sourced to its guard note.
+assert.deepEqual(full[hsIdx + 5], { type: 'kv', label: 'Lane', value: 'harmful-discriminatory' });
+assert.deepEqual(full[hsIdx + 6], { type: 'kv', label: 'Source', value: 'rules/hate-speech.md' });
+assert.deepEqual(full[hsIdx + 7], { type: 'kv', label: 'Profile', value: 'editorial baseline' });
+assert.match(full[hsIdx + 9].value, /High-severity human review/,
+  'the action routes the reader to high-severity review');
+
+// Audit findings carry the audit lane, their profile file as source and the
+// audit name as profile.
+assert.deepEqual(full[auditIdx + 5], { type: 'kv', label: 'Lane', value: 'audit' });
+assert.deepEqual(full[auditIdx + 6], { type: 'kv', label: 'Source', value: 'config/profiles/publishing.json' });
+assert.deepEqual(full[auditIdx + 7], { type: 'kv', label: 'Profile', value: 'publishing' });
+
+// The deterministic lane keeps its rule file as source.
+assert.deepEqual(full[errIdx + 4], { type: 'kv', label: 'Lane', value: 'deterministic' });
+assert.deepEqual(full[errIdx + 5], { type: 'kv', label: 'Source', value: 'rules/register.md' });
+
+// Quoted material: reported separately, never skipped. A quoted finding
+// leaves the file groups, keeps its lane rows, counts as quoted rather than
+// as its lane, and a quoted heuristic never enters the review queue.
+const quotedReport = buildReport(makeInput({ findings: [
+  finding({ file: 'docs/quote.md', line: 2, column: 1, ruleId: 'UE-SP001',
+    category: 'spelling', severity: 'error', context: 'quoted',
+    current: '"organisation"', message: 'Spelling preference.' }),
+  finding({ file: 'docs/quote.md', line: 5, column: 1, ruleId: 'UE-HS002',
+    category: 'hate-speech', severity: 'error', confidence: 'heuristic',
+    context: 'quoted', message: LONG_MESSAGE }),
+  finding({ file: 'docs/quote.md', line: 9, column: 1, ruleId: 'UE-GR002',
+    category: 'grammar', severity: 'warning', message: 'Authored copy finding.' }),
+] }));
+const quotedHeading = headingIndex(quotedReport, 'Quoted material (2)');
+const quoteFileIdx = headingIndex(quotedReport, 'docs/quote.md');
+assert.deepEqual(
+  quotedReport.slice(quoteFileIdx + 1, quotedHeading - 1)
+    .filter(e => e.type === 'banner').map(e => e.text.match(/UE-[A-Z]+\d+/)[0]),
+  ['UE-GR002'],
+  'quoted findings leave the file group; only authored copy stays',
+);
+const quotedBanners = quotedReport.slice(quotedHeading + 1).filter(e => e.type === 'banner');
+assert.deepEqual(quotedBanners.map(e => e.text.match(/UE-[A-Z]+\d+/)[0]),
+  ['UE-SP001', 'UE-HS002'], 'the quoted section holds both quoted findings in input order');
+assertLaneBlock(quotedReport, quotedReport.indexOf(quotedBanners[0]),
+  'quoted blocks carry their lane rows too');
+assert.match(
+  quotedReport.find(e => e.type === 'paragraph' && e.text.startsWith('lanes:')).text,
+  /deterministic 1 · heuristic-review 0 · harmful-discriminatory 0 · diplomacy 0 · audit 0 · quoted 2/,
+  'quoted findings count as quoted, not as their lane',
+);
+assert(!quotedReport.some(e => e.type === 'heading'
+  && e.text === 'Review queue (heuristic findings)'),
+'quoted heuristic findings stay out of the review queue');
+
+console.log('ok — report model: union, order, blocks, should-be, queue, audits, sources, empty, sorting, purity, lanes, quoted');
