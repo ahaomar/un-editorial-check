@@ -321,6 +321,38 @@ const pdfLines = buffer => [...buffer.toString('latin1').matchAll(PDF_LINE_RE)]
     'the PDF finding block carries the limitation');
 }
 
+// --- 8b: both report formats carry the same framing disclaimer ---------------
+//
+// docs/CLAIM-EVIDENCE-AUDIT.md row 22 claims "the report" never presents
+// itself as verification of facts, legal opinion or United Nations endorsement.
+// There are now two report formats, so the claim only stays true while both
+// carry the sentence — and it is worded once, here, so neither renderer can
+// drift into its own wording.
+
+const FRAMING = 'The report never presents itself as verification of facts, legal '
+  + 'opinion or United Nations endorsement.';
+
+{
+  const pdfPath = path.join(tmp, 'framing.pdf');
+  const htmlPath = path.join(tmp, 'framing.html');
+  capture([fixture('lanes', 'web-p1-demeaning.txt'), '--report', pdfPath]);
+  const pdfText = pdfLines(fs.readFileSync(pdfPath)).join(' ');
+  assert.ok(pdfText.includes(FRAMING),
+    'the PDF states the framing disclaimer named by claim row 22');
+  const firstFinding = pdfText.search(/Action |Limitation /);
+  assert.ok(pdfText.indexOf(FRAMING) < firstFinding,
+    'the PDF leads with the framing disclaimer, before any finding');
+
+  const framed = capture([fixture('lanes', 'web-p1-demeaning.txt'), '--report', htmlPath]);
+  assert.equal(framed.code, 1);
+  const html = fs.readFileSync(htmlPath, 'utf8');
+  assert.ok(html.includes(FRAMING),
+    'the HTML report states the same framing disclaimer');
+  assert.equal(
+    (html.match(new RegExp(FRAMING.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length, 1,
+    'the HTML states the framing disclaimer exactly once');
+}
+
 // --- 9: quoted material is a context, not a lane ----------------------------
 
 // Quoted spans are masked by extraction (a quotation is never scanned as the
