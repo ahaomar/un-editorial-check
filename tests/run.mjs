@@ -535,14 +535,21 @@ for (const name of ['page.html', 'script.js']) {
   assert.deepEqual(ids(scan(file, '--config', allowed)), []);
 }
 {
-  // Downgrading the rule keeps the finding visible but stops it failing the run.
+  // Escalating the rule to error makes the finding fail the run; the Wave 3
+  // default (warning) keeps a status-sensitivity judgement advisory — the
+  // finding requires diplomatic review, it never claims the text is false.
   const file = write('claim-severity.txt', 'Kashmir is part of India.\n');
-  const warn = write('claim-severity.json', JSON.stringify({ severities: { 'UE-DP001': 'warning' } }));
-  const result = scan(file, '--config', warn);
+  const advisory = scan(file);
+  assert.deepEqual(ids(advisory), ['UE-DP001']);
+  assert.equal(json(advisory).findings[0].severity, 'warning',
+    'the default severity is a diplomatic-review warning');
+  assert.equal(advisory.code, 0, 'a status-sensitivity warning alone must not fail the run');
+  const escalate = write('claim-severity.json', JSON.stringify({ severities: { 'UE-DP001': 'error' } }));
+  const result = scan(file, '--config', escalate);
   assert.deepEqual(ids(result), ['UE-DP001']);
-  assert.equal(json(result).findings[0].severity, 'warning',
+  assert.equal(json(result).findings[0].severity, 'error',
     'a config severity override must reach the finding as a plain severity');
-  assert.equal(result.code, 0, 'a downgraded claim must not fail the run');
+  assert.equal(result.code, 1, 'an escalated claim must fail the run');
 }
 {
   // ue:ignore suppresses the rule in its copy span like any other.
@@ -788,15 +795,27 @@ for (const format of ['json', 'sarif']) {
     'every report must carry the report-only footer promise');
 
   // The exit code is identical with and without --report on a failing corpus.
+  const hs = fixture('positive', 'hs001-dehumanising.txt');
+  const hsPlain = scan(hs);
+  assert.equal(hsPlain.code, 1, 'the dehumanising fixture must exit 1');
+  const hsPdf = path.join(tmp, 'hs.pdf');
+  const hsReported = capture([hs, '--report', hsPdf]);
+  assert.equal(hsReported.code, hsPlain.code, '--report must not change a failing exit code');
+  const hsBytes = pdfText(hsPdf);
+  assert(isPdf(hsBytes), 'the safety report must be a complete PDF');
+  assert(hsPlain.stdout.includes('UE-HS001'), 'the fixture must fire UE-HS001');
+
+  // A diplomatic sensitivity is a warning (Wave 3): the contested-claims
+  // fixture renders and cites its source without failing the run.
   const dp = fixture('positive', 'dp001.txt');
   const dpPlain = scan(dp);
-  assert.equal(dpPlain.code, 1, 'the contested-claims fixture must exit 1');
+  assert.equal(dpPlain.code, 0, 'the contested-claims fixture exits 0 at warning severity');
+  assert(dpPlain.stdout.includes('UE-DP001'), 'the fixture must fire UE-DP001');
   const dpPdf = path.join(tmp, 'dp.pdf');
   const dpReported = capture([dp, '--report', dpPdf]);
-  assert.equal(dpReported.code, dpPlain.code, '--report must not change a failing exit code');
+  assert.equal(dpReported.code, 0, '--report must not change an advisory exit code');
   const dpBytes = pdfText(dpPdf);
   assert(isPdf(dpBytes), 'the contested-claims report must be a complete PDF');
-  assert(dpPlain.stdout.includes('UE-DP001'), 'the fixture must fire UE-DP001');
   assert.match(dpBytes, /resolution/, 'the Sources appendix must cite the claims knowledge base');
 
   // Unwritable paths are refusals (exit 2), named in the error.
@@ -807,7 +826,7 @@ for (const format of ['json', 'sarif']) {
   // --report composes with --format json: stdout stays JSON, the file is written.
   const jsonPdf = path.join(tmp, 'json.pdf');
   const both = capture([dp, '--report', jsonPdf, '--format', 'json']);
-  assert.equal(both.code, 1);
+  assert.equal(both.code, 0, 'an advisory fixture composes both formats without failing');
   assert.equal(json(both).findings.length > 0, true, 'stdout must still be the JSON report');
   assert(isPdf(pdfText(jsonPdf)), '--report must write the file alongside --format json');
 
