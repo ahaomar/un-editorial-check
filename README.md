@@ -382,9 +382,11 @@ The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js
 |---:|---|
 | `0` | No error-severity editorial findings; warnings, notes and every audit may remain |
 | `1` | One or more error-severity editorial findings |
-| `2` | Invalid options, path, JSON, profile or configuration; an unsupported file named explicitly, no supported files found in the scan (a scan whose target is the skill root itself exits `0` instead), or a scan or write failure |
+| `2` | Invalid options, path, JSON, profile or configuration; an unsupported file named explicitly, no supported files found in the scan (a scan whose target is the skill root itself exits `0` instead), no readable file found, or a scan or write failure |
 
 CI should treat exit code `1` as a requested policy failure and exit code `2` as a tool failure. It should not silently merge the two. Audit findings never move the exit code, so `--profile security` cannot fail a build that the editorial rules passed.
+
+A file whose bytes are not readable UTF-8 text — a misnamed binary, or a UTF-16 export saved with a `.txt` extension — is skipped rather than scanned, and the run header says so: `scanned 1 of 3 files — 2 skipped (not valid UTF-8)`. The scanned count includes only files that were decoded, and the JSON and SARIF output carry the skipped files with their reason. A scan in which every candidate file was skipped is a refusal with exit code `2`, because nothing was read. A file that decodes cleanly but contains no copy is counted as scanned, and cannot be told apart from a file that was read.
 
 ### Output formats
 
