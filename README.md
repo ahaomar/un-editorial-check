@@ -337,6 +337,30 @@ const note = { inlineNote: `${count} organization` }; // ue:ignore UE-SP001  (na
 
 `ue:ignore UE-SP001,UE-TE003` accepts a list, `ue:ignore UE-SP*` a rule family, and `ue:ignore all` everything in that span. A suppression in one paragraph never reaches the next, and configuration (`allowlist`, `severities`, `rules`) is the right tool when a whole project needs the same exception.
 
+## Phase 5A adoption pack
+
+Marked additions for the documentation merge: the baseline snapshot (`--baseline`), the starter configuration (`--init`), the installation self-test (`--self-test`), the character-budget preview (`--preview`), the GitHub Action (`action.yml`) and the templates under `templates/`. The npm package ships the CLI itself; `action.yml` and `templates/` are read from this repository.
+
+### `--baseline <file>` — a snapshot of accepted findings
+
+The first run writes a snapshot of every finding to the named file and exits `0`. Commit that file: later runs fail only on new error-severity findings the snapshot does not already contain. A finding's key is its working-directory-relative file, rule identifier and excerpt — no line or column — so reflow or an edit above a finding cannot make it look new, while a changed excerpt or a different rule does, and the check fails closed. Snapshot entries the scan no longer produces are reported as stale and never fail the run. An unreadable, corrupt or future-version snapshot is a refusal with exit code `2`, never a silent fall-back. The status line goes to standard error, so `--format json` and `--format sarif` output stays a single valid document.
+
+### `--init` — a starter configuration and the paste snippet
+
+`--init` writes `.un-editorial.json` in the working directory with the bundled defaults, so it changes no behaviour until you edit it, and refuses to replace an existing file unless `--init-overwrite` is given. It then prints how to scan with the new file, the CI or git host detected in that directory — GitHub Actions, GitLab CI, CircleCI, Jenkins, pre-commit or git, in that priority order, inspecting the directory itself and walking no parent directories — and the snippet for that host. Detection finds nothing outside the directory you run it in.
+
+### `--self-test` — verify the installation in one command
+
+`--self-test` runs the bundled corpus on the bundled defaults: one clean file that must produce no findings at all, and one file carrying a planted violation per line across five rules, each asserted at its exact line and column. The success line is `ok — self-test: 2 corpus cases, 5 findings asserted exactly` with exit code `0`; a finding that appears, moves or disappears fails with a readable diff on standard error and exit code `1`, and an unreadable corpus is exit code `2`. The run reads no working-directory configuration and no network, so it works from an `npm pack` tarball.
+
+### `--preview <platform>` — a character-budget preview
+
+`--preview` counts one file against a platform character budget and prints where the cut lands: `x` at 280 characters with every link counted as 23, `linkedin` at 3000, `bluesky` at 300 and `mastodon` at 500, with links counted as written on those three. These numbers are stated assumptions for planning, not guarantees from the platforms. The preview is a counting tool rather than a scan: exit code `0` means the preview was produced, whether or not the file fits, and the output states the truth when it is over budget.
+
+### GitHub Action and templates
+
+`action.yml` runs the CLI on `node20` through `action/main.mjs`, taking `path`, `config` and `baseline` inputs and installing nothing at run time. In this repository, `templates/pre-commit` is a shell script that passes staged files of an extractable type to the checker, and `templates/agent-commands/` holds paste-ready command prompts for Claude Code, Codex, OpenCode and Cursor, each carrying the approval law, the scan, the baseline ratchet and the rule that the copy is never called clean unless the exit code is `0`.
+
 ## The safe `--fix` boundary
 
 Report-only operation is the default. `--fix` is opt-in and deliberately narrower than a general editor:
