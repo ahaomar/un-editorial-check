@@ -118,7 +118,18 @@ function makeWatcher(targets, { onChange, debounceMs = 30 } = {}) {
 
   // The help text says the same thing in the same words, so a reader who only
   // reads --help is not misled.
-  assert.match(HELP, /WATCH MODE/);
+  //
+  // The premise changed from an all-caps `WATCH MODE` heading to sentence case.
+  // The project does not shout in its own copy: UE-RE008 flags all-caps
+  // headings, and `.feedbacks/old/verify-tone.mjs` asserts the repository is
+  // clean under it. A heading in caps here would have meant this suite pinned
+  // copy the tool itself rejects, so the lock follows the rule, not the other
+  // way round. The sentence-case form is asserted explicitly so the heading
+  // cannot drift back.
+  assert.match(HELP, /^Watch mode$/m,
+    'the help has a watch-mode section heading, in sentence case');
+  assert.doesNotMatch(HELP, /WATCH MODE/,
+    'the help must not use an all-caps heading; the repository is clean under UE-RE008');
   assert.match(HELP, /never resolves an exit code/,
     'the help states that watch mode never resolves an exit code');
   assert.match(HELP, /not a continuous-integration facility|--watch is a local/i,
