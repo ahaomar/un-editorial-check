@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.0.0 – 28 September 2026
+
+<!--
+  changelog-1.0.0.md — body fragment for `release-prepare --changelog-body <this file>`.
+  Format: BODY ONLY. Do not include a "## ..." heading: the tool generates
+  `## 1.0.0 – <date>` itself and inserts this file verbatim directly beneath it
+  (above the previous newest section), then syncs the five version anchors.
+  Leading/trailing blank lines are trimmed on insert. This comment renders
+  invisibly in Markdown and may stay or be deleted before use — but the file
+  must remain a fragment, never a section.
+-->
+
+Milestone release at the wave-2 gate: profile-aware spelling, the terminology rework, the fail-closed fix set and the adoption pack. Report-first behaviour, zero npm dependencies, the approval-gated command and the exit-code contract are unchanged.
+
+- **Spelling conflicts became a profile choice (W2a).** The `-ize`/`-ise` conflict family (for example `organization`) is a profile-selection warning by default — named as a profile choice, never called wrong, never fixable — silent under `--profile un-secretariat-document` (alias `un-v1`) and under `--profile un-geneva-web`, and an error only under `--profile generic-british-english`; non-conflict `SP001` findings are unchanged, and `analyse`, `catalyse`, `paralyse` and `practise` stay errors everywhere. Migration: choose a bundled profile with `--profile`, or set `severities` / `allowlist.spellings` in `.un-editorial.json`; conflict-family findings no longer fail the build by default and `--fix` no longer rewrites them.
+- **Bundled profiles resolve by name, and the registry fails closed (W2a).** Profile names resolve from the bundle (path wins over name; an unknown name exits `2` and lists the bundled names), profile validation fails closed with replace semantics, and catalogue entries are cross-checked against the source registry — `UE-SP003` is consolidated into the same catalogue. Migration: pin a profile name or path in your config; a stale or misspelled profile is now reported, never silently ignored.
+- **Terminology rules reworked and removed from `--fix` (W2b).** `maternal mortality rate` is reviewed only where the printed statistic is the per-100 000-live-births ratio (warning, never an error or an automatic rewrite); the unsourced `women's work` and `female work` pairs are removed while the sourced `handicapped` → `persons with disabilities` pair stays; the percentage sign is silent in ordinary running prose while the spelling `percent` becomes `per cent` under the United Nations profiles; source identifiers are wired into the terminology catalogue entries. `UE-TE001`–`UE-TE004` leave the `--fix` set entirely: `--fix` never rewrites terminology, claims, dates, political wording, quotations, harmful wording or sources — only spelling outside the conflict family, en-dash ranges and the grammar repairs remain. Migration: scripts that used `--fix` for `per cent` or `the United States` must rewrite those from the report's `Should be` column; findings that disappear (the removed pairs, percentage signs in prose) are removed by source evidence, not regressions — see `rules/sources.json`.
+- **A fail-closed fix set, deeper extraction, and five review heuristics (Wave 4).** The fix shrink is enforced fail-closed: `planFixes` honours an explicit allow-list, so only non-conflict spelling, en-dash ranges and the grammar repairs ever reach `--fix`, and a contract test locks the set against future rules. Extraction now covers headings, lists, tables, captions, dialog, labels, title and meta, and blockquotes, and every finding carries a context (`authored`, `quoted`, `cited`, `code`, `nav`, `metadata`) that flows through the JSON, SARIF and HTML output. Five review heuristics, `UE-HR001`–`UE-HR005`, report verbless sentence fragments, malformed wording such as `could of`, repeated sentences, headings that end in a full stop and unpaired quotation marks; each is warning severity at heuristic confidence, documents its narrow boundary, and is never rewritten by `--fix`. Migration: any automation that expected `--fix` to rewrite anything beyond spelling, ranges and the grammar repairs must apply changes from the report's `Should be` column.
+- **Adoption pack for new installs.** `--init` writes a starter `.un-editorial.json` (refusing to overwrite without `--init-overwrite`), `--baseline` records a passing baseline and compares later runs against it, `--self-test` verifies the installed package end to end against bundled clean and violation fixtures, and `--preview` shows the per-platform characters the renderer can emit. A GitHub Action (`action.yml`), a pre-commit hook, and ready-to-paste agent-command templates for Claude Code, Codex, Cursor and OpenCode ship under `templates/`, each locked by a contract suite. Migration: none; these commands are additive.
+
+### Migration notes for existing configurations
+
+- `.un-editorial.json` keeps every documented key and its precedence (configuration file wins over profile); unknown keys still fail closed with exit `2`.
+- Decide your spelling posture once: `--profile un-secretariat-document`, `--profile un-geneva-web`, `--profile generic-british-english`, `allowlist.spellings` or explicit `severities`.
+- Re-run `npm test` (or `un-editorial-check --self-test`) after upgrading.
+
 ## 0.9.0 – 27 September 2026
 
 First release of the deep editorial audit's remediation batch. Report-first behaviour, zero npm dependencies and the approval-gated command are unchanged.
