@@ -10,6 +10,12 @@
 //            replacement that lands at a sentence start is capitalised, a
 //            mid-sentence replacement keeps its lower case, and the existing
 //            case-preservation is untouched. The fixed file re-scans clean.
+//            Terminology left the --fix set, so the lock now runs on the
+//            spelling replacement that still reaches the fixer.
+//   Item 4b — UE-TE003 and UE-TE004 pass no replacement: when --fix writes a
+//            spelling replacement from the very same line, the percent sign
+//            and the country name survive byte for byte and the unfixed
+//            terminology error still fails the run.
 //   Item 5 — README's "A fix is skipped, never guessed": a finding whose
 //            reported offset does not hold the matched copy produces no plan,
 //            no write and no exception.
@@ -161,22 +167,26 @@ const applyFix = (name, body) => {
 };
 
 {
-  // The reported corruption defect: `. US` fixed to `. the United States`.
+  // The reported corruption defect was a lower-case replacement landing at a
+  // sentence start. Terminology left the --fix set, so the same mechanism is
+  // now locked on UE-SP001's replacement — the case-preservation path that
+  // still reaches --fix — at a sentence start, mid-sentence and at a start of
+  // line.
   assert.equal(
-    applyFix('cap-sentence.txt', 'The report lands here. US reported gains for the region.\n'),
-    'The report lands here. The United States reported gains for the region.\n',
+    applyFix('cap-sentence.txt', 'The report lands here. color is used for emphasis.\n'),
+    'The report lands here. Colour is used for emphasis.\n',
     'a replacement at a sentence start must be capitalised',
   );
   // Mid-sentence stays lower case.
   assert.equal(
-    applyFix('cap-mid.txt', 'Gains from US were reported.\n'),
-    'Gains from the United States were reported.\n',
+    applyFix('cap-mid.txt', 'Gains from color were reported.\n'),
+    'Gains from colour were reported.\n',
     'a mid-sentence replacement must keep its lower case',
   );
   // Start of line is a sentence start too.
   assert.equal(
-    applyFix('cap-line.txt', 'US reported gains for the region.\n'),
-    'The United States reported gains for the region.\n',
+    applyFix('cap-line.txt', 'color is used for emphasis.\n'),
+    'Colour is used for emphasis.\n',
     'a replacement at the start of a line must be capitalised',
   );
   // Sentence-initial SP001: case-preservation already produces the capital.
@@ -201,6 +211,28 @@ const applyFix = (name, body) => {
   }
   assert.deepEqual(scanIds(path.join(tmp, 'cap-sentence.txt')), [],
     'the fixed sentence carries no finding at all on re-scan');
+}
+
+// --- item 4b: terminology never enters the --fix set ------------------------
+
+{
+  // UE-TE003 and UE-TE004 pass no replacement (rules/terminology.md), so the
+  // sign and the country name are not rewrite candidates even on a line where
+  // the fixer does write a spelling replacement. The unfixed terminology
+  // error still fails the run, which is the exit-code promise.
+  const file = write('te-no-fix.txt',
+    'The US organization reported approximately 25% coverage.\n');
+  const before = fs.readFileSync(file, 'utf8');
+  const result = capture([file, '--fix', '--apply']);
+  assert.equal(result.code, 1,
+    `an unfixed terminology error must still fail the run: ${result.stderr}`);
+  assert.equal(fs.readFileSync(file, 'utf8'),
+    'The US organisation reported approximately 25% coverage.\n',
+    '--fix may write the spelling only: bare US and the sign must survive');
+  assert.match(result.stdout, /APPLIED — /,
+    'the spelling replacement on the same line must still be applied');
+  assert.match(before, /US\b/, 'fixture: the country name is present before the fix');
+  assert.match(before, /25%/, 'fixture: the sign is present before the fix');
 }
 
 // --- item 5: the offset-mismatch skip path (README:346) ---------------------
