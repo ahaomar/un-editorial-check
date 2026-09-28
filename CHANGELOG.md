@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.1 – 28 September 2026
+
+## 1.2.1 – 28 September 2026
+
+A single defect fix, found by CI rather than by any local check.
+
+### Fixed
+
+- **An installed package could not pass its own self-scan.** The exclusion patterns were matched against absolute paths, so a package installed under `node_modules` matched the `node_modules/**` pattern through its own parent. A `--self-scan` inside an install therefore either ran with no exclusions in force or excluded every file. The first case read `lib/fixtures/self-test`, the deliberate violations `--self-test` asserts on, and the installed package failed a scan of itself. The pattern match is now made against the path relative to the walk root, so `node_modules` as an *ancestor* of the scan root matches nothing while `lib/fixtures` inside it still does.
+
+  This is what the CI release gate runs, and it had been failing on every release from `v1.0.0` onwards. `tests/release-regressions.mjs` now installs the packed tarball and asserts the installed binary self-scans clean, does not read the deliberate-violation fixture, and actually reads the package. The lock is shown to fail when the fix is reverted.
+
+### Unchanged
+
+Everything else. The five lanes, the clean-run wording, the `--fix` allow-list, the exit-code contract, the report formats and zero npm dependencies are as in 1.2.0.
+
 ## 1.2.0 – 28 September 2026
 
 ## 1.2.0 – 28 September 2026

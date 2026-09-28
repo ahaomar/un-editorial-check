@@ -401,6 +401,27 @@ for (const entity of ['&#x110000;', '&#999999999999;', '&#0;']) {
       { cwd: installDir, encoding: 'utf8' });
     assert.equal(check.status, 1, `the installed CLI must report findings: ${check.stderr}`);
     assert.match(check.stdout, /UE-SP001/);
+
+    // An installed package must pass its own self-scan. This is the step CI
+    // runs, and it failed on every release from 1.0.0 until it was locked here:
+    // the install path contains `node_modules`, and the `node_modules/**`
+    // exclusion was matched against the absolute path, so a self-scan inside an
+    // install either ran with no exclusions in force or with every file
+    // excluded. Both are wrong. Reading its own `lib/fixtures/self-test` — the
+    // deliberate violations `--self-test` asserts on — made the installed
+    // package fail a scan of itself.
+    const selfScan = spawnSync(process.execPath,
+      [path.join(installed, 'bin', 'check.mjs'), '--self-scan', '--quiet'],
+      { encoding: 'utf8' });
+    assert.equal(selfScan.status, 0,
+      `an installed package must pass its own self-scan:\n${selfScan.stdout}\n${selfScan.stderr}`);
+    assert.doesNotMatch(selfScan.stdout, /lib\/fixtures\/self-test/,
+      'a self-scan must not read the deliberate-violation fixture');
+    const selfScanJson = spawnSync(process.execPath,
+      [path.join(installed, 'bin', 'check.mjs'), '--self-scan', '--format', 'json'],
+      { encoding: 'utf8' });
+    const scanned = JSON.parse(selfScanJson.stdout).files;
+    assert(scanned > 20, `a self-scan of an install must actually read the package, got ${scanned} files`);
   } finally {
     fs.rmSync(tarball, { force: true });
   }
