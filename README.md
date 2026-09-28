@@ -71,6 +71,7 @@ Quoted material is a context rather than a lane: a finding inside a quotation ke
 - [docs/LAUNCH.md](docs/LAUNCH.md) — the 1.1.0 release announcement
 - [docs/demo/README.md](docs/demo/README.md) — the five-lane demo and its reproduction commands
 - [docs/MIGRATION.md](docs/MIGRATION.md) — what changed behaviour when, and the upgrade action for it
+- [docs/GLOSSARY-AND-WATCH.md](docs/GLOSSARY-AND-WATCH.md) — your own house terminology with `--glossary`, and the `--watch` editing loop
 - [docs/CLAIM-EVIDENCE-AUDIT.md](docs/CLAIM-EVIDENCE-AUDIT.md) — each claim, its limitations and the suite that locks it
 - [rules/catalogue.json](rules/catalogue.json) — the rule index with severity, confidence and guard notes
 
@@ -368,6 +369,9 @@ node bin/check.mjs --self-scan --quiet
 node bin/check.mjs content --init
 node bin/check.mjs content --self-test
 node bin/check.mjs content --baseline .ue-baseline.json
+node bin/check.mjs content --report review.html
+node bin/check.mjs content --glossary house-glossary.json
+node bin/check.mjs content --watch
 ```
 
 `--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links, and hidden directories, `node_modules`, build output and fixtures are skipped unless you name them explicitly.
@@ -396,7 +400,7 @@ The report separates five lanes: deterministic rule violations, heuristic editor
 - **JSON:** the same findings as records carrying `file`, `line`, `column`, `ruleId`, `category`, `severity`, `confidence`, `scope`, `message`, `suggestion`, `current` and `proposed`, extended with the finding's lane, rule source, profile, limitation and recommended action; audit findings are tagged with their `audit`. Internal fields are stripped from every format.
 - **SARIF:** SARIF 2.1.0 for code-scanning tools that accept static-analysis output, with the same lane and provenance information.
 
-`--report <path.pdf>` writes the same review as a PDF, whatever `--format` says on stdout. It opens with the scan's scope and counts, then every finding grouped by file — what is currently written under `Current`, what should replace it under `Should be`, with a marker for findings that are `--fix-able` and findings that need a manual or agent rewrite — followed by a queue of heuristic findings for review and the knowledge-base sources behind contested-claim and hate-speech findings. The file is written before `--fix --apply`, so it records the pre-fix state of the copy, and each page carries a footer stating that the report changes nothing. `--quiet` still writes it; an unwritable path is a refusal with exit code `2`. The PDF uses Helvetica with WinAnsi encoding: typographic quotation marks and the ellipsis are converted to their plain forms, the en dash and the em dash keep their WinAnsi byte positions (0x96 and 0x97), and a character outside that encoding is replaced with `?`.
+`--report <path.pdf>` writes the same review as a PDF, and `--report <path.html>` writes it as a single self-contained HTML file, whatever `--format` says on stdout. It opens with the scan's scope and counts, then every finding grouped by file — what is currently written under `Current`, what should replace it under `Should be`, with a marker for findings that are `--fix-able` and findings that need a manual or agent rewrite — followed by a queue of heuristic findings for review and the knowledge-base sources behind contested-claim and hate-speech findings. The file is written before `--fix --apply`, so it records the pre-fix state of the copy, and each page carries a footer stating that the report changes nothing. `--quiet` still writes it; an unwritable path is a refusal with exit code `2`. The PDF uses Helvetica with WinAnsi encoding: typographic quotation marks and the ellipsis are converted to their plain forms, the en dash and the em dash keep their WinAnsi byte positions (0x96 and 0x97), and a character outside that encoding is replaced with `?`. When that replacement actually happens, the report says so in a note, because a `?` on the page may then be a character the font cannot draw rather than punctuation in the copy. The HTML report is a self-contained file with no external stylesheet, script or font: the same lanes, the same six fields on every finding, the same framing disclaimer, and byte-identical output for identical input so it can be diffed. A report extension the tool does not render is a refusal with exit code `2`, never a silent fall-back to PDF.
 
 A suppression belongs to the copy span that contains it — one paragraph in HTML or Markdown, one line in JavaScript. Keep it narrow and record the reason in version control:
 
@@ -433,6 +437,36 @@ The first run writes a snapshot of every finding to the named file and exits `0`
 ### GitHub Action and templates
 
 `action.yml` runs the CLI on `node20` through `action/main.mjs`, taking `path`, `config` and `baseline` inputs and installing nothing at run time. In this repository, `templates/pre-commit` is a shell script that passes staged files of an extractable type to the checker, and `templates/agent-commands/` holds paste-ready command prompts for Claude Code, Codex, OpenCode and Cursor, each carrying the approval law, the scan, the baseline ratchet and the rule that the copy is never called clean unless the exit code is `0`.
+
+## Your own house terminology, and the watch loop
+
+[docs/GLOSSARY-AND-WATCH.md](docs/GLOSSARY-AND-WATCH.md) has the full reference. Both features are opt-in, and a run without either flag behaves exactly as before.
+
+### `--glossary <file>` — your terminology, not a United Nations rule
+
+A glossary is a JSON file of terms your own organisation insists on. It reports two things: a term on your `forbiddenTerms` list that appears in the copy, and a term on your `requiredTerms` list that appears nowhere in a scanned file.
+
+```json
+{
+  "glossaryVersion": 1,
+  "name": "house terminology",
+  "requiredTerms": ["persons receiving assistance"],
+  "forbiddenTerms": ["beneficiaries"]
+}
+```
+
+Four things about it are deliberate, and all four are the reason it cannot mislead:
+
+- **It is labelled user-supplied everywhere.** The catalogue source names the mechanism rather than a file, the profile reads `glossary`, the text report gives it its own `OPTIONAL AUDIT — glossary` section, and every message ends by saying this is the reader's house terminology and not a United Nations rule. It is never recorded in `rules/sources.json`, which holds sourced institutional rules, because a personal file has no URL and no retrieval date.
+- **It never changes the exit code.** It sits in the audit lane, whose contract is that declared checks never decide a run — so escalating `UE-GL001` to `error` in your configuration still exits `0`. A team that wants its house terminology to fail a build must assert on `--format json`; the docs give that recipe.
+- **`--fix` never rewrites it.** A glossary term is terminology, and terminology is never auto-changed. Even a `replacements` entry in the glossary is printed as guidance, not applied.
+- **It fails closed.** A wrong `glossaryVersion`, an unknown key, a wrong type, an empty term, a term that can never match, a duplicate term, a replacement key that is not forbidden, a missing file and a directory all exit `2` with a message naming the problem.
+
+Matching is literal, case-insensitive and whole-word over extracted copy, so quoted, cited, code, URL and comment regions cannot fire. The flag wins over a `glossary` key in `.un-editorial.json`.
+
+### `--watch` — re-scan while you edit
+
+`--watch` prints the report, then re-scans whenever a scanned file changes, until you stop it with Ctrl+C. It is a local editing loop for one writer and one editor. It **never resolves an exit code**, so a CI job must not use it; Ctrl+C exits `130`, never `0`. Directories are watched rather than files, because an editor that saves by rename replaces the file; a deleted file, a renamed replacement and a removed directory are all survived and reported rather than crashing. Every flag whose contract is an exit code or a single output document is refused up front rather than quietly ignored.
 
 ## The safe `--fix` boundary
 

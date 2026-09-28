@@ -30,6 +30,12 @@ Only classified user-visible copy is checked: prose in HTML text nodes and attri
 
 Code quality, accessibility, security and SEO findings are **audits**, not editorial rules. They run only when asked for with `--profile publishing`, `--profile accessibility` or `--profile security`, they are reported in their own section, and they never change the exit code.
 
+`--report <path.pdf>` writes the review as a PDF and `--report <path.html>` as a single self-contained HTML page; both record the pre-fix state, carry every finding's rule source, profile, confidence, limitation and recommended action, and state that they are not verification of facts, legal opinion or United Nations endorsement. An extension the tool does not render is a refusal, not a silent fall-back.
+
+`--glossary <file>` reports the reader's own terminology: a term on their `forbiddenTerms` list that appears in the copy, and a term on their `requiredTerms` list that appears nowhere in a scanned file. Report those findings as the reader's house terminology and never as a United Nations rule, do not record them in [rules/sources.json](rules/sources.json), and note that they are audit-lane and never move the exit code. `--fix` never rewrites a glossary term.
+
+`--watch` re-scans on change for one person editing, resolves no exit code, and exits `130` on interrupt. Do not use it in continuous integration.
+
 ## Boundaries
 
 Never use `--fix` without showing the user the target files first. `--fix` prints a `(proposed)` diff and writes nothing; `--fix --apply` writes and labels results `(applied)`. It is limited to deterministic replacements (British spelling, `per cent`, en-dash ranges, `the United States`, a doubled word, a space before punctuation and a missing space between sentences) in `.md`, `.markdown` and `.txt` files, and it refuses symbolic links, hard-linked files and anything that is not a regular file. Review every resulting diff. It does not rewrite dates, terminology, claims or exclamation marks.

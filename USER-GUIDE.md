@@ -85,7 +85,10 @@ Your assistant runs the check one more time and tells you which issues remain. I
 - **Where the rules come from:** the full list of checks, with institutional sources, is in [rules/catalogue.json](rules/catalogue.json) and explained in the README.
 - **What a clean result means:** the tool reports `No findings under the enabled, documented local rules.` Nothing stronger follows from that sentence.
 - **How results are grouped:** clear-cut findings, heuristic items for editorial review, a separate queue for harmful or discriminatory wording, a queue for diplomatic sensitivity, and optional audits. Each finding shows where its rule comes from, how confident it is, what its limits are and what a person should do next.
+- **A report you can keep:** the assistant can be asked to write a PDF, or a single self-contained HTML page, next to your document. Both list every finding with its rule, its limits and what to do about it. Neither file changes anything.
+- **Your own house words:** if your organisation insists on particular words, you can put them in a small glossary file and the tool will report where the draft disagrees with you. Those results are marked as your own terminology throughout, never as a United Nations rule, and they never change the exit code.
+- **Watching a draft while you edit:** a watch mode re-checks whenever you save, until you stop it. It is meant for one person editing, and it deliberately gives no exit code, so it must not be used in an automated build.
 
 ## For technical readers
 
-Developers, and anyone who wants the full rule list, CI integration, configuration profiles or the report format, should read [README.md](README.md).
+Developers, and anyone who wants the full rule list, CI integration, configuration profiles, the report format, the house glossary or the watch mode, should read [README.md](README.md) and [docs/GLOSSARY-AND-WATCH.md](docs/GLOSSARY-AND-WATCH.md).
