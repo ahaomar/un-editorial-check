@@ -85,7 +85,10 @@ for (const name of positives) {
 
 // Every editorial rule in the catalogue must be covered by the corpus. UE-SP003
 // is gated by an opt-in config flag, so it is covered later in this file.
-const OPT_IN_COVERAGE = new Set(['UE-SP003']);
+// UE-TE003 is covered by its own limitation: the rule is silent in every
+// context (rules/terminology.md, "UE-TE003"), so no positive fixture can
+// exist — its contract lives in tests/audit-terminology.mjs instead.
+const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003']);
 const covered = new Set([...Object.values(manifest).flat(), ...OPT_IN_COVERAGE]);
 const uncovered = CATALOGUE.rules
   .filter(rule => rule.profile === null)
@@ -288,25 +291,25 @@ assert.deepEqual(ids(scan(write('cite.md', 'See <cite>Organization of African Un
   ].join('\n'), 'only bare prose may be rewritten');
 }
 
-// Brief §8: terminology findings are reported, never rewritten. Neither file
-// may exit clean any more: ranges.txt still receives the allow-listed
-// numeral-range fix (UE-NU002) while the UE-TE003 error stays and keeps the
-// exit code at 1, and states.txt (UE-TE004 only) is left byte-for-byte alone.
-{
-  const target = write('fix-ranges.txt', fs.readFileSync(fixture('fix', 'ranges.txt'), 'utf8'));
-  const result = capture([target, '--fix', '--apply']);
-  assert.equal(result.code, 1, `ranges.txt: ${result.stderr}`);
-  assert.equal(fs.readFileSync(target, 'utf8'),
-    'Coverage was 1990–2025 and reached 25% of the total.\n',
-    'only the numeral-range fix may be applied; terminology is never rewritten');
-}
+// Terminology never enters the --fix set, so UE-TE004's own fixture must come
+// back byte-identical and still fail the run: an error that cannot be written
+// is exactly what the exit-code contract promises (README "The safe --fix
+// boundary").
 {
   const target = write('fix-states.txt', fs.readFileSync(fixture('fix', 'states.txt'), 'utf8'));
   const before = fs.readFileSync(target, 'utf8');
   const result = capture([target, '--fix', '--apply']);
-  assert.equal(result.code, 1, `states.txt: ${result.stderr}`);
+  assert.equal(result.code, 1, `states.txt: an unfixed error must still exit 1: ${result.stderr}`);
   assert.equal(fs.readFileSync(target, 'utf8'), before,
-    'a file whose only findings are terminology must never be rewritten');
+    'states.txt: --fix must never rewrite bare US');
+}
+{
+  const target = write('fix-ranges.txt', fs.readFileSync(fixture('fix', 'ranges.txt'), 'utf8'));
+  const result = capture([target, '--fix', '--apply']);
+  assert.equal(result.code, 0, `ranges.txt: ${result.stderr}`);
+  assert.equal(fs.readFileSync(target, 'utf8'),
+    'Coverage was 1990–2025 and reached 25% of the total.\n',
+    'only the en-dash range may be rewritten: UE-TE003 no longer owns the sign');
 }
 
 // Non-prose files are refused with exit code 2 and left untouched.

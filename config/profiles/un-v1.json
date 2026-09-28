@@ -5,6 +5,8 @@
   "description": "British English, UN indicator terminology, neutral register, day-month-year dates and en-dash ranges for user-visible copy.",
 
   "spelling": {
+    "percent": "per cent",
+
     "organization": "organisation",
     "organizations": "organisations",
     "organizational": "organisational",
@@ -104,9 +106,6 @@
       ["maternal deaths", "maternal mortality ratio"],
       ["maternal mortality rate", "maternal mortality ratio"],
       ["life expectancy rate", "life expectancy at birth"],
-      { "rule": "UE-TE002", "from": "women's work", "to": "female labour-force participation rate" },
-      { "rule": "UE-TE002", "from": "women’s work", "to": "female labour-force participation rate" },
-      { "rule": "UE-TE002", "from": "female work", "to": "female labour-force participation rate" },
       { "rule": "UE-TE002", "from": "handicapped", "to": "persons with disabilities" },
       { "rule": "UE-TE002", "from": "aids victims", "to": "people living with HIV" }
     ]

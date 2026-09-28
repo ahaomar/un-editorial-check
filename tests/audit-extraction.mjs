@@ -461,7 +461,7 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
         `USER-GUIDE line ${number} must document ${ext}: ${line}`);
     }
     assert.ok(!/[?%]/.test(line),
-      `USER-GUIDE line ${number} must keep the house style (no question mark, no percent): ${line}`);
+      `USER-GUIDE line ${number} must keep the house style (no question mark, no percent): ${line}`); // ue:ignore UE-SP001  (deliberate test data)
   }
   // The guide documents exit code 2 for an unsupported file type.
   assert.ok(guide.includes('exit code 2'),

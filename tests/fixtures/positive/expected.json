@@ -13,8 +13,7 @@
     "UE-TE002"
   ],
   "te003.txt": [
-    "UE-RE003",
-    "UE-TE003"
+    "UE-RE003"
   ],
   "te004.txt": [
     "UE-TE004"
@@ -35,8 +34,7 @@
     "UE-RE003"
   ],
   "re003-percent.txt": [
-    "UE-RE003",
-    "UE-TE003"
+    "UE-RE003"
   ],
   "re004.txt": [
     "UE-RE004"
@@ -56,21 +54,15 @@
   "dp001.txt": [
     "UE-DP001"
   ],
-  "js-narrative-pct.js": [
-    "UE-TE003"
-  ],
   "md-pct.md": [
-    "UE-RE003",
-    "UE-TE003"
+    "UE-RE003"
   ],
   "html-pct.html": [
-    "UE-RE003",
-    "UE-TE003"
+    "UE-RE003"
   ],
   "js-render-prose.js": [
     "UE-RE003",
-    "UE-SP001",
-    "UE-TE003"
+    "UE-SP001"
   ],
   "hs001-dehumanising.txt": [
     "UE-HS001"

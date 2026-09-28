@@ -1,1 +1,1 @@
-narrative: "The organization reports 100% coverage.",
+narrative: "The color reports 100% coverage.",

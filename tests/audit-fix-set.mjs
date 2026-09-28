@@ -132,6 +132,8 @@ assert(!FIXABLE_RULE_IDS.has('UE-NU001'), 'numeric dates are never auto-fixed');
 
 {
   // Terminology alone: reported, exit 1, byte-for-byte untouched.
+  // UE-TE003 is silent after the terminology rework (locked in
+  // tests/audit-terminology.mjs); UE-TE004 carries the error, flag-only.
   const file = write('terminology.txt', 'The US reported 25% in the period.\n');
   const before = fs.readFileSync(file, 'utf8');
   const preview = capture([file, '--fix']);
@@ -142,21 +144,23 @@ assert(!FIXABLE_RULE_IDS.has('UE-NU001'), 'numeric dates are never auto-fixed');
   assert.doesNotMatch(applied.stdout, /APPLIED/, '--fix must not claim a fix it did not make');
   assert.equal(fs.readFileSync(file, 'utf8'), before,
     'terminology findings must never be rewritten');
-  assert.ok(ids(file).includes('UE-TE003') && ids(file).includes('UE-TE004'),
-    'the terminology findings must still be reported');
+  assert.ok(ids(file).includes('UE-TE004') && !ids(file).includes('UE-TE003'),
+    'UE-TE004 is reported; UE-TE003 no longer fires in the default run');
 }
 
 {
-  // Mixed file: the spelling edit applies, the terminology errors remain.
-  // `color` is a non-conflict map entry: the organisation/organization family
-  // is profile-choice — warning, not fixable by default — after W2a.
+  // Mixed file: only the allow-listed spelling edit applies. `color` is a
+  // non-conflict map entry — the organisation/organization family is
+  // profile-choice, warning and not fixable by default after W2a — and
+  // UE-TE003 is silent after the terminology rework, so the sign survives
+  // with nothing left to fail the run.
   const file = write('mixed.txt', 'The color covered 25% of the total.\n');
   const applied = capture([file, '--fix', '--apply']);
-  assert.equal(applied.code, 1, `the remaining error must fail the run: ${applied.stderr}`);
+  assert.equal(applied.code, 0, `nothing but the fixable spelling error remains: ${applied.stderr}`);
   assert.equal(fs.readFileSync(file, 'utf8'),
     'The colour covered 25% of the total.\n',
     'only the allow-listed spelling edit may be written');
-  assert.ok(ids(file).includes('UE-TE003'), 'the skipped finding is still reported');
+  assert.ok(!ids(file).includes('UE-TE003'), 'UE-TE003 must not fire in the default run');
 }
 
 {

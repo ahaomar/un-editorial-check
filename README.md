@@ -367,7 +367,7 @@ Report-only operation is the default. `--fix` is opt-in and deliberately narrowe
 
 - `--fix` prints a diff labelled `(proposed)` and writes nothing; `--fix --apply` performs the same writes and labels them `(applied)`.
 - It accepts only regular prose files with `.txt`, `.md` or `.markdown` extensions. Anything else — HTML, JavaScript, JSON, configuration — is refused with exit code `2`.
-- It applies only deterministic replacements: British spelling (`UE-SP001`), `per cent` (`UE-TE003`), en-dash ranges (`UE-NU002`), `the United States` (`UE-TE004`), a doubled word (`UE-GR001`), a space before punctuation (`UE-GR002`) and a missing space between sentences (`UE-GR003`), honouring spelling allowlists.
+- It applies only deterministic replacements: British spelling (`UE-SP001`, which also carries the house `per cent` form), en-dash ranges (`UE-NU002`), a doubled word (`UE-GR001`), a space before punctuation (`UE-GR002`) and a missing space between sentences (`UE-GR003`), honouring spelling allowlists. Terminology is never in the set: no `UE-TE*` finding carries a replacement.
 - It masks comments, script and style blocks, fenced code, block quotations, inline code, cited titles, `<cite>`, `<q>` and `<blockquote>`, URLs and paths. An unrelated occurrence elsewhere in the same file can remain fixable.
 - A fix is skipped, never guessed: if the matched copy is not present exactly where the offset map says it is, the finding is left alone and reported.
 - It refuses symbolic links, non-regular files and regular files with multiple hard links, and re-checks type, descriptor identity and link count before writing. This reduces path-replacement races but is not a race-proof sandbox.
