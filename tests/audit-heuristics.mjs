@@ -19,6 +19,15 @@
 //   4b. the cross-block form — a nine-row fixture matrix, the exact shape of a
 //      positive finding, eight quiet contexts, and the no-replacement,
 //      exit-code, config, suppression, determinism and per-file boundaries;
+//   4c. the cross-block form across a split paragraph — a duplicated paragraph
+//      whose second copy inline markup broke into sub-floor units, which the
+//      unit-at-a-time comparison could not see; the floor from both sides across
+//      a split, the quiet surfaces still quiet across one, the suppression
+//      interaction, and the block fields the reassembly reads;
+//   4d. what the note promises, and only that — a standing disclaimer repeated
+//      in one file is reported, navigation copy is not, the per-file key holds
+//      in both directions, and the shipped wording in rules/catalogue.json and
+//      rules/grammar.md is asserted so the note cannot drift from the code;
 //   5. UE-HR004 incoherent heading — heading units ending in . or ; only;
 //   6. UE-HR005 broken quotation — a surviving unpaired quote mark, with
 //      paired quotes, apostrophes, code and compact units all silent;
@@ -46,6 +55,7 @@ import { fileURLToPath } from 'node:url';
 import { run, CATALOGUE } from '../bin/check.mjs';
 import { EDITORIAL_RULES } from '../lib/rules.mjs';
 import { FIXABLE_RULE_IDS } from '../lib/fix.mjs';
+import { extractFile } from '../lib/extract.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-heuristics-'));
@@ -465,6 +475,324 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005'];
       `only the file that repeats reports: ${JSON.stringify(mixed.map(f => f.file))}`);
     assert.ok(mixed[0].file.endsWith('one.md'),
       `the finding must come from the repeating file: ${mixed[0].file}`);
+  }
+}
+
+// --- 4c. a duplicated paragraph that inline markup split --------------------
+//
+// A pasted paragraph usually arrives twice, and the second copy is often the
+// one somebody went over: a word bolded, a term linked. In HTML each inline
+// element breaks the paragraph's text node, so the second copy reaches the
+// rule as two or three units, none of which is as long as the twenty-word
+// floor. Comparing units alone therefore let markup hide an exact repeat — the
+// copy was identical and the rule said nothing, which is the one failure the
+// cross-block form exists to prevent. A block is now the whole paragraph,
+// reassembled from the units the markup split.
+
+{
+  // A paragraph of a known word count, so the floor can be probed from both
+  // sides with an inline element inside the second copy.
+  const words = (count) => Array.from({ length: count },
+    (_, i) => ['The', 'delegation', 'reiterated', 'that', 'humanitarian', 'access',
+      'remains', 'restricted', 'and', 'that'][i % 10]).join(' ');
+
+  // The duplicated paragraph, and the one word the second copy emphasises. The
+  // emphasised word is a whole word, so the two paragraphs are the same visible
+  // string and only the markup differs.
+  const PARA = 'The delegation reiterated that humanitarian access remains restricted and that the response is badly underfunded across the whole region today and in the coming quarter.';
+  const at = PARA.indexOf('badly');
+  const BOLD = (p) => `${p.slice(0, at)}<strong>badly</strong>${p.slice(at + 5)}`;
+
+  // The split is the precondition for everything below, so it is asserted
+  // rather than assumed: the second paragraph must reach the rule as more than
+  // one unit, and no single unit of it may match a single unit of the other
+  // paragraph — which is exactly the comparison that could not see the repeat.
+  // A later change that stopped splitting the paragraph would otherwise make
+  // every test below pass for the wrong reason.
+  const normalise = (t) => t.toLowerCase().replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const assertSplit = (file, line) => {
+    const name = path.basename(file);
+    const units = extractFile(file, fs.readFileSync(file, 'utf8'), {});
+    const copy = units.filter(u => u.line === line);
+    const other = units.filter(u => u.line !== line);
+    assert.ok(copy.length > 1,
+      `${name}: the fixture must actually be split, or the case is not being tested (${copy.length} unit)`);
+    for (const a of copy) {
+      for (const b of other) {
+        assert.notEqual(normalise(a.text), normalise(b.text),
+          `${name}: a single unit of the split copy matches a single unit of the first, so the comparison these tests exercise is not the one that was blind to it`);
+      }
+    }
+    return { copy, units };
+  };
+
+  // The real defect, in every surface it was reproduced in.
+  const splitForms = [
+    // Emphasis, the paste-then-emphasise case: 13, 1 and 11 words, none of them
+    // the twenty the floor asks for.
+    ['hr003-split-emphasis.html', (p) => `<p>${p}</p>\n\n<p>${BOLD(p)}</p>\n`, 'emphasis'],
+    // A link on a term, which is how a duplicated paragraph usually gets marked
+    // up in practice.
+    ['hr003-split-link.html', (p) => `<p>${p}</p>\n\n<p>${p.replace('humanitarian', '<a href="/access">humanitarian</a>')}</p>\n`, 'a link'],
+    // Italics, so the split is not only a single element type.
+    ['hr003-split-em.html', (p) => `<p>${p}</p>\n\n<p>${p.replace('badly', '<em>badly</em>')}</p>\n`, 'italics'],
+  ];
+
+  for (const [name, build, why] of splitForms) {
+    const file = write(name, build(PARA));
+    const { copy } = assertSplit(file, 3);
+    // The two paragraphs are the same visible copy: the markup wraps whole
+    // words, so the text a reader sees is one string in both.
+    assert.equal(normalise(copy.map(u => u.text).join(' ')), normalise(PARA),
+      `${name}: the split copy must be the same visible text as the first, or this is not a duplicated paragraph`);
+    const hits = hrOnly(file).filter(f => f.ruleId === 'UE-HR003');
+    assert.equal(hits.length, 1,
+      `${name}: a duplicated paragraph split by ${why} is the defect this form exists for and must be reported, got ${
+        JSON.stringify(hits.map(f => [f.line, f.message]))} across ${JSON.stringify(copy.map(u => u.text.split(/\s+/).length))} units`);
+    assert.equal(hits[0].line, 3, 'the later copy is the one reported, not the first');
+    assert.equal(hits[0].message,
+      'A block of 25 words is repeated verbatim in this file (first seen at line 1).',
+      `the message reports the whole reassembled paragraph, not the fragment that happened to match: ${hits[0].message}`);
+    assert.equal(hits[0].severity, 'warning', 'still review-only');
+    assert.equal(hits[0].confidence, 'heuristic', 'still heuristic confidence');
+    assert.equal(hits[0].context, 'authored', 'still authored narrative');
+    assert.equal(hits[0].proposed, null, 'still no automatic rewrite');
+    assert.equal(hits[0].current, BOLD(PARA).replace(/<[^>]+>/g, ''),
+      'Current carries the reassembled paragraph as the reader sees it, with the markup gone');
+  }
+
+  // The floor is unchanged across a split: nineteen words is silent and twenty
+  // fires, each with the second copy split by markup, so the reassembly did not
+  // quietly lower the threshold.
+  {
+    const build = (n) => {
+      const p = `${words(n)}.`;
+      const cut = p.indexOf('restricted');
+      return `<p>${p}</p>\n\n<p>${p.slice(0, cut)}<em>${p.slice(cut, cut + 10)}</em>${p.slice(cut + 10)}</p>\n`;
+    };
+    const below = write('hr003-split-below.html', build(19));
+    assertSplit(below, 3);
+    assert.deepEqual(hrIds(below).filter(id => id === 'UE-HR003'), [],
+      'a nineteen-word paragraph split by markup is still below the floor');
+
+    const atFloor = write('hr003-split-at.html', build(20));
+    assertSplit(atFloor, 3);
+    assert.equal(hrIds(atFloor).filter(id => id === 'UE-HR003').length, 1,
+      'a twenty-word paragraph split by markup is still at the floor, and must fire');
+  }
+
+  // The reassembly is exact, not approximate: a clause added to the second copy
+  // is still a different paragraph and stays silent, so the fix did not turn the
+  // rule into a match on the longest common run.
+  {
+    const altered = write('hr003-split-altered.html', `<p>${PARA}</p>\n\n<p>${BOLD(PARA)} One clause was added here.</p>\n`);
+    assertSplit(altered, 3);
+    assert.deepEqual(hrIds(altered).filter(id => id === 'UE-HR003'), [],
+      'a clause added inside the second copy makes it a different paragraph');
+  }
+
+  // Three copies, the middle one split: the first is never reported, each repeat
+  // after it is, and a split repeat is counted the same as a plain one.
+  {
+    const three = write('hr003-split-thrice.html', `<p>${PARA}</p>\n\n<p>${BOLD(PARA)}</p>\n\n<p>${PARA}</p>\n`);
+    const hits = hrOnly(three).filter(f => f.ruleId === 'UE-HR003');
+    assert.equal(hits.length, 2, `both repeats are reported, got ${JSON.stringify(hits.map(f => f.line))}`);
+    assert.deepEqual(hits.map(f => f.line), [3, 5], 'the split copy at line 3 and the plain copy at line 5');
+  }
+
+  // The quiet surfaces stay quiet across a split. Each repeats a long string
+  // where repetition is legitimate, with the repeat split by inline markup, so
+  // the reassembly must not join it into a report.
+  {
+    const LONG = words(24);
+    for (const [name, body] of [
+      ['quoted.html', `<blockquote><p>${LONG} <em>${LONG}</em></p></blockquote><blockquote><p>${LONG} <em>${LONG}</em></p></blockquote>\n`],
+      ['nav.html', `<nav><a href="/x">${LONG} <em>${LONG}</em></a><a href="/y">${LONG} <em>${LONG}</em></a></nav>\n`],
+      ['heading.html', `<h2>${LONG} <em>${LONG}</em></h2><h2>${LONG} <em>${LONG}</em></h2>\n`],
+      ['table.html', `<table><tr><td>${LONG} <em>${LONG}</em></td><td>x</td></tr></table>\n`],
+    ]) {
+      assert.deepEqual(
+        hrIds(write(`hr003-split-quiet-${name}`, body)).filter(id => id === 'UE-HR003'), [],
+        `${name} may legitimately repeat a long string, split by markup or not, so UE-HR003 must stay silent`);
+    }
+  }
+
+  // A `ue:ignore` inside the second copy silences the whole paragraph, so the
+  // split buys no way round a suppression.
+  {
+    const ignored = write('hr003-split-ignore.html', `<p>${PARA}</p>\n\n<p>${BOLD(PARA)}<!-- ue:ignore UE-HR003 --></p>\n`);
+    assertSplit(ignored, 3);
+    assert.deepEqual(hrIds(ignored).filter(id => id === 'UE-HR003'), [],
+      'ue:ignore must still silence a duplicated paragraph whose second copy is split');
+  }
+
+  // A suppression that silences only part of a split paragraph withdraws the
+  // block, so the surviving text is judged on its own and is never joined to
+  // copy the author asked not to be read. Without that withdrawal the silenced
+  // opening and the surviving remainder would reassemble into a paragraph that
+  // appears nowhere on the page and match a real one.
+  {
+    const REST = PARA.slice(0, at + 5);
+    const partial = write('hr003-split-partial-suppress.html',
+      `<div>\n<!-- ue:ignore UE-HR003 -->\n<p>opening words that the author ignored entirely\n<strong>${REST}</strong></p>\n<p>opening words that the author ignored entirely ${REST}</p>\n</div>\n`);
+    const units = extractFile(partial, fs.readFileSync(partial, 'utf8'), {});
+    assert.ok(units.some(u => u.block === undefined && u.suppress)
+      && units.some(u => u.block === undefined && !u.suppress),
+      `the fixture must leave one part suppressed and one part not, or it is not testing the withdrawal: ${
+        JSON.stringify(units.map(u => [u.block === undefined, u.suppress || null]))}`);
+    assert.deepEqual(hrIds(partial).filter(id => id === 'UE-HR003'), [],
+      'copy on the far side of a partial suppression must not be joined to the copy that was silenced');
+  }
+
+  // The fields the reassembly depends on, asserted at the extraction layer so a
+  // change to their names or meaning breaks here first: the text nodes of one
+  // <p> share a block, exactly one of them is the block's last, and text with
+  // no enclosing block element has no block at all and is its own block.
+  {
+    const file = write('hr003-split-blocks.html', '<p>one two three<strong>four five</strong> six seven</p>\n');
+    const units = extractFile(file, fs.readFileSync(file, 'utf8'), {});
+    assert.equal(units.length, 3, `the inline element splits the paragraph into three units: ${JSON.stringify(units.map(u => u.text))}`);
+    assert.equal(new Set(units.map(u => u.block)).size, 1,
+      `the three text nodes of one <p> share a block id: ${JSON.stringify(units.map(u => u.block))}`);
+    assert.equal(units.filter(u => u.blockLast).length, 1, 'exactly one unit of the block is its last');
+    assert.equal(units[units.length - 1].blockLast, true, 'and it is the last one');
+
+    const loose = write('hr003-split-loose.html', 'bare text<strong>more text</strong>\n');
+    assert.ok(extractFile(loose, fs.readFileSync(loose, 'utf8'), {})
+      .every(u => u.block === undefined),
+    'text outside any block element has no block id, so each unit is its own block');
+  }
+  // An image inside the paragraph splits it the same way an inline element
+  // does, and the alt text sits between the halves. The alt text is copy in its
+  // own right, but it is not a sentence of the paragraph, so it is carried by
+  // the block without joining its text: a duplicated paragraph holding a picture
+  // is still a duplicated paragraph, and must be reported.
+  {
+    const half = (marker) => `<p>The delegation reiterated that humanitarian access remains restricted and that\n<img src="a.png" alt="${marker}"> the response is badly underfunded across the whole region today and in the coming quarter.</p>\n\n<p>${PARA}</p>\n`;
+    const file = write('hr003-split-image.html', half('the delegation at the table'));
+    const units = extractFile(file, fs.readFileSync(file, 'utf8'), {});
+    const image = units.filter(u => u.attribute);
+    assert.equal(image.length, 1, `the alt text must be a unit of its own: ${JSON.stringify(units.map(u => u.text))}`);
+    assert.equal(image[0].block, units.find(u => u.line === 1).block,
+      'the alt text belongs to the block it sits in, so it cannot end the block');
+    assert.ok(!image[0].blockLast,
+      'and it is not the block\'s last unit, because running text follows it');
+
+    const hits = hrOnly(file).filter(f => f.ruleId === 'UE-HR003');
+    assert.equal(hits.length, 1,
+      `a duplicated paragraph holding an image must be reported, got ${JSON.stringify(hits.map(f => [f.line, f.message]))}`);
+    assert.equal(hits[0].message,
+      'A block of 25 words is repeated verbatim in this file (first seen at line 1).',
+      `the alt text is not counted in the block: ${hits[0].message}`);
+    assert.doesNotMatch(hits[0].current, /at the table/,
+      'Current is the paragraph a reader reads, not the alt text of the image in it');
+  }
+
+  // An alt text that is itself a long string repeated twice is still compared
+  // on its own, as it was before the reassembly: the block machinery must not
+  // have swallowed the attribute surfaces into silence.
+  {
+    const ALT = 'a wide view of the empty assembly hall before the morning session with the delegation';
+    const alt = write('hr003-alt-standalone.html', `<p>one</p><img src="a.png" alt="${ALT}"><p>one</p><img src="b.png" alt="${ALT}">\n`);
+    const altUnits = extractFile(alt, fs.readFileSync(alt, 'utf8'), {});
+    assert.ok(altUnits.filter(u => u.attribute).every(u => u.block === undefined),
+      `an image outside any block element gives its alt text no block, so it is judged on its own: ${
+        JSON.stringify(altUnits.map(u => [!!u.attribute, u.block === undefined]))}`);
+    assert.deepEqual(hrIds(alt).filter(id => id === 'UE-HR003'), [],
+      'a fourteen-word alt text is below the floor, as it was before the reassembly');
+  }
+}
+
+// --- 4d. what the note promises, and only that -------------------------------
+//
+// The cross-block form documents a set of surfaces it stays silent on. That
+// promise is only worth anything if it is exactly true, so each part of it is
+// locked here — including the part where the honest answer is "this is
+// reported", because a document with no navigation surface cannot be given the
+// navigation exemption.
+
+{
+  // A standing disclaimer, repeated verbatim under each section heading. This
+  // is ordinary editorial practice in a report, and in Markdown and in HTML it
+  // is reported: the rule asks whether the repeat was intended, and for
+  // boilerplate the answer is a suppression, not silence. What the note must
+  // not do is promise a Markdown document an exemption it cannot deliver.
+  const DISCLAIMER = 'The views expressed in this report are those of the authors and do not necessarily reflect the official position of the organisation, its secretariat or its governing body.';
+  const sections = (md) => Array.from({ length: 3 },
+    (_, i) => md ? `## Section ${i + 1}\n\n${DISCLAIMER}\n` : `<h2>Section ${i + 1}</h2>\n<p>${DISCLAIMER}</p>\n`).join('\n');
+
+  for (const [name, body] of [
+    ['hr003-disclaimer.md', sections(true)],
+    ['hr003-disclaimer.html', sections(false)],
+  ]) {
+    const file = write(name, body);
+    const hits = hrOnly(file).filter(f => f.ruleId === 'UE-HR003');
+    assert.equal(hits.length, 2,
+      `a boilerplate paragraph repeated in one file is reported in ${name}, once per repeat after the first, got ${
+        JSON.stringify(hits.map(f => [f.line, f.message]))}`);
+    assert.equal(hits[0].severity, 'warning',
+      'a reported boilerplate repeat is a review question, never an error, so the run still exits 0');
+    assert.equal(capture([file]).code, 0,
+      'a standing disclaimer repeated under every heading must not fail a run');
+  }
+
+  // The exemption that does hold, and the context it is stated for. A Markdown
+  // document has no navigation context at all, which is why the same long
+  // string repeated there is reported rather than waved through.
+  {
+    const LONG = 'Select the reporting period, the reporting office and the funding window before the figures are drawn from the ledger, then confirm the totals against the source annex.';
+    const navFile = write('hr003-nav-context.html',
+      `<nav><a href="/a">${LONG}</a><a href="/b">${LONG}</a></nav>\n<aside><a href="/c">${LONG}</a><a href="/d">${LONG}</a></aside>\n`);
+    assert.deepEqual(hrIds(navFile).filter(id => id === 'UE-HR003'), [],
+      'navigation copy may repeat a long string, in nav and in aside alike');
+
+    const mdFile = write('hr003-nav-context.md', `${LONG}\n\n${LONG}\n`);
+    assert.equal(hrIds(mdFile).filter(id => id === 'UE-HR003').length, 1,
+      'the same long string repeated in a Markdown document is reported, because Markdown has no navigation context');
+  }
+
+  // The per-file key, stated without the over-reach: a paragraph shared across
+  // files is silent whatever it is, and a paragraph repeated inside one file is
+  // reported whatever it is. Both halves are the same assertion seen from either
+  // side, and the D7 false positive is the second half.
+  {
+    const dir = path.join(tmp, 'hr003-scope-of-key');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'one.md'), `${DISCLAIMER}\n`);
+    fs.writeFileSync(path.join(dir, 'two.md'), `${DISCLAIMER}\n`);
+    assert.deepEqual(scan(dir).filter(f => f.ruleId === 'UE-HR003'), [],
+      'the same boilerplate paragraph in two different files is never reported');
+
+    const inFile = path.join(tmp, 'hr003-scope-of-key-single.md');
+    fs.writeFileSync(inFile, `# One\n\n${DISCLAIMER}\n\n# Two\n\n${DISCLAIMER}\n`);
+    assert.equal(scan(inFile).filter(f => f.ruleId === 'UE-HR003').length, 1,
+      'the same boilerplate paragraph twice in one file is reported, because the key is per file');
+  }
+
+  // The note and the code must not drift apart in either direction. These
+  // assertions quote the shipped wording, so a note changed without the
+  // behaviour, or the behaviour changed without the note, fails here.
+  {
+    const note = CATALOGUE.rules.find(r => r.id === 'UE-HR003').guardNotes;
+    assert.match(note, /block is a whole paragraph/i,
+      'the note must say a block is a whole paragraph, so markup splitting a copy is not out of scope');
+    assert.match(note, /extraction context is navigation/i,
+      'the note must scope the navigation silence to the navigation context');
+    assert.match(note, /Markdown document cannot have/i,
+      'the note must say a Markdown document cannot claim the navigation exemption');
+    assert.match(note, /within one file it always is/i,
+      'the note must state that a repeat inside one file is reported whatever its purpose');
+    assert.doesNotMatch(note, /boilerplate shared across a documentation set is never reported/,
+      'the note must not invite the reading that boilerplate is safe in general, which is the D7 false positive');
+
+    const prose = fs.readFileSync(path.join(root, 'rules', 'grammar.md'), 'utf8')
+      .split('\n').find(l => l.startsWith('- **UE-HR003**'));
+    assert.ok(prose, 'rules/grammar.md must document UE-HR003');
+    assert.match(prose, /block is a whole paragraph/i, 'the prose must agree with the note on the block');
+    assert.match(prose, /Markdown document has no navigation surface/i,
+      'the prose must agree with the note on the Markdown exemption');
+    assert.match(prose, /Across two files the same paragraph is never reported/,
+      'the prose must agree with the note on the per-file key');
   }
 }
 
