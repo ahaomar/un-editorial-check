@@ -462,7 +462,7 @@ Four things about it are deliberate, and all four are the reason it cannot misle
 - **`--fix` never rewrites it.** A glossary term is terminology, and terminology is never auto-changed. Even a `replacements` entry in the glossary is printed as guidance, not applied.
 - **It fails closed.** A wrong `glossaryVersion`, an unknown key, a wrong type, an empty term, a term that can never match, a duplicate term, a replacement key that is not forbidden, a missing file and a directory all exit `2` with a message naming the problem.
 
-Matching is literal, case-insensitive and whole-word over extracted copy, so quoted, cited, code, URL and comment regions cannot fire. The flag wins over a `glossary` key in `.un-editorial.json`.
+Matching is literal, case-insensitive and whole-word over extracted copy, so cited titles, code, URLs and comments cannot fire. Quoted material is the one exception: a term inside a block quotation in HTML **is** reported, with its `quoted` context kept, on the principle that a term used in quotation still needs someone to look at it. The flag wins over a `glossary` key in `.un-editorial.json`.
 
 ### `--watch` — re-scan while you edit
 

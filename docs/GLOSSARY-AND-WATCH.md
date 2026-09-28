@@ -83,8 +83,11 @@ A glossary finding carries the same five metadata fields as every other finding
 — `source`, `profile`, `confidence`, `limitation`, `action` — and each one is
 true for a user-supplied check:
 
-- `source` names the reader's glossary file, never a `rules/*.md` document and
-  never the bundled United Nations baseline.
+- `source` names the mechanism — `user-supplied glossary (--glossary /
+  config.glossary), not a United Nations rule` — and never a `rules/*.md`
+  document and never the bundled United Nations baseline. It cannot name the
+  reader's own path, because a catalogue entry is the same for every reader; the
+  path travels in the finding's `glossary.file` and in its message.
 - `profile` reads `glossary`, not `editorial baseline` and not a UN profile
   name.
 - `lane` is `audit`, and the text report prints the finding under
@@ -108,6 +111,17 @@ reader sees, but re-grading a glossary rule to `error` through
 audit section. The same holds for the bundled audit profiles, which is why
 this is the audit lane's contract rather than a glossary special case. The
 invariant is locked at error severity in `tests/audit-lanes.mjs`, section 6b.
+
+One asymmetry to know when you escalate an audit rule yourself: `config.severities`
+does **not** reach a bundled audit. Use `config.rules.<id>.severity`, which is the
+key the audit runner reads:
+
+```json
+{ "rules": { "UE-AX001": { "severity": "error" } } }
+```
+
+That raises the finding's severity without ever raising the exit code, which is
+the point.
 
 If a build should fail on your own terminology, assert on the output yourself:
 
@@ -202,7 +216,7 @@ JSON finding:
 {
   "ruleId": "UE-GL001",
   "audit": "glossary",
-  "source": "user-supplied glossary (house.json)",
+  "source": "user-supplied glossary (--glossary / config.glossary), not a United Nations rule",
   "profile": "glossary",
   "lane": "audit",
   "glossary": {
@@ -298,7 +312,7 @@ rather than a spin of them. An idle watcher is silent.
 | A scanned file is deleted | The change is observed; the next scan reports what it can still read. |
 | A file is replaced by a rename | Observed, because the directory is watched rather than the file. |
 | A watched directory is removed | Survived without crashing; the watcher closes. |
-| A path that does not exist yet | Its parent directory is still watched, so creating the file triggers a scan. |
+| A path that does not exist yet | Refused before the loop starts, with `path not found` and exit 2. A *new file* appearing inside a directory that is already being watched is picked up on the next rescan. |
 | A rescan throws | Reported as `rescan failed: ...`; the loop continues. |
 | Ctrl+C | Every watcher is closed, then the process leaves with status 130. |
 
