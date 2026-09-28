@@ -10,6 +10,70 @@ The product boundary is **report first**: a finding identifies a review requirem
 
 > **For researchers, students and United Nations staff:** the plain-language **[User Guide](USER-GUIDE.md)** explains, step by step and without technical words, how to check a document with your AI assistant — including a prompt you can copy and paste.
 
+## Quickstart
+
+Node.js 18 or newer is the only requirement. `npx` fetches the package on first use, so nothing needs installing up front.
+
+```sh
+# 1. Check a file and write a PDF report beside it.
+npx -y un-editorial-check statement.md --report un-editorial-review.pdf
+
+# 2. Preview the automatic corrections as a diff. This writes nothing.
+npx -y un-editorial-check statement.md --fix
+
+# 3. Apply the corrections you approved in the preview, then run step 1 again.
+npx -y un-editorial-check statement.md --fix --apply
+```
+
+The exit code is `0` when no error-severity editorial findings are present, `1` when there are, and `2` for a usage, configuration, scan or write failure. [Exit codes](#exit-codes) states what a clean run means. CI should treat `1` as a requested policy failure and `2` as a tool failure, and should not merge the two.
+
+### What a scan actually outputs
+
+Two summary lines, then findings grouped under one heading per lane.
+
+```text
+un-editorial-check <version> — scanned <n> file(s) — editorial: <e> errors, <w> warnings, <n> notes
+lanes: deterministic <n> · heuristic-review <n> · harmful-discriminatory <n> · diplomacy <n> · audit <n> · quoted <n>
+
+EDITORIAL ERRORS (<n>)          ← deterministic lane, by severity
+EDITORIAL WARNINGS (<n>)
+EDITORIAL NOTES (<n>)
+AGENT REVIEW REQUIRED (<n>)     ← heuristic lane
+HARMFUL-DISCRIMINATORY REVIEW (<n>)
+DIPLOMATIC SENSITIVITY (<n>)
+OPTIONAL AUDIT — <name> (<n>)   ← one per requested audit profile
+```
+
+Each finding occupies one line and carries its lane, its rule identifier, its position in the file and the action a human should take:
+
+```text
+  <file>:<line>:<col>  <ruleId>  [<lane>]  <what is wrong>.  → <recommended human action>.
+```
+
+Captured output is not reproduced here, because a scan of flawed copy prints the copy that triggered each rule. [docs/demo/README.md](docs/demo/README.md) runs the five lanes over a real statement, a real page and a real clean file, and gives the exact commands to regenerate every line of it.
+
+### The five lanes in one glance
+
+| Lane | What it holds | Default effect on the exit code |
+|---|---|---|
+| Deterministic violations | Rules that prove their own defect inside a documented boundary | Error severity fails the run with `1`; warnings do not |
+| Heuristic editorial review | Judgement calls routed to `AGENT REVIEW REQUIRED` | Review severity by default; never fails unless configured to `error` |
+| Harmful or discriminatory review | High-severity human review queue; never rewritten automatically | Error severity fails the run with `1` |
+| Diplomatic sensitivity | Contested-status claims requiring diplomatic review | Warning by default; set `severities` to gate on it |
+| Optional audits | Publishing, accessibility and security findings, requested with `--profile` | Never changes the exit code |
+
+Quoted material is a context rather than a lane: a finding inside a quotation keeps its own lane and is reported separately, never blended into authored copy.
+
+### More documentation
+
+- [USER-GUIDE.md](USER-GUIDE.md) — the plain-language walkthrough with a copy-and-paste prompt
+- [CHANGELOG.md](CHANGELOG.md) — every release from 0.2.0 to 1.1.0
+- [docs/LAUNCH.md](docs/LAUNCH.md) — the 1.1.0 release announcement
+- [docs/demo/README.md](docs/demo/README.md) — the five-lane demo and its reproduction commands
+- [docs/MIGRATION.md](docs/MIGRATION.md) — what changed behaviour when, and the upgrade action for it
+- [docs/CLAIM-EVIDENCE-AUDIT.md](docs/CLAIM-EVIDENCE-AUDIT.md) — each claim, its limitations and the suite that locks it
+- [rules/catalogue.json](rules/catalogue.json) — the rule index with severity, confidence and guard notes
+
 ## What it checks
 
 Editorial rules (32, always on):
