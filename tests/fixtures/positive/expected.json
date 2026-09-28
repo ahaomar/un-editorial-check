@@ -81,6 +81,9 @@
   "hs003-exclusion.txt": [
     "UE-HS003"
   ],
+  "dm001-demeaning.txt": [
+    "UE-DM001"
+  ],
   "re006-insult.txt": [
     "UE-RE006"
   ],
