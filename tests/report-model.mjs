@@ -81,6 +81,32 @@ function bannersFrom(report, index) {
   return report.slice(index).filter(e => e.type === 'banner');
 }
 
+// Lane metadata rows (Wave 3) close every finding block. Collect the block
+// from its banner up to the next banner and assert the kv tail is exactly
+// the five lane rows — a stronger check than a single offset: the rows must
+// be present, in order, last, and the block must end there.
+const LANE_LABELS = ['Lane', 'Source', 'Profile', 'Limitation', 'Action'];
+function blockKvLabels(report, startIndex) {
+  const labels = [];
+  for (let i = startIndex + 1; i < report.length && report[i].type !== 'banner'; i++) {
+    if (report[i].type === 'kv') labels.push(report[i].label);
+  }
+  return labels;
+}
+function assertLaneBlock(report, startIndex) {
+  const sequence = [];
+  for (let i = startIndex + 1; i < report.length
+    && report[i].type !== 'banner' && report[i].type !== 'spacer' && report[i].type !== 'heading'; i++) {
+    sequence.push(report[i]);
+  }
+  const labels = sequence.filter(e => e.type === 'kv').map(e => e.label);
+  assert.deepEqual(labels.slice(-LANE_LABELS.length), LANE_LABELS,
+    `lane rows must close the finding block at index ${startIndex}: ${labels.join(', ')}`);
+  const after = report[startIndex + sequence.length + 1];
+  assert(after && (after.type === 'banner' || after.type === 'spacer' || after.type === 'heading'),
+    'nothing may follow the lane rows inside a finding block');
+}
+
 function deepFreeze(value) {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) deepFreeze(child);

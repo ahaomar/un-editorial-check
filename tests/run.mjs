@@ -512,7 +512,12 @@ for (const name of ['page.html', 'script.js']) {
   assert.equal(finding.ruleId, 'UE-DP001');
   assert.equal(finding.current, 'Kashmir is part of India');
   assert.equal(finding.proposed, 'the disputed territory of Jammu and Kashmir');
-  assert.equal(finding.severity, 'error');
+  // Wave 3: contested claims are warnings that require diplomatic review;
+  // the guard note rules/diplomacy.md and the catalogue carry the flip.
+  assert.equal(finding.severity, 'warning');
+  assert.equal(finding.lane, 'diplomacy', 'contested claims land in the diplomacy lane');
+  assert.match(finding.action, /diplomatic review/i,
+    `the finding must route the reader to diplomatic review: ${finding.action}`);
   assert.match(finding.suggestion, /Security Council resolution 47 \(1948\)/,
     `the finding must cite its source: ${finding.suggestion}`);
 }
