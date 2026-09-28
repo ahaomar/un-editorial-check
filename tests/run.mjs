@@ -694,7 +694,7 @@ for (const [settings, pattern] of configErrors) {
 }
 {
   const clean = capture([write('clean-out.txt', 'The organisation reports the figure.\n')]);
-  assert.match(clean.stdout, /No editorial findings\./);
+  assert.match(clean.stdout, /No findings under the enabled, documented local rules\./);
 }
 
 // Internal bookkeeping never reaches a consumer.

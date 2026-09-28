@@ -1,12 +1,22 @@
 # Grammar
 
-A deliberately narrow family. Subject–verb agreement, verb forms and tense are out of scope — the CLI never guesses between grammatical readings, because every guess costs false positives. What remains is mechanical and fixable: a doubled word, a space before punctuation, a full stop running straight into the next sentence.
+A deliberately narrow family. Subject–verb agreement, verb forms and tense are out of scope — the CLI never guesses between grammatical readings, because every guess costs false positives. What remains is mechanical and fixable: a doubled word, a space before punctuation, a full stop running straight into the next sentence. Five additional review heuristics — report-only warnings that are never rewritten — live under `Review heuristics` below.
 
 ## Editorial rules
 
 - **UE-GR001** *(warning, fixable)* — The same word twice in a row, separated by exactly one space: `the the`, not `the, the`. Matching is case-insensitive (`The the` counts) and the fix keeps the first word's case. The legitimate doubles `had had`, `that that` and `very very` are exempt; every other repetition — including deliberate emphasis such as `long long ago` — is reported and can be silenced with `<!-- ue:ignore UE-GR001 -->`. A pair padded with extra spaces or split across hard-wrapped lines never matches.
 - **UE-GR002** *(warning, fixable)* — One space between a word and one of the six covered marks: `,` `.` `;` `:` `?` `!`. Only the space is the defect; the mark itself is never reported here (an exclamation mark on its own belongs to UE-RE005). Several spaces before the mark, a mark that begins a hard-wrapped line, and an ellipsis after the space (`word ...`) are not matched, and URLs, quotations, code and comments never reach the rule.
 - **UE-GR003** *(warning, fixable)* — A full stop running straight into the next sentence: `finalised.Next` is missing a space, `finalised. Next` never matches. Excluded: an ellipsis (`...Next`, `…Next`), a period after a digit (`1.5`, `v1.2.Beta`, `3.B`), single-letter initials and dotted initial chains (`U.S.A.`, `U.K.`, `e.g.`, `i.e.`, `J.P.`), the abbreviations `U.S.` `U.K.` `U.N.` `e.g.` `i.e.` `etc.` `Dr.` `Mr.` `Mrs.` `Prof.` `vs.` `a.m.` `p.m.` `St.` written directly against the next word, and any period followed by a lower-case letter (`index.js`). The list is a conservative exemption: any other period abutting a capital — `Dept.Finance`, say — is reported, because a space is required after it, and a single-letter word ending a sentence (`Annex A.The`) is skipped together with the initials.
+
+## Review heuristics
+
+Five narrow wording heuristics sit beside the grammar rules because each is a defect a reader can judge at a glance. Every one is a warning at heuristic confidence: the finding asks for human review, never fails a run on its own, and is never rewritten by `--fix`. Each states its boundary in `rules/catalogue.json`, where its guard note carries the honest limitation; none claims to be a complete grammar check.
+
+- **UE-HR001** *(warning, heuristic)* — A five- to eight-word string that ends in a full stop but carries no finite verb — a phrase standing where a sentence should be. Verbless fragments only: a string with any finite verb, however awkward, is out of scope.
+- **UE-HR002** *(warning, heuristic)* — Malformed wording such as `could of`, `had went` or `more better`, reported with the standard-English form as a suggestion. The suggestion is review guidance; the finding is never rewritten automatically.
+- **UE-HR003** *(warning, heuristic)* — The same sentence repeated inside one paragraph or block, compared on lower-cased text with punctuation stripped. Repetition across different paragraphs is out of scope.
+- **UE-HR004** *(warning, heuristic)* — A heading ending in a full stop or a semicolon, so it reads as a sentence instead of a label. Headings only: body copy is never checked here.
+- **UE-HR005** *(warning, heuristic)* — An unpaired quotation mark left in the copy — opened but never closed in the same unit. Quotations, code and comments are masked out of the copy span before the rule runs.
 
 ## Guard notes
 

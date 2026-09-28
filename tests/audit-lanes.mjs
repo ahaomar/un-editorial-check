@@ -170,7 +170,7 @@ for (const [label, argv] of [
 
   // An empty scan has no lane line to route: the locked empty wording stands.
   const clean = capture([write('clean.txt', 'The organisation reports the figure.\n')]).stdout;
-  assert.match(clean, /No editorial findings\./);
+  assert.match(clean, /No findings under the enabled, documented local rules\./);
   assert(!clean.includes('lanes:'), 'no lane line on an empty scan');
 }
 

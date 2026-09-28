@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0 – 28 September 2026
+
+The Phase 6 completion release: five output lanes, the exact clean-run sentence, diplomatic claims as review, heuristic findings as review severity by default, and a full documentation truth-pass with a migration guide and an audit table. Report-first behaviour, zero npm dependencies, the approval-gated command and the exit-code contract are unchanged.
+
+- **The clean-run sentence is now exact.** A run with no findings prints `No findings under the enabled, documented local rules.` instead of the old `No editorial findings.` in the CLI, the README, the skill instructions, the user guide and the command template; the PDF report states the same meaning. Migration: any script or test that greps for the old sentence must match the new one — the exit codes do not change, so exit `0` still means no error-severity findings.
+- **Five output lanes.** The text, JSON, SARIF and PDF outputs separate deterministic rule violations, heuristic editorial review, harmful or discriminatory review, diplomatic sensitivity and optional audits, each finding carrying rule source, profile, confidence, limitation and recommended human action. Heuristic findings flip to review severity by default: they no longer fail a run unless the organisation configures them to `error`. Migration: parsers keyed to the old section headings must be re-keyed to the lanes; consumers of `--format json` gain fields but keep the existing ones; pipelines that relied on heuristic errors failing the build must set `severities` for those rules in `.un-editorial.json`.
+- **Diplomatic claims are review, not verdicts.** `UE-DP001` reports contested territorial-status statements as requiring diplomatic review in the diplomatic sensitivity lane, symmetrically for every party, rather than as factual errors. Migration: organisations that treated exit `1` on `UE-DP001` as a build gate must set `severities` for it explicitly.
+- **Docs, gates and release hygiene.** A docs truth-pass across the README, skill instructions, user guide and command template; [docs/MIGRATION.md](docs/MIGRATION.md) explains every behaviour change above with its instruction; [docs/CLAIM-EVIDENCE-AUDIT.md](docs/CLAIM-EVIDENCE-AUDIT.md) records each claim, whether it is supported, its limitations and the test that locks it. The user guide's house style (no contractions, no question marks in prose, British English, no percentage signs outside code fences) and the banned-claim phrases are enforced by a test; the source registry gains schema, URL, date, uniqueness and catalogue-reference validation in the test chain and in CI; mutation-style variant tests prove representative rules fire on their defect, fall silent without it and obey configuration — each probe document written to a temporary directory outside the repository; CI fails if a suite writes into the working tree.
+
+### Migration notes for existing configurations
+
+- `.un-editorial.json` keeps every documented key (`ignoredPaths`, `allowlist`, `severities`, `rules`, `spellingReview`, `baseOrigin`, `renderTargets`) and its precedence: the configuration file still wins over a profile. Unknown keys still fail closed with exit `2`, so a stale key is reported, never ignored.
+- If you pinned behaviour with `severities`, re-check each heuristic rule: the default severity is now review. If you pinned spelling, decide between `--profile un-secretariat-document`, `--profile generic-british-english`, `allowlist.spellings` and `severities`.
+- If your CI greps the text report or the clean-run sentence, update it to the lanes and the new wording; prefer the exit codes and `--format json`, which are the stable interfaces.
+- Re-run `npm test` (or `un-editorial-check --self-test`) after upgrading, and review the diff of your installed skill as described in the README.
+
 ## 1.0.0 – 28 September 2026
 
 <!--

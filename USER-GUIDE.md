@@ -52,7 +52,7 @@ editorial checker for United Nations style English copy. Follow these steps in o
      report. If the report gives no suggested wording for a finding, do not invent any:
      ask me what should be written instead.
 6. Run the check one more time and tell me honestly what is left. Only say the document
-   is clean if the tool reports exit code 0.
+   is clean if the tool reports exit code 0: no findings under the enabled, documented local rules.
 
 My document is: <PASTE YOUR FILE NAME HERE>
 ```
@@ -66,7 +66,7 @@ Your assistant checks the document, shows you what it found, and points you to t
 
 ## Step 4 — Review the final result
 
-Your assistant runs the check one more time and tells you which issues remain. It only says your document is clean when the tool reports exit code 0.
+Your assistant runs the check one more time and tells you which issues remain. It only says your document is clean when the tool reports exit code 0, and a clean result means one thing only: no findings under the enabled, documented local rules.
 
 ## You stay in control
 
@@ -83,6 +83,8 @@ Your assistant runs the check one more time and tells you which issues remain. I
 - **File formats:** Markdown (`.md`, `.markdown`), plain text (`.txt`), web pages (`.html`, `.htm`) and script files (`.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx`). For Word or PDF, paste the text into a `.txt` or `.md` file first. Any other format is reported as exit code 2 and nothing is changed.
 - **Slash command:** if your assistant supports commands, a technical colleague can install the `/un-diplomatic-agent` command once by following [README.md](README.md). After that you can start by typing that command instead of pasting the prompt.
 - **Where the rules come from:** the full list of checks, with institutional sources, is in [rules/catalogue.json](rules/catalogue.json) and explained in the README.
+- **What a clean result means:** the tool reports `No findings under the enabled, documented local rules.` Nothing stronger follows from that sentence.
+- **How results are grouped:** clear-cut findings, heuristic items for editorial review, a separate queue for harmful or discriminatory wording, a queue for diplomatic sensitivity, and optional audits. Each finding shows where its rule comes from, how confident it is, what its limits are and what a person should do next.
 
 ## For technical readers
 

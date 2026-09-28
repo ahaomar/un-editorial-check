@@ -17,6 +17,16 @@ jobs:
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run check:syntax
       - run: npm test
+      # Source-registry validation runs as its own step so a broken registry
+      # fails visibly here rather than only inside the test chain.
+      - run: node tests/audit-registry.mjs
+      # No suite may write into the working tree: the checkout must stay clean.
+      - run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "tests wrote into the working tree:"
+            git status --porcelain
+            exit 1
+          fi
       - run: npm run check:portability
       # Every git-tracked JSON file must parse (the gitignored local .un-editorial.json is intentionally excluded).
       - run: node -e "const fs=require('fs'),cp=require('child_process');const files=cp.execSync('git ls-files').toString().trim().split('\n').filter(f=>f.endsWith('.json')&&fs.existsSync(f));for(const f of files){JSON.parse(fs.readFileSync(f,'utf8'));}console.log('json ok ('+files.length+' files)')"
