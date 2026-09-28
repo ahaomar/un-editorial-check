@@ -88,7 +88,7 @@ for (const name of positives) {
 // UE-TE003 is covered by its own limitation: the rule is silent in every
 // context (rules/terminology.md, "UE-TE003"), so no positive fixture can
 // exist — its contract lives in tests/audit-terminology.mjs instead.
-const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003']);
+const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003', 'UE-GL001', 'UE-GL002']);
 const covered = new Set([...Object.values(manifest).flat(), ...OPT_IN_COVERAGE]);
 const uncovered = CATALOGUE.rules
   .filter(rule => rule.profile === null)
