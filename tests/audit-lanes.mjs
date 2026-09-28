@@ -151,6 +151,57 @@ for (const [label, argv] of [
   for (const finding of baseline.findings) assert.equal(finding.severity, 'warning');
 }
 
+// --- 3b: web/04 P0 — pinned detections, recorded limitation -------------------
+
+{
+  // `.feedbacks/v8/html-editor-feedback-skipped-by-skill.md` lines 30-35 raise
+  // a P0 in `web/04-letter-permanent-representation.html`: the incoherent
+  // heading "Dash Country is a terrioust Country" and a truncated paragraph
+  // attributing a statement to a named public official. The fixture is a
+  // verbatim copy of that file (QA finding F3: it had no fixture at all).
+  // Two things are pinned here, and they must not be confused with each
+  // other:
+  //   * the seven findings the scan does produce today — five UE-SP001 -ize
+  //     conflicts and two UE-RE002 ranking claims, at their exact lines —
+  //     may not regress silently;
+  //   * the P0 block itself (heading line 31, attributed paragraph lines
+  //     33-35) produces nothing, and that gap is a documented limitation,
+  //     not coverage: catching `terrioust` needs a dictionary spell-checker
+  //     (forbidden by the zero npm dependencies rule), and adjudicating an
+  //     attributed political statement is out of scope for the default
+  //     editorial scan by the editor feedback's own classification. Row 28
+  //     of docs/CLAIM-EVIDENCE-AUDIT.md records the limitation.
+  const p0Run = scan(fixture('lanes', 'web-p0-incoherent-insertion.html'));
+  const p0 = json(p0Run);
+  assert.equal(p0Run.code, 0, 'every finding on web/04 is a warning: the run exits 0');
+  assert.deepEqual(p0.lanes, {
+    deterministic: 5, 'heuristic-review': 2, 'harmful-discriminatory': 0,
+    diplomacy: 0, audit: 0, quoted: 0,
+  }, 'web/04 currently yields five deterministic and two heuristic findings, and nothing else');
+
+  const sp001 = p0.findings.filter(f => f.ruleId === 'UE-SP001');
+  const re002 = p0.findings.filter(f => f.ruleId === 'UE-RE002');
+  assert.equal(sp001.length, 5, 'UE-SP001 x5 (the -ize conflict family) must not regress');
+  assert.equal(re002.length, 2, 'UE-RE002 x2 (ranking claims) must not regress');
+  assert.deepEqual(sp001.map(f => f.line), [27, 43, 51, 79, 86],
+    'the -ize conflicts keep their positions');
+  assert.deepEqual(re002.map(f => f.line), [78, 108],
+    'the ranking claims keep their positions');
+  for (const finding of p0.findings) {
+    assert.equal(finding.severity, 'warning', `${finding.ruleId} stays warning severity`);
+    assert.equal(finding.lane, finding.ruleId === 'UE-SP001' ? 'deterministic' : 'heuristic-review');
+    assert.notEqual(finding.lane, 'diplomacy', 'the attributed statement is not adjudicated here');
+    assert.notEqual(finding.lane, 'harmful-discriminatory', 'the P0 block fires no safety rule');
+  }
+
+  // The recorded gap: nothing lands on the P0 block lines. If a future rule
+  // starts detecting them, this assertion fails and the limitation row must
+  // be re-stated — the gap is documented, never assumed.
+  const onP0Block = p0.findings.filter(f => f.line >= 31 && f.line <= 35);
+  assert.deepEqual(onP0Block, [],
+    'nothing on the P0 block lines is detected today — the documented limitation');
+}
+
 // --- 4: text output — lane sections, lane counts, never masquerading ---------
 
 {

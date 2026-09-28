@@ -308,7 +308,7 @@ node bin/check.mjs content --baseline .ue-baseline.json
 
 `--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links, and hidden directories, `node_modules`, build output and fixtures are skipped unless you name them explicitly.
 
-The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts` or `.tsx`. Naming a file of any other type is a refusal, and so is a scan that ends up with no supported file to read.
+The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts` or `.tsx`. Naming a file of any other type is a refusal, and so is a scan that ends up with no supported file to read. A scan whose target is the skill root itself — the bare `.` inside the installation, or the package directory named as a path — is the one exception: it reads nothing and exits `0`. Pass `--self-scan` to read the root, or name a file or a sub-directory inside it, which is scanned like any other input.
 
 `--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; a value that names a bundled organisation profile (`un-secretariat-document`, `un-v1`, `un-geneva-web`, `generic-british-english`) resolves to that bundled profile; any other value is an organisation profile file merged over the bundled United Nations baseline (an existing file of that name wins over the bundled name). A missing or invalid profile is a usage failure (exit `2`), not a silent fallback, and an unknown bare name is refused while listing the bundled profile names.
 
@@ -318,7 +318,7 @@ The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js
 |---:|---|
 | `0` | No error-severity editorial findings; warnings, notes and every audit may remain |
 | `1` | One or more error-severity editorial findings |
-| `2` | Invalid options, path, JSON, profile or configuration; an unsupported file named explicitly, no supported files found in the scan, or a scan or write failure |
+| `2` | Invalid options, path, JSON, profile or configuration; an unsupported file named explicitly, no supported files found in the scan (a scan whose target is the skill root itself exits `0` instead), or a scan or write failure |
 
 CI should treat exit code `1` as a requested policy failure and exit code `2` as a tool failure. It should not silently merge the two. Audit findings never move the exit code, so `--profile security` cannot fail a build that the editorial rules passed.
 
