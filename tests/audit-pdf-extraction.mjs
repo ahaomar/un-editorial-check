@@ -49,6 +49,11 @@ import {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-pdf-'));
+// The corpus is deterministic and rebuildable, so it is removed on every exit
+// including a crash: a suite that leaves a directory behind on each red run
+// fills the temporary directory with hundreds of orphaned fixtures, and the
+// one run whose fixtures you want to look at is then the hardest to find.
+process.on('exit', () => fs.rmSync(tmp, { recursive: true, force: true }));
 const corpus = writeCorpus(path.join(tmp, 'corpus'));
 const read = (name) => fs.readFileSync(corpus[name]);
 const asText = (bytes) => bytes.toString('latin1');
