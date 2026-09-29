@@ -26,9 +26,9 @@
 //
 // Standalone: node tests/audit-pdf-extraction.mjs
 //
-// While lib/pdf-extract.mjs is not in the tree, Part B cannot run. Setting
-// UN_PDF_ENGINE_PENDING=1 runs Part A alone and prints, loudly, how much was
-// left out. That is the only way to skip it, and the default is to fail.
+// Part B needs lib/pdf-extract.mjs, and an absent engine fails this suite
+// outright. Part A alone proves the fixtures and not the engine, and a run
+// that prints half the suite as skipped reads like a pass on the way past.
 
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -614,12 +614,30 @@ function readXrefStream(bytes) {
   // a greedy pattern runs into the first body and loses the member list.
   const header = payload.slice(0, first);
   const members = [...header.matchAll(/(\d+) (\d+)/g)].map((m) => Number(m[1]));
-  const indexes = [...header.matchAll(/(\d+) (\d+)/g)].map((m) => Number(m[2]));
+  const offsets = [...header.matchAll(/(\d+) (\d+)/g)].map((m) => Number(m[2]));
   const body = payload.slice(first);
   assert.equal(members.length, declared, '/N must match the number of pairs in the header');
   assert.ok(members.length >= 3, 'the catalog, the page tree and the page must all be packed');
-  assert.deepEqual(indexes, members.map((_, i) => i),
-    'each packed object must be listed at its own index, in order');
+  // The second field of each pair is the byte offset of that object's bytes,
+  // counted from the start of the body. It is not the object's position in the
+  // list, and this suite used to assert that it was — which pinned the
+  // generator to emitting indices, left the fixture unreadable, and kept every
+  // check here green the whole time. Each offset is now tested against where it
+  // claims to point rather than against its position.
+  assert.equal(offsets[0], 0, 'the first packed object must start at offset 0');
+  for (let i = 1; i < offsets.length; i++) {
+    assert.ok(offsets[i] > offsets[i - 1],
+      `the offset for object ${members[i]} must come after that of object ${members[i - 1]}`);
+  }
+  members.forEach((num, i) => {
+    const segment = body.slice(offsets[i], offsets[i + 1] ?? body.length).trimEnd();
+    assert.ok(segment.startsWith('<<'),
+      `object ${num} must begin at its declared offset ${offsets[i]}, `
+      + `got ${JSON.stringify(segment.slice(0, 40))}`);
+    assert.ok(segment.endsWith('>>'),
+      `object ${num} must be complete at its declared offset, `
+      + `got ${JSON.stringify(segment.slice(-40))}`);
+  });
   for (const num of members) {
     assert.ok(!new RegExp(`(?:^|\\n)${num} 0 obj\\n`).test(text),
       `object ${num} must live inside the object stream, not at the top level`);
@@ -916,23 +934,19 @@ try {
   engineFailure = error;
 }
 
-if (!engine && process.env.UN_PDF_ENGINE_PENDING !== '1') {
+// An absent engine is unconditionally a failure. It was briefly escapable with
+// UN_PDF_ENGINE_PENDING=1 while the adapter was still being written in another
+// worktree; that window has closed, and a variable that turns missing coverage
+// into a green run is exactly the quiet partial pass this suite exists to
+// prevent. Part A passing on its own is not a pass.
+if (!engine) {
   console.error(`FAIL — lib/pdf-extract.mjs is not in the tree, so the engine half of this `
     + `suite cannot run.\n${engineFailure && engineFailure.message}\n`
-    + 'Part A ran and passed. Set UN_PDF_ENGINE_PENDING=1 to run Part A alone; '
-    + 'the default is to fail.');
+    + 'Part A ran and passed. That is not a pass on its own.');
   process.exit(1);
 }
 
-if (!engine) {
-  console.log('SKIPPED — the engine half: lib/pdf-extract.mjs is not in the tree. '
-    + `${CASES.length} fixture cases were proven; ${CASES.length - 2} engine assertions `
-    + 'across them were NOT run. This is not a pass.');
-  fs.rmSync(tmp, { recursive: true, force: true });
-  process.exit(0);
-}
-
-const { extractPdf, PdfRefusalError, PDF_REFUSAL_CODES } = engine;
+const { extractPdf, pdfRefusalMessage, PdfRefusalError, PDF_REFUSAL_CODES } = engine;
 
 for (const code of ['NOT_A_PDF', 'ENCRYPTED', 'SCANNED', 'UNDECODABLE_FONT', 'MALFORMED']) {
   assert.equal(typeof PDF_REFUSAL_CODES[code], 'string',
@@ -963,9 +977,36 @@ function expectRefusal(name, code) {
     `${label} must be refused with a PdfRefusalError, not a ${error.constructor.name}: ${error.message}`);
   assert.equal(error.code, code,
     `${label} must be refused with code ${code}, got ${error.code}: ${error.message}`);
-  assert.ok(error.message.includes(PDF_REFUSAL_CODES[code]),
-    `${label}: the message must name the reason ("${PDF_REFUSAL_CODES[code]}"), `
-    + `got "${error.message}"`);
+  // The code must be a key the rest of the tool can look up. `isPdfRefusal`
+  // and `asRefusal` both test `Object.hasOwn(PDF_REFUSAL_CODES, error.code)`,
+  // so a code that is the description rather than the key does not raise an
+  // error — it silently downgrades to MALFORMED and the reader is told the
+  // document is corrupt when it is really only unreadable. Nothing else in
+  // this function would catch that.
+  assert.ok(Object.hasOwn(PDF_REFUSAL_CODES, error.code),
+    `${label}: the code "${error.code}" must be a key of PDF_REFUSAL_CODES`);
+  // The engine must explain itself. Its message carries the specific detail —
+  // which font, which page — and §1 of the plan fixes the codes table rather
+  // than the wording of every message, so the detail is expected to be its own
+  // sentence here, not a copy of the canonical reason.
+  assert.ok(typeof error.message === 'string' && error.message.trim().length > 0,
+    `${label}: the refusal must explain itself, got ${JSON.stringify(error.message)}`);
+  // What a reader is actually shown, which is not what the engine threw. The
+  // canonical reason must reach the reader whatever the engine put in its
+  // message, and it must be followed by a remedy: a refusal that names only a
+  // dead end leaves the reader to work out the next step themselves. The reason
+  // half was asserted against `error.message` before, which tested the engine's
+  // internal wording instead of the surface users read and never checked the
+  // remedy at all.
+  const reason = PDF_REFUSAL_CODES[error.code];
+  const shown = pdfRefusalMessage(error, label);
+  assert.ok(shown.includes(reason),
+    `${label}: the message a reader sees must state the reason ("${reason}"), `
+    + `got "${shown}"`);
+  const afterReason = shown.slice(shown.indexOf(reason) + reason.length);
+  assert.ok(/\.\s+\S/.test(afterReason),
+    `${label}: the message a reader sees must offer a remedy after the reason, `
+    + `got "${shown}"`);
   assert.ok(!('units' in error), `${label}: a refusal must carry no units`);
   assert.ok(!('warnings' in error), `${label}: a refusal must carry no warnings`);
   return error;

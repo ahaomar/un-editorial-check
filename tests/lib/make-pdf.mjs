@@ -486,7 +486,20 @@ export function serialise(doc, {
   if (objStm !== null) {
     const members = [...packed].sort((a, b) => a - b);
     const bodies = members.map((num) => latin1(doc.objects.get(num).body));
-    const head = members.map((num, i) => `${num} ${i}`).join(' ');
+    // Each pair is `<object number> <byte offset>`, and the offset is where
+    // that object's bytes begin, counted from the first byte after `/First`.
+    // It is not the object's index in the stream, which is what this used to
+    // emit: a catalogue declared at offset 2 is read two bytes into its own
+    // dictionary, so the file fails as malformed while looking well formed from
+    // outside. `/First` below was already reasoned about correctly; this field
+    // is its counterpart and had been missed.
+    let relative = 0;
+    const pairs = bodies.map((body, i) => {
+      const pair = `${members[i]} ${relative}`;
+      relative += body.length + 1; // the newline that separates two bodies
+      return pair;
+    });
+    const head = pairs.join(' ');
     // /First is the offset of the first object body inside the decoded stream,
     // so it is the length of the pair list *including* the newline that ends it
     // — not the total size of the bodies, which is the other easy mistake.
@@ -496,6 +509,12 @@ export function serialise(doc, {
       ...bodies.map((body) => Buffer.concat([body, latin1('\n')])),
     ]);
     offsets.set(objStm, pos);
+    // The object stream is an object in the file like any other and needs its
+    // own cross-reference row. `xrefRows` was last written above, before this
+    // object existed, so without this row the stream is marked free: a reader
+    // then cannot resolve it, and every object packed inside it — including the
+    // catalogue — becomes unreachable while the cross-reference looks complete.
+    xrefRows.set(objStm, { type: 1, second: pos, third: 0 });
     put(latin1(`${objStm} 0 obj\n<< /Type /ObjStm /N ${members.length}`
       + ` /First ${first} /Length ${payload.length} >>\nstream\n`));
     put(payload);
@@ -508,6 +527,11 @@ export function serialise(doc, {
   if (objStm !== null) {
     // A cross-reference stream: W = [1 4 1], one byte of type, four of offset
     // (or of object-stream number), one of generation (or of index).
+    //
+    // It also takes a row of its own, at the offset `startxref` names. `pos` is
+    // that offset here: the rows are built below and the object is written
+    // immediately after, with nothing in between.
+    xrefRows.set(xrefNum, { type: 1, second: pos, third: 0 });
     const rows = [];
     for (let num = 0; num <= xrefNum; num++) {
       const row = xrefRows.get(num);
@@ -597,9 +621,9 @@ export const COLUMN_LEFT = [
   // ue:ignore all
   'The second column line follows.',
   // ue:ignore all
-  'A third line closes the left column.',
+  'A third line closes the column.',
   // ue:ignore all
-  'The fourth line ends the left column.',
+  'The fourth line ends the column.',
 ];
 export const COLUMN_RIGHT = [
   // ue:ignore all  (deliberate fixture copy)
