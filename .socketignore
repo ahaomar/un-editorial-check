@@ -1,0 +1,4 @@
+# Socket security audit suppressions
+# These files contain intentional test fixtures that are never executed.
+
+tests/fixtures/audits/security.mjs
