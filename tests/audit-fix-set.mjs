@@ -23,7 +23,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { run, CATALOGUE } from '../bin/check.mjs';
-import { planFixes, FIXABLE_RULE_IDS } from '../lib/fix.mjs';
+import { planFixes, FIXABLE_RULE_IDS, assertProseOnly } from '../lib/fix.mjs';
+import { SUPPORTED_EXTENSIONS } from '../lib/extract.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-fixset-'));
@@ -128,6 +129,76 @@ assert(!FIXABLE_RULE_IDS.has('UE-NU001'), 'numeric dates are never auto-fixed');
     'the filter must not mutate or strip the finding it skips');
 }
 
+// --- 2b. the fixable extension set --------------------------------------------
+//
+// The rule allow-list above is only half the gate. `--fix` also refuses any file
+// that is not prose, and that set is the one PDF joins in 1.3.0: a PDF is
+// readable now, so it passes the scanner and reaches the fixer, where it must
+// still be refused. Both halves are locked here rather than left to the next
+// reader of lib/fix.mjs to infer.
+//
+// The split is asserted in both directions, because a one-way assertion would
+// pass if `PROSE_EXTENSIONS` grew to include `.pdf` — the exact regression this
+// section exists to prevent, since a PDF is a rendered page and rewriting one
+// in place is not a text edit at all.
+
+const PROSE_FIXABLE = ['.md', '.markdown', '.txt'];
+
+{
+  for (const ext of PROSE_FIXABLE) {
+    assert.doesNotThrow(() => assertProseOnly([`notes${ext}`]),
+      `${ext} is prose and --fix may accept it`);
+  }
+  for (const ext of SUPPORTED_EXTENSIONS.filter(e => !PROSE_FIXABLE.includes(e))) {
+    assert.throws(() => assertProseOnly([`copy${ext}`]),
+      err => /refusing --fix/.test(err.message),
+      `${ext} is supported for reading but must stay refused by --fix`);
+  }
+  assert.throws(() => assertProseOnly(['copy.pdf']),
+    err => /refusing --fix/.test(err.message),
+    'a PDF is never rewritten: --fix refuses it like every other non-prose format');
+}
+
+// --- 2c. a refused PDF is a refusal, not a clean run --------------------------
+//
+// The shape of QA finding F1, arrived at from the other direction: a run that
+// read nothing printed the clean sentence. A PDF the tool cannot read must not
+// be able to do the same thing. Locked here because the PDF refusal is the
+// newest way for a run to read nothing, and this is the assertion that keeps it
+// from reporting success.
+//
+// The engine is not stubbed. `lib/pdf-extract.mjs` refuses a buffer that is not
+// a PDF at all, which is a real refusal on the real code path and needs no
+// engine to be present: the adapter's own NOT_A_PDF check runs before the
+// engine is consulted. The full engine refusal set is locked by P2's
+// `tests/audit-pdf-extraction.mjs` against the real engine.
+
+{
+  const fake = write('not-really.pdf', 'this is plain text, not a PDF\n');
+  const result = capture([fake]);
+  assert.equal(result.code, 2,
+    `a PDF that is not a PDF must refuse with exit 2: ${result.stdout}${result.stderr}`);
+  assert.doesNotMatch(result.stdout, /No findings under the enabled/,
+    'a refused PDF must never print the clean sentence (F1)');
+  assert.equal(result.stdout, '',
+    'a refusal writes nothing to stdout, so no consumer can read it as a result');
+  assert.match(result.stderr, /cannot read/, 'the refusal names the reason');
+  assert.match(result.stderr, /not a PDF document/, 'the refusal states the reason in plain words');
+  assert.ok(result.stderr.includes(fake), 'the refusal names the path');
+
+  // --fix on the same file is refused too, and the bytes are untouched. This
+  // file is refused by the PDF adapter before the fixer is reached, because it
+  // is not a PDF; both are exit-2 refusals naming a reason, and neither writes.
+  // The `refusing --fix` message for a genuine PDF is asserted in 2b above,
+  // where `assertProseOnly` is called directly.
+  const before = fs.readFileSync(fake);
+  const fix = capture([fake, '--fix', '--apply']);
+  assert.equal(fix.code, 2, `--fix on a PDF must refuse with exit 2: ${fix.stderr}`);
+  assert.doesNotMatch(fix.stdout, /No findings under the enabled/,
+    '--fix on a refused PDF must never print the clean sentence (F1)');
+  assert.deepEqual(fs.readFileSync(fake), before, 'a refused --fix never writes');
+}
+
 // --- 3. the CLI end to end -----------------------------------------------------
 
 {
@@ -179,3 +250,4 @@ assert(!FIXABLE_RULE_IDS.has('UE-NU001'), 'numeric dates are never auto-fixed');
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('ok — fix set: exact allow-list, fail-closed planFixes, CLI honours §8');
+console.log('ok — fix set: prose-only extension gate, a PDF never rewritten, a refused PDF is exit 2 and never a clean run');

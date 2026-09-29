@@ -376,7 +376,23 @@ node bin/check.mjs content --watch
 
 `--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links, and hidden directories, `node_modules`, build output and fixtures are skipped unless you name them explicitly.
 
-The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts` or `.tsx`. Naming a file of any other type is a refusal, and so is a scan that ends up with no supported file to read. A scan whose target is the skill root itself — the bare `.` inside the installation, or the package directory named as a path — is the one exception: it reads nothing and exits `0`. Pass `--self-scan` to read the root, or name a file or a sub-directory inside it, which is scanned like any other input.
+The supported file formats are `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx` or `.pdf`. Naming a file of any other type is a refusal, and so is a scan that ends up with no supported file to read. A scan whose target is the skill root itself — the bare `.` inside the installation, or the package directory named as a path — is the one exception: it reads nothing and exits `0`. Pass `--self-scan` to read the root, or name a file or a sub-directory inside it, which is scanned like any other input.
+
+### PDF documents
+
+A PDF is a *rendered page*, not a source, and that shapes everything below. The tool recovers the text and reports findings in it, but it **cannot tell a quotation from a paragraph, so every piece of copy in a PDF is treated as authored copy.** A quoted title in a PDF is screened the same way as the paragraph around it; in a `.md` or `.txt` file it would be classified as quoted and left alone. A PDF will therefore report some findings an identical text file will not, and that difference is the format, not a defect in the copy.
+
+`file:line:column` in a PDF result addresses a **visual line** — a line reconstructed from where the text sits on the page — counted continuously through the document in reading order, page by page. It is not a line of a source file, because a PDF has no source lines. The JSON and SARIF outputs carry an additional `pdfPage` field with the 1-based page number, so a finding can be traced back to the page; the text output keeps the standard `file:line:column` shape so a parser of the text report does not have to change.
+
+**Three kinds of PDF still refuse with exit code `2`, and a refusal is not a pass:**
+
+- **Scanned and image-only documents.** A page that is a picture of text carries no text to recover. The tool does not perform optical character recognition and never claims to; it refuses. Extract the text by other means — exporting the document as text, or an OCR tool of your own — and run the check on that, or paste it into a `.txt` file.
+- **Encrypted documents.** A password-protected PDF is refused. Remove the protection or save an unprotected copy and run the check on that.
+- **Fonts with no recoverable encoding.** When a document's fonts carry no way to recover the characters they draw, the tool will not guess at them, because a confidently wrong character is worse than a refusal. If the same text is available elsewhere, paste it into a `.txt` file.
+
+The refusal is a refusal in the strict sense: the run exits `2`, names the file and the reason on standard error, writes nothing to standard output, and never prints the clean-run sentence for a document it did not read. This is a narrowing of what a PDF can be checked for, not a completion of it.
+
+`--fix` refuses a PDF, like every other non-prose format. A PDF is a rendered page, and rewriting one in place is not a text edit. Take the corrections from the report instead.
 
 `--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; a value that names a bundled organisation profile (`un-secretariat-document`, `un-v1`, `un-geneva-web`, `generic-british-english`) resolves to that bundled profile; any other value is an organisation profile file merged over the bundled United Nations baseline (an existing file of that name wins over the bundled name). A missing or invalid profile is a usage failure (exit `2`), not a silent fallback, and an unknown bare name is refused while listing the bundled profile names.
 

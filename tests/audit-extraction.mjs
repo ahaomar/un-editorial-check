@@ -341,9 +341,10 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
 // --- 4. explicitly named unsupported files and zero-file scans ---------------
 
 {
-  // The supported set stays exactly this list.
+  // The supported set stays exactly this list. `.pdf` joined it in 1.3.0, when
+  // PDF text extraction landed; every other member is unchanged.
   assert.deepEqual([...EXTRACTABLE_EXTENSIONS].sort(),
-    ['.md', '.markdown', '.txt', '.html', '.htm', '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx'].sort(),
+    ['.md', '.markdown', '.txt', '.html', '.htm', '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.pdf'].sort(),
     'the extractable extension set must not change');
   assert.deepEqual([...SUPPORTED_EXTENSIONS].sort(), [...EXTRACTABLE_EXTENSIONS].sort(),
     'the announced list must match the extractable set');
@@ -945,7 +946,7 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
       `README must document the supported extension ${ext}`);
   }
   assert.ok(readme.includes(
-    '`.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts` or `.tsx`'),
+    '`.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx` or `.pdf`'),
     'README must list the supported extensions exactly');
   // Exit codes: exit 2 for an unsupported named file and for a zero-file scan.
   assert.match(readme, /\| `2` \|[^|\n]*unsupported/,
@@ -959,10 +960,17 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
 
   const guide = fs.readFileSync(path.join(root, 'USER-GUIDE.md'), 'utf8');
   const guideLines = guide.split('\n');
-  // Lines 24 and 83 (1-based) name the file formats: exact extension lists,
-  // and the house style holds — no question marks, no percent signs.
-  for (const number of [24, 83]) {
-    const line = guideLines[number - 1];
+  // The lines that name the file formats. Located by content rather than by line
+  // number: a hard-coded number breaks the moment a paragraph is added above
+  // them, and a test that breaks for an unrelated edit is a test people learn to
+  // re-point instead of read. Every line carrying the extension list must carry
+  // all of it, and must keep the house style — no question marks, no percent.
+  const formatLines = guideLines
+    .map((line, index) => ({ line, number: index + 1 }))
+    .filter(({ line }) => line.includes('`.md`') && line.includes('`.txt`'));
+  assert.ok(formatLines.length >= 2,
+    `USER-GUIDE must name the supported formats in setup and again under "Things worth knowing": found ${formatLines.length}`);
+  for (const { line, number } of formatLines) {
     for (const ext of SUPPORTED_EXTENSIONS) {
       assert.ok(line.includes(`\`${ext}\``),
         `USER-GUIDE line ${number} must document ${ext}: ${line}`);
