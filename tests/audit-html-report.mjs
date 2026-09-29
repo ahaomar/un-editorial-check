@@ -30,6 +30,9 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { run } from '../bin/check.mjs';
 import { renderHtml } from '../lib/html.mjs';
+import { buildReport } from '../lib/report.mjs';
+import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
+import { creditLine, footerLine, headerRows } from '../lib/furniture.mjs';
 import { LANE_NAMES } from '../lib/output.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -184,7 +187,7 @@ assert.match(allLanes,
   /lanes: deterministic 1 · heuristic-review 1 · harmful-discriminatory 1 · diplomacy 1 · audit 1 · quoted 1/,
   'the lane counts name all five lanes plus quoted');
 assert.equal((allLanes.match(/<article class="finding/g) || []).length, 6,
-  'every finding, quoted included, gets its own card');
+  'every finding, quoted included, renders as its own block (one issue per group in the default detail)');
 
 // --- 3: six fields on every finding -----------------------------------------
 
@@ -193,23 +196,32 @@ assert.equal((allLanes.match(/<article class="finding/g) || []).length, 6,
 const CARD_RE = /<article class="finding[^"]*"[^>]*>[\s\S]*?<\/article>/g;
 const cards = [...allLanes.matchAll(CARD_RE)].map(m => m[0]);
 assert.equal(cards.length, 6, 'six cards to inspect');
-for (const [index, card] of cards.entries()) {
-  const rows = [...card.matchAll(/<dt>([^<]*)<\/dt><dd>([^<]*)<\/dd>/g)].map(m => [m[1], m[2]]);
-  const tail = rows.slice(-SIX_FIELDS.length);
-  assert.deepEqual(tail.map(([label]) => label), SIX_FIELDS,
-    `card ${index + 1} must close with the six lane fields, in order: ${rows.map(([l]) => l).join(', ')}`);
-  for (const [label, value] of tail) {
-    assert(value.length > 0, `card ${index + 1} ${label} must not be empty`);
-    assert(value !== 'undefined', `card ${index + 1} ${label} must never render the string "undefined"`);
+
+// The card-shape contract, applied to every layout the renderer can draw.
+// The default detail renders grouped issue blocks here and `detail: 'full'`
+// renders one card per finding (asserted further down), and both must close
+// with the six lane fields in order — so a provenance field dropped from
+// either mode fails the suite, whichever layout the reader asks for.
+const assertCardShape = (list, label) => {
+  for (const [index, card] of list.entries()) {
+    const rows = [...card.matchAll(/<dt>([^<]*)<\/dt><dd>([^<]*)<\/dd>/g)].map(m => [m[1], m[2]]);
+    const tail = rows.slice(-SIX_FIELDS.length);
+    assert.deepEqual(tail.map(([name]) => name), SIX_FIELDS,
+      `${label} ${index + 1} must close with the six lane fields, in order: ${rows.map(([l]) => l).join(', ')}`);
+    for (const [field, value] of tail) {
+      assert(value.length > 0, `${label} ${index + 1} ${field} must not be empty`);
+      assert(value !== 'undefined', `${label} ${index + 1} ${field} must never render the string "undefined"`);
+    }
+    // Nothing may follow the six rows inside the card: the Action row is the
+    // last field row, and the card closes straight after it.
+    const actionRow = `<dt>${SIX_FIELDS[5]}</dt>`;
+    const actionAt = card.indexOf(actionRow);
+    assert(actionAt > 0, `${label} ${index + 1} must render its Action row`);
+    assert(!/<dt>/.test(card.slice(actionAt + actionRow.length)),
+      `${label} ${index + 1} may carry no field row after Action`);
   }
-  // Nothing may follow the six rows inside the card: the Action row is the last
-  // field row, and the card closes straight after it.
-  const actionRow = `<dt>${SIX_FIELDS[5]}</dt>`;
-  const actionAt = card.indexOf(actionRow);
-  assert(actionAt > 0, `card ${index + 1} must render its Action row`);
-  assert(!/<dt>/.test(card.slice(actionAt + actionRow.length)),
-    `card ${index + 1} may carry no field row after Action`);
-}
+};
+assertCardShape(cards, 'grouped issue card');
 
 // The lane row names the lane the section is in, and the source row names the
 // rule file, for every lane — the metadata is real, not a placeholder.
@@ -333,13 +345,248 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
   }
 }
 
+// --- 5b: grouped issues, the occurrence table and counts ---------------------
+
+// The default detail renders each group as one issue block carrying a real
+// <table> with exactly the four contract columns, and every issue carries all
+// six provenance fields whatever its count.
+{
+  const issueCards = [...allLanes.matchAll(/<article class="finding issue[^"]*"[^>]*>[\s\S]*?<\/article>/g)]
+    .map(m => m[0]);
+  assert.equal(issueCards.length, 6, 'the default detail renders one issue per group');
+  const tables = [...allLanes.matchAll(/<table class="occurrences">[\s\S]*?<\/table>/g)].map(m => m[0]);
+  assert.equal(tables.length, 6, 'every grouped issue renders its occurrence table');
+  for (const [index, table] of tables.entries()) {
+    const columns = [...table.matchAll(/<th[^>]*>([^<]*)<\/th>/g)].map(m => m[1]);
+    assert.deepEqual(columns, ['File', 'Location', 'Content', 'Should be'],
+      `occurrence table ${index + 1} has exactly the four contract columns: ${columns.join(', ')}`);
+    const body = /<tbody>([\s\S]*?)<\/tbody>/.exec(table);
+    assert(body, `occurrence table ${index + 1} has a body`);
+    assert.equal((body[1].match(/<tr>/g) || []).length, 1,
+      `a group of one lists exactly one occurrence`);
+  }
+  for (const [index, card] of issueCards.entries()) {
+    const fields = /<dl class="fields">([\s\S]*?)<\/dl>/.exec(card);
+    assert(fields, `issue ${index + 1} carries its provenance block`);
+    const labels = [...fields[1].matchAll(/<dt>([^<]*)<\/dt>/g)].map(m => m[1]);
+    assert.deepEqual(labels, SIX_FIELDS,
+      `issue ${index + 1} carries all six provenance fields, in order: ${labels.join(', ')}`);
+    for (const [, value] of fields[1].matchAll(/<dd>([^<]*)<\/dd>/g)) {
+      assert(value.length > 0 && value !== 'undefined',
+        `issue ${index + 1}: every provenance value must be real, got "${value}"`);
+    }
+  }
+}
+
+// A count is shown only when it is greater than one, the banner keeps its
+// location only for a lone occurrence, and grouping never regroups a file
+// away: three occurrences of one defect are one issue with three table rows.
+{
+  const duplicates = [
+    finding({ file: 'docs/a.md', line: 1, column: 3, excerpt: 'The »delegation« reviewed the draft.' }),
+    finding({ file: 'docs/b.md', line: 4, column: 7, excerpt: 'The »delegation« signed the report.' }),
+    finding({ file: 'docs/a.md', line: 9, column: 2, excerpt: 'The »delegation« paused.' }),
+  ];
+  const grouped = render(makeInput({ findings: duplicates }));
+  const full = render(makeInput({ findings: duplicates }), { version: '1.1.0', detail: 'full' });
+
+  assert.equal((grouped.match(/<article class="finding issue/g) || []).length, 1,
+    'the same defect in three places is one issue');
+  assert.match(grouped, /<p class="count">3 occurrences<\/p>/,
+    'a group of three shows its count');
+  assert(!/· line \d+:\d+<\/h3>/.test(grouped),
+    'a group banner omits the location when several occurrences share the block');
+  const body = /<tbody>([\s\S]*?)<\/tbody>/
+    .exec(/<table class="occurrences">[\s\S]*?<\/table>/.exec(grouped)[0]);
+  const rows = [...body[1].matchAll(/<tr>([\s\S]*?)<\/tr>/g)]
+    .map(m => [...m[1].matchAll(/<td>([^<]*)<\/td>/g)].map(cell => cell[1]));
+  assert.deepEqual(rows, [
+    ['docs/a.md', '1:3', 'The »delegation« reviewed the draft.', 'The full stop runs into the next word.'],
+    ['docs/b.md', '4:7', 'The »delegation« signed the report.', 'The full stop runs into the next word.'],
+    ['docs/a.md', '9:2', 'The »delegation« paused.', 'The full stop runs into the next word.'],
+  ], 'each row carries file, location, the marked excerpt and the should-be text');
+
+  // A lone grouped finding: its occurrence table still shows the one row, but
+  // no count — a group of one is not a summary.
+  const single = render(makeInput());
+  assert.match(single, /<h3>.*\] UE-GR002 · grammar · deterministic · line 12:5<\/h3>/,
+    'a lone grouped issue keeps its location in the banner');
+  assert(!/class="count"/.test(single), 'a lone finding shows no count');
+  assert.match(single, /<table class="occurrences">/, 'a lone grouped issue still shows its occurrence row');
+
+  // Full detail never groups and never counts.
+  assert.equal((full.match(/<article class="finding severity-/g) || []).length, 3,
+    'full detail keeps one card per finding');
+  assert.equal((full.match(/<article class="finding issue/g) || []).length, 0,
+    'full detail renders no grouped issue block');
+  assert(!full.includes('<table class="occurrences">'), 'full detail carries no occurrence table');
+  assert(!/class="count"/.test(full), 'full detail never prints a group count');
+  assert.match(full, /<dt>File<\/dt><dd>docs\/a\.md<\/dd>/,
+    'full detail keeps the per-card File row the grouped table replaces');
+
+  // Both formats agree on what one issue is: the shared model groups these
+  // same findings into exactly one issue of three occurrences.
+  const model = buildReport(makeInput({ findings: duplicates }), { detail: 'grouped' })
+    .filter(element => element.type === 'issue');
+  assert.equal(model.length, 1, 'the shared model groups the same three findings into one issue');
+  assert.equal(model[0].count, 3, 'the shared model counts three occurrences');
+  assert.equal(model[0].occurrences.length, rows.length,
+    'the HTML table lists exactly the occurrences the shared model grouped');
+  assert.deepEqual(
+    model[0].occurrences.map(o => [o.file, `${o.line}:${o.column}`, o.content, o.should]),
+    rows,
+    'the HTML table matches the shared model occurrence for occurrence, in the same order');
+
+  // The banner is the model's own text, not a rewrite of it: severity, rule,
+  // category, confidence, and the location only on a group of one.
+  assert(grouped.includes(model[0].text),
+    `the grouped banner carries the model's issue text: ${model[0].text}`);
+  const lone = render(makeInput());
+  const loneIssue = buildReport(makeInput(), { detail: 'grouped' })
+    .filter(element => element.type === 'issue')[0];
+  assert(loneIssue && /· line \d+:\d+$/.test(loneIssue.text),
+    'the model puts the location on the banner of a group of one');
+  assert(lone.includes(loneIssue.text),
+    'a lone issue banner is the model text, location included');
+}
+
+// Grouping is presentation, never arithmetic: the summary counts are computed
+// from the findings before either layout runs and are identical in both modes.
+{
+  const sample = { findings: ALL_LANES, profiles: ['publishing'], sources: ['House style guide, chapter 4'] };
+  const grouped = render(makeInput(sample), { version: '1.1.0', detail: 'grouped' });
+  const full = render(makeInput(sample), { version: '1.1.0', detail: 'full' });
+  const summaryOf = html => ({
+    counts: /<p class="counts">([^<]*)<\/p>/.exec(html)[1],
+    lanes: /<p class="lanes">([^<]*)<\/p>/.exec(html)[1],
+    audits: /<dt>Audits<\/dt><dd>([^<]*)<\/dd>/.exec(html)[1],
+    sections: (html.match(/<h2>[^<]*\(\d+\)<\/h2>/g) || []).join('\n'),
+  });
+  assert.deepEqual(summaryOf(grouped), summaryOf(full),
+    'grouping changes presentation only: both detail modes report identical summary counts');
+  assert.equal(summaryOf(grouped).counts, '3 errors · 2 warnings · 0 notes',
+    'the severity counts are computed from the findings, audits excluded');
+  assert.equal(summaryOf(grouped).lanes,
+    'lanes: deterministic 1 · heuristic-review 1 · harmful-discriminatory 1 · diplomacy 1 · audit 1 · quoted 1',
+    'the lane line names all five lanes plus quoted');
+  assert.equal(summaryOf(grouped).audits, 'publishing 1', 'the audits row is unaffected by detail');
+
+  // Full detail keeps the pre-Phase-9 card layout, provenance lock included.
+  const fullCards = [...full.matchAll(CARD_RE)].map(m => m[0]);
+  assert.equal(fullCards.length, 6, 'full detail renders one card per finding');
+  assertCardShape(fullCards, 'full-detail card');
+  assert.equal((full.match(/<article class="finding issue/g) || []).length, 0,
+    'full detail renders no grouped issue block');
+  assert.match(full, /<dt>File<\/dt><dd>a\.txt<\/dd>/, 'full detail keeps the per-card File row');
+}
+
+// --- 5c: the category legend, twelve rows, text labels always ----------------
+
+{
+  const legendRowsOf = html => {
+    const table = /<table class="legend">[\s\S]*?<\/table>/.exec(html);
+    assert(table, 'the category legend renders as a table');
+    const body = /<tbody>([\s\S]*?)<\/tbody>/.exec(table[0]);
+    assert(body, 'the legend table has a body');
+    return { table: table[0], rows: [...body[1].matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map(m => m[1]) };
+  };
+  const { table, rows } = legendRowsOf(allLanes);
+  const heads = [...table.matchAll(/<th[^>]*>([^<]*)<\/th>/g)].map(m => m[1]);
+  assert.deepEqual(heads, ['Marker', 'Category', 'What it covers', 'Findings'],
+    'the legend table names its columns for a screen reader');
+  assert.equal(rows.length, 12, 'the legend lists exactly twelve categories');
+  const expected = legendRows(ALL_LANES);
+  for (const [index, entry] of CATEGORY_LEGEND.entries()) {
+    const row = rows[index];
+    assert(row, `legend row ${index + 1} missing`);
+    assert(row.includes(`background:${entry.colour}`),
+      `legend row ${index + 1} (${entry.category}) carries its marker colour`);
+    assert(row.includes(`>${entry.code}<`),
+      `legend row ${index + 1} prints the ${entry.category} marker code as text`);
+    assert(row.includes(`>${entry.category}<`),
+      `legend row ${index + 1} prints the category name beside its marker, so colour is never the only signal`);
+    assert(row.includes(`>${entry.intent}<`),
+      `legend row ${index + 1} states what the category covers`);
+    assert(row.includes(`<td>${expected[index].count}</td>`),
+      `legend row ${index + 1} reports its count (${expected[index].count})`);
+  }
+  // Categories absent from the scan keep their row rather than being dropped.
+  assert(rows.some(row => row.includes('<td>0</td>')),
+    'zero-count categories keep their legend row');
+  // The legend appears in both detail modes.
+  const full = render(makeInput({ findings: ALL_LANES, profiles: ['publishing'] }),
+    { version: '1.1.0', detail: 'full' });
+  assert.equal(legendRowsOf(full).rows.length, 12, 'the twelve-row legend appears in full detail too');
+}
+
+// --- 5d: UN-style header and footer, in both detail modes --------------------
+
+{
+  const headerRowsOf = html => {
+    const block = /<header class="doc-header">[\s\S]*?<\/header>/.exec(html);
+    assert(block, 'the document header renders');
+    return [...block[0].matchAll(/<p>([^<]*)<\/p>/g)].map(m => m[1]);
+  };
+  // headerRows over the same input the render received: if the renderer
+  // hand-wrote its own masthead, this comparison is where it drifts.
+  const expectedHeader = headerRows(makeInput());
+  const groupedHeader = headerRowsOf(allLanes);
+  assert.deepEqual(groupedHeader, expectedHeader,
+    'the header is drawn from lib/furniture.mjs headerRows, in order');
+  assert.equal(groupedHeader[0], 'EDITORIAL REVIEW', 'the header reads EDITORIAL REVIEW');
+  assert.match(groupedHeader[2], /^Document symbol: UE\/\d{4}\/\d{4} {3}Date: 28 September 2026$/,
+    'the document symbol and date line are derived from the scan input');
+  assert.equal(groupedHeader[3], 'Distribution: General', 'the distribution marking is printed');
+
+  const footerText = footerLine({ version: '1.1.0', page: 1, pages: 1 });
+  assert(allLanes.includes(`<p>${footerText}</p>`), 'the footer line is drawn from footerLine');
+  assert(allLanes.includes(`<p>${creditLine()}</p>`), 'the credit line is drawn from creditLine');
+  assert(allLanes.includes('<p>report only; findings are not changed by this report.</p>'),
+    'the report-only promise from lib/pdf.mjs still closes the page');
+
+  // Both surfaces appear in full detail too.
+  const full = render(makeInput({ findings: ALL_LANES, profiles: ['publishing'] }),
+    { version: '1.1.0', detail: 'full' });
+  assert.deepEqual(headerRowsOf(full), expectedHeader, 'the header appears in full detail');
+  assert(full.includes(`<p>${footerText}</p>`) && full.includes(`<p>${creditLine()}</p>`),
+    'the footer appears in full detail');
+}
+
+// --- 5e: the endorsement boundary --------------------------------------------
+
+{
+  // Claim row 22: the report never presents itself as United Nations
+  // endorsement. The header says EDITORIAL REVIEW, and the uppercase masthead
+  // UNITED NATIONS appears nowhere in either detail mode.
+  const framingSentence =
+    'The report never presents itself as verification of facts, legal opinion or United Nations endorsement.';
+  const full = render(makeInput({ findings: ALL_LANES, profiles: ['publishing'] }),
+    { version: '1.1.0', detail: 'full' });
+  for (const [label, doc] of [['grouped', allLanes], ['full', full]]) {
+    assert(!doc.includes('UNITED NATIONS'),
+      `${label}: no rendered report may print the UNITED NATIONS masthead`);
+    const headerBlock = /<header class="doc-header">[\s\S]*?<\/header>/.exec(doc)[0];
+    assert(!/united nations/i.test(headerBlock.replace(/EDITORIAL REVIEW/, '')),
+      `${label}: the header block itself never names the United Nations`);
+  }
+  // Beyond the one sanctioned disclaimer sentence there is no United Nations
+  // wording at all — the report never presents itself as endorsement.
+  assert(allLanes.includes(framingSentence), 'the framing disclaimer is present');
+  assert(!allLanes.replace(framingSentence, '').toLowerCase().includes('united nations'),
+    'the only United Nations wording in the report is the framing disclaimer itself');
+}
+
 // --- 6: escaping hostile input ----------------------------------------------
 
 // Only the tags the renderer itself emits may exist in a document. This is the
 // structural form of the escaping contract: strip every tag the renderer is
 // allowed to write and no angle bracket may survive, so no piece of user text
-// can become a tag no matter what it contains.
-const KNOWN_TAG = /<!DOCTYPE html>|<\/?(?:html|head|meta|title|style|body|main|h1|h2|h3|hr|dl|dt|dd|p|article|section|ul|li|footer)\b[^<>]*>/;
+// can become a tag no matter what it contains. Phase 9 adds the header block,
+// the marker span and the tables (legend and occurrence), so those tags are
+// whitelisted too — the whitelist is the set of tags this renderer writes, and
+// user text still cannot forge one because it never reaches the document
+// unescaped (locked by the "<td>injected cell</td>" fixture below).
+const KNOWN_TAG = /<!DOCTYPE html>|<\/?(?:html|head|header|meta|title|style|body|main|h1|h2|h3|hr|dl|dt|dd|p|article|section|table|thead|tbody|tr|th|td|span|ul|li|footer)\b[^<>]*>/;
 const assertNoInjectedMarkup = (document, label) => {
   const stripped = document.replace(new RegExp(KNOWN_TAG.source, 'g'), '');
   assert(!stripped.includes('<'), `${label}: an unescaped "<" reached the document`);
@@ -351,22 +598,33 @@ assert(!new RegExp(KNOWN_TAG.source).test('<script>alert(1)</script>'),
   'the tag whitelist must not accept a script element, or the check below is vacuous');
 assert(new RegExp(KNOWN_TAG.source).test('<dd>value</dd>'),
   'the tag whitelist must accept a row the renderer writes');
+assert(new RegExp(KNOWN_TAG.source).test('<table class="occurrences">'),
+  'the tag whitelist must accept the occurrence table the renderer writes');
 // The same check over an ordinary report, so it is not only the hostile fixture
 // that is proved clean.
 assertNoInjectedMarkup(allLanes, 'ordinary report');
 
 {
   // A file whose own name and copy carry markup, quotes, control characters and
-  // a bidi override. Nothing here may reach the document as markup.
+  // a bidi override. Nothing here may reach the document as markup — including
+  // into the occurrence table, whose Content cell carries the excerpt with its
+  // » … « match marks.
   const hostile = 'docs/<script>alert(1)</script>.md';
-  const message = '</dd></dl><script>alert(2)</script> & "quoted" \'apos\' <img src=x onerror=alert(3)>';
+  const message = '</dd></dl><script>alert(2)</script> & "quoted" \'apos\' <img src=x onerror=alert(3)> <td>injected cell</td>';
   const html = render(makeInput({
     targets: [hostile],
-    findings: [finding({ file: hostile, message, current: '<b>bold</b>', category: 'grammar' })],
+    findings: [finding({ file: hostile, message, current: '<b>bold</b>',
+      excerpt: 'Say »<td>injected cell</td>« twice', category: 'grammar' })],
     sources: ['<script>alert(4)</script> house style'],
   }));
 
   assertNoInjectedMarkup(html, 'hostile input');
+  // The renderer writes <td> itself now, so the whitelist would strip a raw
+  // one: this is the assertion that proves user text never becomes one.
+  assert(html.includes('Say »&lt;td&gt;injected cell&lt;/td&gt;« twice'),
+    'the occurrence Content cell carries the escaped excerpt with its match marks intact');
+  assert(!html.includes('<td>injected cell</td>'),
+    'a table tag from user text never reaches the document unescaped');
   assert(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'),
     'the hostile file path is displayed, escaped');
   assert(html.includes('&lt;/dd&gt;&lt;/dl&gt;&lt;script&gt;alert(2)&lt;/script&gt;'),
@@ -594,8 +852,15 @@ const rendered = [allLanes];
 const BANNED = /UN approved|fully compliant|finds all errors|factual verification|legal advice/i;
 for (const output of rendered) {
   assert(!BANNED.test(output), `banned phrase in a rendered report:\n${output.slice(0, 400)}`);
+  // The endorsement boundary again, at the document level: no report this
+  // suite writes — either detail mode, live corpus or hand-built — may print
+  // the uppercase masthead. Only the framing disclaimer may name the United
+  // Nations, and it never does so in capitals.
+  assert(!output.includes('UNITED NATIONS'),
+    `the UNITED NATIONS masthead reached a rendered report:\n${output.slice(0, 400)}`);
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('ok — html report: five lanes, quoted, six fields, framing, clean sentence, '
-  + 'escaping, determinism, dispatch, fail-closed extension, PDF unchanged, banned phrases');
+console.log('ok — html report: five lanes, grouped issues with occurrence tables, twelve-row '
+  + 'legend, UN-style header/footer, six fields, framing, clean sentence, escaping, '
+  + 'determinism, dispatch, fail-closed extension, PDF unchanged, banned phrases');

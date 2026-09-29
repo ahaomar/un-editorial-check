@@ -1,6 +1,30 @@
 # Changelog
 
-## 1.2.1 – 28 September 2026
+## 1.3.0 – 29 September 2026
+
+Two features in one release: `.pdf` became a supported input, and the reports were redesigned around grouped issues.
+
+### Added
+
+- **`.pdf` is a supported input.** The text is recovered from the document's own bytes — xref tables and cross-reference streams, object streams, `FlateDecode`, `ASCIIHexDecode`, `ASCII85Decode`, `LZWDecode`, `RunLengthDecode`, the standard encodings, `/Differences` and `ToUnicode` CMaps — and screened by the same rules as any other copy. A PDF is a rendered page, so the tool cannot tell a quotation from a paragraph: every unit recovered is `authored`, and quoted material inside a PDF is screened rather than exempted, which is a difference made by the format rather than a property of the copy. `line` is a visual line reconstructed from the page layout and counted continuously through the document, and JSON and SARIF carry an additional `pdfPage`. A scanned or image-only document, an encrypted document, and a document whose fonts carry no recoverable encoding are refused with exit `2` and a named reason: nothing on standard output, no partial extraction, and no clean-run sentence for a document that was not read. `--fix` refuses a PDF, as it refuses every other non-prose format.
+- **Grouped issues in the PDF and the HTML report.** Findings that agree on every value the reader sees — rule, lane, severity, confidence, category, matched text, advice and explanation — are drawn once as a single issue, with an `Occurrences` table giving each finding's own file, line and column, and a count shown when there is more than one. Two findings that differ in any of those stay apart rather than being summarised together, and `file` is not part of an issue's identity, so one defect in two files is one issue with two occurrences.
+- **`--report-detail <grouped|full>`.** `grouped` is the default and `full` restores the previous layout of one block per finding. It is a rendering choice and nothing else: the severity counts, the lane counts and the process exit code are computed from the findings before either layout runs, so the two modes cannot disagree, and neither `--format json` nor `--format sarif` takes the flag.
+- **A category legend on every surface.** The PDF, the HTML report and the terminal each state all twelve category markers with their text labels and this scan's count against each, including the categories that fired nothing, because a legend that drops part of its own vocabulary reads as though those categories do not exist. The terminal also carries the marker and the category's text label on every finding line, so the short code is never the only signal naming it.
+- **Document furniture.** Both report formats open with a header reading `EDITORIAL REVIEW` carrying the report date, the targets and the version, and carry a footer with the credit line and the page numbers. Each scan also draws a document symbol of the form `UE/<year>/<4 digits>`, assigned by the tool from the date, the targets and the version as a reference for that one scan: registered nowhere, and not a document number of any institution.
+
+### Changed behaviour to be aware of
+
+- **The default PDF and HTML layout is grouped.** A reader of either file that expected one block per finding should pass `--report-detail full` or read the occurrence table. [docs/MIGRATION.md](docs/MIGRATION.md) sets the change out in full.
+- **The terminal gained two additions**: the marker and the category after the rule id on a finding line, and a `categories:` line after `lanes:`. Neither appears on a clean run, which still prints the clean sentence and nothing else.
+- **JSON and SARIF are unchanged**: one result per finding, in the same shape as 1.2.1, whatever the detail flag says.
+
+### Verified, and how
+
+Full suite green; `p48-gate.sh` `fail=0` over eight steps and the four corpus verifiers; `qa-battery.mjs` 6/6; self-scan exit `0`; portability exit `0`; `smoke.sh 1.3.0` green. Grouping is locked by an assertion that derives its expected counts from JSON rather than from another rendering of the same model, checks both formats in both detail modes, counts the occurrence rows against the findings, and is shown to reject a report whose count drifted. The legend on the terminal is locked against its own findings, its twelve codes in catalogue order and a drift check of its own. Every claim this release adds has a row in [docs/CLAIM-EVIDENCE-AUDIT.md](docs/CLAIM-EVIDENCE-AUDIT.md) with its limitations stated in the row.
+
+### Not changed
+
+The five lanes, the exact clean-run sentence `No findings under the enabled, documented local rules.`, the `--fix` allow-list (`UE-GR001`, `UE-GR002`, `UE-GR003`, `UE-NU002`, `UE-SP001`), the exit-code mapping, that heuristic findings are review severity by default, that audits never move the exit code, and that no report settles a question of fact, of law or of institutional endorsement. Zero npm dependencies. No rule was changed for this release.
 
 ## 1.2.1 – 28 September 2026
 
@@ -15,8 +39,6 @@ A single defect fix, found by CI rather than by any local check.
 ### Unchanged
 
 Everything else. The five lanes, the clean-run wording, the `--fix` allow-list, the exit-code contract, the report formats and zero npm dependencies are as in 1.2.0.
-
-## 1.2.0 – 28 September 2026
 
 ## 1.2.0 – 28 September 2026
 

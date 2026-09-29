@@ -232,7 +232,7 @@ console.log('ok — glossary catalogue: UE-GL001/UE-GL002 registered, no invente
   const report = buildReport({
     version: '0.0.0', date: '2026-01-01', targets: [draft], profiles: [],
     filesCount: 1, findings: json(scan(draft, '--glossary', house)).findings, sources: [],
-  });
+  }, { detail: 'full' });
   const kv = label => report.find(e => e.type === 'kv' && e.label === label);
   assert.equal(kv('Audit').value, 'glossary', 'the PDF block carries the glossary audit row');
   assert.match(kv('Profile').value, /glossary/, 'the PDF block carries the glossary profile');
@@ -248,7 +248,7 @@ console.log('ok — glossary catalogue: UE-GL001/UE-GL002 registered, no invente
     version: '0.0.0', date: '2026-01-01', targets: [draft], profiles: [],
     filesCount: 1, findings: json(scan(draft, '--glossary', house)).findings,
     sources: [`Reader-supplied glossary: ${house}`],
-  });
+  }, { detail: 'full' });
   const bullets = withSources.find(e => e.type === 'bullets');
   assert.ok(bullets, 'a glossary run has a Sources appendix');
   assert.ok(bullets.items.some(item => item.includes(house)),

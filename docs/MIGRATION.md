@@ -7,6 +7,7 @@ This guide lists every behaviour change in each release and what an existing use
 | Version | Change | Migration action |
 |---|---|---|
 | 1.3.0 | `.pdf` is a supported input | Check any pipeline that enumerated the supported extensions, or that extracted PDF text itself before scanning |
+| 1.3.0 | PDF and HTML reports group identical issues into one counted row, and carry a category legend and document header, footer and symbol; the terminal prints a category marker on each finding line and a legend of its own | Use `--report-detail full` for the previous report layout; JSON and SARIF are unchanged, and a parser of the terminal text needs the two additions noted below |
 | 1.0.0 | The clean-run sentence changed wording | Update any grep, test or dashboard that matches the old sentence; exit codes are unchanged |
 | Five output lanes replace the flat section list | Re-key text-report parsers; `--format json` and SARIF gain fields, existing fields stay |
 | Heuristic findings are review severity by default | If you relied on them failing the build, set `severities` for those rules |
@@ -27,6 +28,18 @@ This is a behaviour change a pipeline will notice, in three specific ways.
 3. **A PDF finding carries an extra field.** JSON and SARIF findings from a PDF include `pdfPage`, the 1-based page. The text output is unchanged: still `file:line:column`, where the line is a *visual* line reconstructed from the page layout rather than a line of a source file. Existing fields are untouched, so a consumer that ignores unknown keys needs no change.
 
 **What you must do.** If your pipeline enumerated supported extensions to decide what to scan, add `.pdf` deliberately rather than by accident — decide whether you want a PDF screened in place, and if you previously extracted PDF text to a `.txt` and scanned that, you may now prefer the direct route. Keep the paste-the-text-into-a-`.txt` path for the documents that still refuse: it is the documented route for scanned, encrypted and undecodable-font PDFs, and it also gives a cleaner result, because a text file lets the tool classify quotations and the recovered PDF text cannot. Do not add a rule of your own that assumes `--fix` will rewrite a PDF: it refuses, as it refuses HTML, JavaScript and JSON.
+
+## Grouped reports, the category legend and document furniture (1.3.0)
+
+**What changed.** Three presentation features, none of them a rule, a severity or a count.
+
+1. **Identical issues are grouped.** In the PDF and the HTML report, findings that are the same in every value the reader sees — rule, lane, severity, confidence, category, the matched text, the advice and the explanation — are drawn once as a single issue, with an `Occurrences` table listing each finding's own file, line and column, and a count shown when there is more than one. The previous layout, one block per finding, is `--report-detail full`. The default is the grouped layout, so an existing reader of the HTML or the PDF sees a different structure the first time it runs.
+2. **A category legend.** The PDF, the HTML report and the terminal each state all twelve category markers with their text labels, and this scan's count against each. Every terminal finding line now also carries its marker and category between the rule id and the confidence, where before it carried only the rule id.
+3. **Document furniture.** Both report formats carry a header reading `EDITORIAL REVIEW` with the report date, the targets and the version, a footer with the credit line and the page numbers, and a document symbol of the form `UE/<year>/<4 digits>`.
+
+**What grouping does not do.** It is a rendering choice and nothing else. The severity counts, the lane counts and the process exit code are computed from the findings before either layout runs, so `grouped` and `full` cannot disagree about them. JSON and SARIF do not take the flag at all: they carry one result per finding, byte for byte as before. The document symbol is assigned by the tool from the date, the targets and the version as a stable reference for that one scan; it is registered nowhere and it is not a United Nations symbol number, so nothing should key on it as though it identified a document beyond this tool.
+
+**What you must do.** If you parse the PDF or the HTML, either pass `--report-detail full` to keep reading the layout you have, or read the grouped layout: one issue per distinct finding, with occurrences listed under it. If you parse terminal output line by line, expect two additions — the marker and category after the rule id on a finding line, and a `categories:` line after `lanes:` — and note that neither appears on a clean run. If you consume `--format json` or SARIF, there is nothing to do.
 
 ## The clean-run sentence (1.0.0)
 

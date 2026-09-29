@@ -227,6 +227,56 @@ for (const [label, argv] of [
   assert(!clean.includes('lanes:'), 'no lane line on an empty scan');
 }
 
+// --- 4b: the category marker and legend on the terminal ----------------------
+//
+// PHASE-9-PLAN §5 and DoD 5: the text report draws a legend of exactly the
+// catalogue's twelve categories, and every finding line carries the short
+// marker code together with the category's text label, so the code is never
+// the only thing naming the category. Both are read from the findings in hand
+// — nothing on the terminal is transcribed from a report of the same run — and
+// both are gated on there being findings, so a clean run still prints the
+// clean sentence and nothing else.
+
+{
+  const CATEGORIES = ['SP', 'GR', 'NU', 'TM', 'RG', 'AR', 'HS', 'DS', 'DP', 'PB', 'AC', 'SC'];
+  const target = fixture('fix', 'protected.md');
+
+  const truth = json(capture([target, '--format', 'json']));
+  const text = capture([target]).stdout;
+
+  const legend = /^categories: (.+)$/m.exec(text);
+  assert(legend, 'the terminal states the category legend');
+  const shown = legend[1].split(' · ').map(entry => entry.split(' '));
+  assert.deepEqual(shown.map(entry => entry[0]), CATEGORIES,
+    'the legend covers exactly the twelve categories, in catalogue order');
+  assert.match(legend[1], /SP spelling \d+/, 'a legend row carries the code, the label and a count');
+
+  const counted = shown.reduce((sum, entry) => sum + Number(entry[2]), 0);
+  assert.equal(counted, truth.findings.length,
+    'the legend counts add up to the findings JSON says were reported');
+
+  // Every finding names its category in words on the line that reports it.
+  const findingLines = text.split('\n').filter(line => /^ {2}.+:\d+:\d+ {2}UE-/.test(line));
+  assert.equal(findingLines.length, truth.findings.length, 'one line per finding');
+  for (const line of findingLines) {
+    assert.match(line, /UE-\w+  (SP|GR|NU|TM|RG|AR|HS|DS|DP|PB|AC|SC) \S+/,
+      'the finding line carries the marker code and its text label together');
+  }
+
+  // A clean run carries no legend at all — it is a report of a scan that found
+  // something, not a standing statement about the catalogue.
+  const clean = capture([write('legend-clean.txt', 'The organisation reports the figure.\n')]).stdout;
+  assert(!clean.includes('categories:'), 'no category legend on an empty scan');
+
+  // The counts are read from the findings, so a legend that disagreed with the
+  // findings it was derived from would be caught rather than believed.
+  const drifted = legend[1].replace(/SP spelling \d+/, 'SP spelling 99');
+  const driftedCount = drifted.split(' · ')
+    .reduce((sum, entry) => sum + Number(entry.split(' ')[2]), 0);
+  assert.notEqual(driftedCount, truth.findings.length,
+    'the legend comparison actually rejects a count that drifted');
+}
+
 // --- 5: heuristic default severity flip --------------------------------------
 
 {
@@ -514,6 +564,118 @@ const FRAMING = 'The report never presents itself as verification of facts, lega
     'the HTML states the framing disclaimer exactly once');
 }
 
+// --- 8c: grouping is presentation, never arithmetic --------------------------
+//
+// PHASE-9-PLAN §2 and DoD 2: grouping must not move a single number. Seven
+// occurrences still count as seven everywhere counts appear, in every format,
+// and every occurrence the report claims is still listed individually.
+//
+// This is the one property in Phase 9 that could quietly lie — an issue that
+// reads "5 occurrences" over four findings would look entirely reasonable to a
+// reader and to a reviewer both — so it is checked against counts derived
+// independently from JSON rather than against another report's rendering of the
+// same model, and it is checked in both formats in both detail modes.
+//
+// The fixture is tests/fixtures/fix/protected.md: five findings that share
+// rule, text, message, severity and lane, so the grouped report must collapse
+// them to exactly one issue while the summary stays at five.
+
+const COUNTS_RE = /(\d+) errors · (\d+) warnings · (\d+) notes/;
+
+const parseCounts = (text) => {
+  const m = COUNTS_RE.exec(text);
+  assert.ok(m, `no counts line in: ${String(text).slice(0, 200)}`);
+  return { errors: Number(m[1]), warnings: Number(m[2]), notes: Number(m[3]) };
+};
+
+const occurrenceRows = (html) => {
+  const table = /<table class="occurrences">([\s\S]*?)<\/table>/.exec(html);
+  if (!table) return 0;
+  // One <tr> in <thead> is the column header, not an occurrence.
+  return (table[1].match(/<tr>/g) || []).length - 1;
+};
+
+{
+  const target = fixture('fix', 'protected.md');
+
+  const truth = json(capture([target, '--format', 'json']));
+  const expected = truth.findings.reduce((acc, finding) => {
+    if (finding.severity === 'error') acc.errors += 1;
+    else if (finding.severity === 'warning') acc.warnings += 1;
+    else acc.notes += 1;
+    return acc;
+  }, { errors: 0, warnings: 0, notes: 0 });
+  assert.equal(truth.findings.length, 5, 'the fixture still fires the five findings the lock is built on');
+  assert.ok(truth.findings.length > 1, 'grouping has something to group');
+
+  // JSON is a machine format for CI: one result per finding, and the detail
+  // flag is a rendering choice it never sees. Grouping must not reach it.
+  const withFlag = capture([target, '--format', 'json', '--report-detail', 'grouped']);
+  assert.equal(withFlag.stdout, capture([target, '--format', 'json']).stdout,
+    'the grouped detail flag leaves JSON byte-identical');
+
+  const reports = {};
+  for (const mode of ['grouped', 'full']) {
+    const extra = mode === 'full' ? ['--report-detail', 'full'] : [];
+    const pdfPath = path.join(tmp, `counts-${mode}.pdf`);
+    const htmlPath = path.join(tmp, `counts-${mode}.html`);
+    const pdfRun = capture([target, '--report', pdfPath, ...extra]);
+    const htmlRun = capture([target, '--report', htmlPath, ...extra]);
+    assert.equal(pdfRun.code, 1, `--report in ${mode} detail keeps the failing exit code`);
+    assert.equal(htmlRun.code, 1, `--report in ${mode} detail keeps the failing exit code`);
+    reports[mode] = {
+      pdf: pdfLines(fs.readFileSync(pdfPath)).join(' '),
+      html: fs.readFileSync(htmlPath, 'utf8'),
+    };
+  }
+
+  // Every format, both modes, says exactly what JSON says.
+  for (const mode of ['grouped', 'full']) {
+    assert.deepEqual(parseCounts(reports[mode].pdf), expected,
+      `the ${mode} PDF reports the counts JSON proves`);
+    const htmlCounts = COUNTS_RE.exec(reports[mode].html);
+    assert.ok(htmlCounts, `the ${mode} HTML carries a counts line`);
+    assert.deepEqual(
+      { errors: Number(htmlCounts[1]), warnings: Number(htmlCounts[2]), notes: Number(htmlCounts[3]) },
+      expected,
+      `the ${mode} HTML reports the counts JSON proves`);
+  }
+  assert.equal(reports.grouped.pdf.match(COUNTS_RE)[0], reports.full.pdf.match(COUNTS_RE)[0],
+    'grouping does not change a single number in the PDF');
+  assert.equal(reports.grouped.html.match(COUNTS_RE)[0], reports.full.html.match(COUNTS_RE)[0],
+    'grouping does not change a single number in HTML');
+
+  // The lane line is a count too, and it is the one a reader routes work by.
+  const lanesOf = (text) => /lanes: [^D]*/.exec(text)[0].trim();
+  assert.equal(lanesOf(reports.grouped.pdf), lanesOf(reports.full.pdf),
+    'grouping does not change the PDF lane counts');
+
+  // Every occurrence is still listed: five findings, five rows, whether the
+  // report draws them as one issue or as five blocks.
+  assert.equal((reports.grouped.pdf.match(/\bFile\b/g) || []).length, truth.findings.length,
+    'the grouped PDF lists every finding as its own occurrence row');
+  assert.equal(occurrenceRows(reports.grouped.html), truth.findings.length,
+    'the grouped HTML lists every finding as its own table row');
+  assert.equal(occurrenceRows(reports.full.html), 0,
+    'the full detail HTML carries no occurrence table at all');
+
+  // Exactly one issue, because all five findings share a key — and the count
+  // is shown, because it is more than one.
+  assert.equal((reports.grouped.pdf.match(/\b\d+ occurrences\b/g) || []).length, 1,
+    'the five findings collapse to exactly one counted issue');
+  assert.ok(reports.grouped.pdf.includes('5 occurrences'),
+    'the issue states the real number of occurrences');
+  assert.ok(!/\b1 occurrences?\b/.test(reports.grouped.pdf),
+    'a count is never shown for a group of one');
+
+  // The comparison above is only worth what it can fail. Feed it a report in
+  // which one number drifted and prove it rejects it — otherwise this section
+  // would pass on a counts line nobody was reading.
+  const drifted = reports.grouped.pdf.replace('5 errors', '4 errors');
+  assert.notDeepEqual(parseCounts(drifted), expected,
+    'the counts comparison actually rejects a report whose count drifted');
+}
+
 // --- 9: quoted material is a context, not a lane ----------------------------
 
 // Quoted spans are masked by extraction (a quotation is never scanned as the
@@ -541,4 +703,6 @@ for (const output of rendered) {
 }
 
 console.log('ok — lanes: metadata, safety lane, diplomacy lane, sections, heuristic flip, '
-  + 'audit lane, audit exit-code invariant, SARIF, PDF, quoted context, banned phrases');
+  + 'audit lane, audit exit-code invariant, SARIF, PDF, quoted context, framing on both formats, '
+  + 'grouping is presentation: counts and occurrence rows equal JSON in every format and mode, '
+  + 'terminal category marker and twelve-category legend, banned phrases');

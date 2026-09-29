@@ -10,6 +10,12 @@
 import assert from 'node:assert/strict';
 import { buildReport, assertElements } from '../lib/report.mjs';
 
+// This suite describes the pre-Phase-9 layout — one block per finding — which
+// `--report-detail full` restores. The grouped default has its own assertions
+// at the end of the file; nothing here was rewritten to fit it, only pointed at
+// the mode it has always been describing.
+const buildReportFull = (input) => buildReport(input, { detail: 'full' });
+
 // --- fixtures ---------------------------------------------------------------
 
 const severityTag = { error: 'ERROR', warning: 'WARNING', info: 'NOTE' };
@@ -134,11 +140,11 @@ assert.throws(
 );
 assert.throws(() => assertElements([{}]), /unknown element type/);
 assert.throws(() => assertElements([null]), /unknown element type/);
-assertElements(buildReport(makeInput()), 'buildReport output stays inside the union');
+assertElements(buildReportFull(makeInput()), 'buildReport output stays inside the union');
 
 // --- cover block and kv rows ------------------------------------------------
 
-const report = buildReport(makeInput({
+const report = buildReportFull(makeInput({
   targets: ['docs', 'README.md'],
   profiles: ['publishing', 'accessibility'],
 }));
@@ -156,7 +162,7 @@ assert.equal(report[4].value, 'publishing, accessibility');
 assert.equal(report[5].value, '4', 'kv value coerced with String()');
 assert.deepEqual(report[6], { type: 'rule' }, 'hairline rule closes the cover block');
 
-const noProfiles = buildReport(makeInput());
+const noProfiles = buildReportFull(makeInput());
 assert(!noProfiles.some(e => e.type === 'kv' && e.label === 'Profiles'), 'empty profiles omits the row');
 assert.deepEqual(
   noProfiles.slice(1, 5).map(e => e.label),
@@ -208,7 +214,7 @@ const fullFindings = [
   }),
 ];
 const fullSources = ['House style guide, chapter 4', 'United Nations editorial manual'];
-const full = buildReport(makeInput({
+const full = buildReportFull(makeInput({
   profiles: ['publishing'],
   findings: fullFindings,
   sources: fullSources,
@@ -299,7 +305,7 @@ assert.deepEqual(full[warnIdx], {
 });
 
 // info and unknown severities render as notes
-const odd = buildReport(makeInput({ findings: [
+const odd = buildReportFull(makeInput({ findings: [
   finding({ line: 1, severity: 'info' }),
   finding({ line: 2, severity: 'fatal' }),
 ] }));
@@ -311,7 +317,7 @@ assert(oddBanners[1].text.startsWith('[NOTE]'), 'unknown severity falls back to 
 
 // --- should-be fallback: proposed ?? suggestion ?? message, and markers -----
 
-const fallback = buildReport(makeInput({ findings: [
+const fallback = buildReportFull(makeInput({ findings: [
   finding({ line: 1, proposed: 'Propose one.', suggestion: 'Suggest one.', message: 'Message one.' }),
   finding({ line: 2, proposed: null, suggestion: 'Suggest two.', message: 'Message two.' }),
   finding({ line: 3, proposed: null, suggestion: null, message: 'Message three.' }),
@@ -353,7 +359,7 @@ assert(!queueTexts[1].endsWith('...'),
 
 // The cut boundary itself: exactly 80 passes untouched, 81 is cut and marked.
 {
-  const boundary = buildReport(makeInput({ findings: [
+  const boundary = buildReportFull(makeInput({ findings: [
     finding({ line: 1, column: 1, ruleId: 'UE-HS001', severity: 'error',
       confidence: 'heuristic', message: 'x'.repeat(80) }),
     finding({ line: 2, column: 1, ruleId: 'UE-HS002', severity: 'error',
@@ -371,7 +377,7 @@ assert(!queueTexts[1].endsWith('...'),
     'a message over 80 characters is cut at 80 and suffixed with ...');
 }
 
-const det = buildReport(makeInput());
+const det = buildReportFull(makeInput());
 assert(!det.some(e => e.type === 'heading' && e.text === 'Review queue (heuristic findings)'),
   'queue section skipped when nothing is heuristic');
 assert(!det.some(e => e.type === 'paragraph' && e.text === 'Heuristic finding — routed to review.'),
@@ -414,7 +420,7 @@ assert.notEqual(full[full.length - 1].items, fullSources, 'bullets items are a f
 
 // --- empty scan -------------------------------------------------------------
 
-const empty = buildReport(makeInput({ findings: [] }));
+const empty = buildReportFull(makeInput({ findings: [] }));
 assert(!empty.some(e => e.type === 'heading'), 'empty scan renders no section headings');
 const noFindingsIdx = empty.findIndex(e => e.type === 'paragraph' && e.text === 'No findings.');
 assert(noFindingsIdx >= 0, 'empty scan says No findings.');
@@ -423,14 +429,14 @@ assert.equal(noFindingsIdx, emptyLegend3 + 1, 'No findings. follows the legend d
 assert(paragraphTexts(empty).includes('0 errors · 0 warnings · 0 notes'), 'zero counts on an empty scan');
 assert.deepEqual(empty[0], { type: 'banner', kind: 'title', text: 'UN Editorial Review' });
 
-const emptyWithSources = buildReport(makeInput({ findings: [], sources: ['House style guide, chapter 4'] }));
+const emptyWithSources = buildReportFull(makeInput({ findings: [], sources: ['House style guide, chapter 4'] }));
 const emptyNoteIdx = emptyWithSources.findIndex(e => e.type === 'paragraph' && e.text === 'No findings.');
 assert(emptyNoteIdx >= 0 && emptyNoteIdx < headingIndex(emptyWithSources, 'Sources'),
   'empty note precedes the sources appendix');
 
 // --- sorting: line then column inside a file --------------------------------
 
-const sorted = buildReport(makeInput({ findings: [
+const sorted = buildReportFull(makeInput({ findings: [
   finding({ line: 10, column: 1, ruleId: 'UE-GR001' }),
   finding({ line: 3, column: 9, ruleId: 'UE-GR002' }),
   finding({ line: 3, column: 2, ruleId: 'UE-TE003' }),
@@ -448,7 +454,7 @@ const interleaved = [
   finding({ file: 'b.md', line: 1, column: 1, ruleId: 'UE-TE003' }),
   finding({ file: 'a.md', line: 1, column: 6, ruleId: 'UE-GR002' }),
 ];
-const grouped = buildReport(makeInput({ findings: interleaved }));
+const grouped = buildReportFull(makeInput({ findings: interleaved }));
 assert.deepEqual(
   grouped.filter(e => e.type === 'heading' && e.level === 2).map(e => e.text),
   ['b.md', 'a.md'],
@@ -470,15 +476,15 @@ assert.deepEqual(
 // --- determinism and purity -------------------------------------------------
 
 const sample = { profiles: ['publishing'], findings: interleaved, sources: fullSources };
-const one = buildReport(makeInput(sample));
-const two = buildReport(makeInput(sample));
+const one = buildReportFull(makeInput(sample));
+const two = buildReportFull(makeInput(sample));
 assert.deepEqual(one, two, 'same input yields deeply equal output');
-const copy = buildReport(JSON.parse(JSON.stringify(makeInput(sample))));
+const copy = buildReportFull(JSON.parse(JSON.stringify(makeInput(sample))));
 assert.deepEqual(one, copy, 'output depends only on input data');
 
 const frozen = deepFreeze(makeInput(sample));
 const snapshot = JSON.parse(JSON.stringify(frozen));
-const fromFrozen = buildReport(frozen);
+const fromFrozen = buildReportFull(frozen);
 assert.deepEqual(JSON.parse(JSON.stringify(frozen)), snapshot, 'input findings are never mutated');
 assert.deepEqual(fromFrozen, one, 'a deep-frozen input renders identically');
 assertElements(fromFrozen, 'frozen-run output stays inside the union');
@@ -517,7 +523,7 @@ assert.deepEqual(full[errIdx + 5], { type: 'kv', label: 'Source', value: 'rules/
 // Quoted material: reported separately, never skipped. A quoted finding
 // leaves the file groups, keeps its lane rows, counts as quoted rather than
 // as its lane, and a quoted heuristic never enters the review queue.
-const quotedReport = buildReport(makeInput({ findings: [
+const quotedReport = buildReportFull(makeInput({ findings: [
   finding({ file: 'docs/quote.md', line: 2, column: 1, ruleId: 'UE-SP001',
     category: 'spelling', severity: 'error', context: 'quoted',
     current: '"organisation"', message: 'Spelling preference.' }),
@@ -549,4 +555,119 @@ assert(!quotedReport.some(e => e.type === 'heading'
   && e.text === 'Review queue (heuristic findings)'),
 'quoted heuristic findings stay out of the review queue');
 
-console.log('ok — report model: union, order, blocks, should-be, queue, audits, sources, empty, sorting, purity, lanes, quoted');
+// --- 11: the grouped default ------------------------------------------------
+//
+// PHASE-9-PLAN §8 asks for this section explicitly: the suite used to assert
+// one block per finding, and it must now assert the grouping and that
+// provenance survives summarising. The layout assertions above were pointed at
+// `full`, not deleted — they still describe the report `--report-detail full`
+// renders, and they still fail if that report regresses.
+
+{
+  // Three findings that are the same issue in every way but where they were
+  // found, then one that differs in advice, one in its explanation, and one in
+  // the text it found. Six findings, four issues.
+  const same = (over) => finding({
+    line: 12, column: 5, current: 'The the', message: 'Doubled word.',
+    proposed: 'The', _replacement: 'The',
+    excerpt: 'The »the« report was short.', ...over,
+  });
+  const input = makeInput({ findings: [
+    same({}),
+    same({ line: 48, column: 1 }),
+    same({ file: 'docs/other.md', line: 3, column: 2 }),
+    same({ line: 60, proposed: 'The one.', _replacement: 'The one.' }),
+    same({ line: 70, message: 'A different explanation.' }),
+    finding({ line: 80, current: 'is is', message: 'Doubled word.',
+      proposed: 'The', _replacement: 'The' }),
+  ] });
+
+  // Captured before a single buildReport runs: everything below renders from
+  // this object, and the check at the end of the block is only worth something
+  // if nothing has touched it yet.
+  const pristine = JSON.parse(JSON.stringify(input));
+
+  const grouped = buildReport(input);
+  const full = buildReportFull(input);
+  assertElements(grouped, 'the grouped default stays inside the union');
+  assert.equal(
+    full.filter(e => e.type === 'issue').length, 0,
+    '`full` is the pre-Phase-9 layout and contains no issue element',
+  );
+  assert.notEqual(grouped, full, 'the two layouts are actually different');
+
+  const issues = grouped.filter(e => e.type === 'issue');
+  assert.equal(issues.length, 4, 'six findings collapse to four issues');
+  const occurrences = issues.reduce((n, issue) => n + issue.occurrences.length, 0);
+  assert.equal(occurrences, 6, 'every finding is still accounted for as an occurrence');
+
+  // `file` is not part of an issue's identity: one defect in two files is one
+  // issue, and the occurrence table carries each file.
+  assert.equal(issues[0].count, 3, 'the three alike findings are one issue');
+  assert.deepEqual(
+    issues[0].occurrences.map(o => `${o.file}:${o.line}:${o.column}`),
+    ['docs/page.md:12:5', 'docs/page.md:48:1', 'docs/other.md:3:2'],
+    'occurrences keep their own file, line and column, in position order',
+  );
+
+  // Differences that make two findings unlike stay separate rather than being
+  // silently summarised together.
+  assert.equal(issues[1].should, 'The one.' + FIXABLE_SUFFIX,
+    'different advice is a different issue');
+  assert.equal(issues[2].message, 'A different explanation.',
+    'different explanations are different issues');
+  assert.equal(issues[3].current, 'is is', 'different defective text is a different issue');
+
+  // The six provenance fields survive summarising on every issue, whatever its
+  // size — this is the property that makes summarising honest at all.
+  const SIX = ['Lane', 'Source', 'Profile', 'Confidence', 'Limitation', 'Action'];
+  for (const issue of issues) {
+    assert.deepEqual(issue.provenance.map(p => p.label), SIX,
+      `issue ${issue.ruleId} carries all six provenance fields in order`);
+    for (const row of issue.provenance) {
+      assert.equal(typeof row.value, 'string');
+      assert.ok(row.value.length > 0 || row.label === 'Limitation',
+        `provenance row ${row.label} has a value`);
+    }
+  }
+
+  // A count is shown only when it is more than one.
+  for (const issue of issues) {
+    const located = issue.text.includes('· line ');
+    assert.equal(located, issue.count === 1,
+      `issue with count ${issue.count} ${located ? 'names' : 'omits'} its line`);
+  }
+
+  // Content comes from the scan-time excerpt, and falls back to the matched
+  // token when a finding carries no excerpt — never to nothing.
+  assert.equal(issues[0].occurrences[0].content, 'The »the« report was short.',
+    'the occurrence shows the excerpt captured at scan time');
+  assert.ok(issues[3].occurrences[0].content,
+    'a finding with no excerpt still shows the copy it matched');
+
+  // Grouping is presentation. Both layouts compute the counts from the
+  // findings before either runs, so they cannot disagree.
+  const countsOf = (report) =>
+    report.find(e => e.type === 'paragraph' && /\d+ errors · \d+ warnings · \d+ notes/.test(e.text)).text;
+  const lanesOf = (report) =>
+    report.find(e => e.type === 'paragraph' && e.text.startsWith('lanes:')).text;
+  assert.equal(countsOf(grouped), countsOf(full),
+    'grouping does not change the severity counts');
+  assert.equal(lanesOf(grouped), lanesOf(full),
+    'grouping does not change the lane counts');
+
+  // Purity holds for the default layout too, not only for `full`.
+  const one = buildReport(input);
+  const two = buildReport(input);
+  assert.deepEqual(one, two, 'identical input gives identical grouped output');
+  const deep = JSON.parse(JSON.stringify(input));
+  assert.deepEqual(buildReport(deep), one, 'a decoded copy renders the same');
+  const frozen = JSON.parse(JSON.stringify(input));
+  Object.freeze(frozen);
+  for (const item of frozen.findings) Object.freeze(item);
+  assert.deepEqual(buildReport(frozen), one, 'a frozen input renders like a fresh one');
+  assert.deepEqual(input, pristine,
+    'buildReport does not mutate the findings it was given');
+}
+
+console.log('ok — report model: union, order, blocks, should-be, queue, audits, sources, empty, sorting, purity, lanes, quoted, grouped issues with provenance and presentation-only counts');

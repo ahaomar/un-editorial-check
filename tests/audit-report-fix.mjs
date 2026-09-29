@@ -3,9 +3,21 @@
 //   Item 1 — the PDF must show a real en dash: UE-NU002's defect IS the dash,
 //            so `Current` (hyphen) and `Should be` (en dash) must not print
 //            identically; WinAnsi encodes en dash at 0x96 and em dash at 0x97.
-//            Determinism, the magic, the trailer and the every-page footer are
-//            re-locked here for the real --report output, not just synthetic
-//            elements.
+//            Determinism, the magic, the trailer and the every-page header
+//            and footer furniture are re-locked here for the real --report
+//            output, not just synthetic elements. Phase 9 adds the JSON-vs-PDF
+//            locks: the banner, the six provenance rows, the Occurrences list,
+//            the counts paragraph and the twelve-row legend are all compared
+//            against the same run's `--format json` output.
+//   Item 1c — the grouped layout: two findings that render identically become
+//            one issue — one banner without a location, exactly one count
+//            marker (`2 occurrences`), both positions listed, and legend
+//            counts that sum to the findings rather than to the issue count.
+//   Item 1d — `--report-detail full` is presentation only: both findings keep
+//            their located banners, there is no Occurrences list and no count
+//            marker, and the counts paragraph is byte-identical to the
+//            grouped report's. Confidence rides the banner here, so the five
+//            lane rows close each block instead of six kv rows.
 //   Item 4 — --fix must not leave a sentence starting in lower case: a
 //            replacement that lands at a sentence start is capitalised, a
 //            mid-sentence replacement keeps its lower case, and the existing
@@ -35,9 +47,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { run } from '../bin/check.mjs';
+import { run, VERSION } from '../bin/check.mjs';
 import { planFixes, writeSafely } from '../lib/fix.mjs';
 import { renderPdf } from '../lib/pdf.mjs';
+import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
+import { creditLine, footerLine, headerRows } from '../lib/furniture.mjs';
 
 // --- harness ----------------------------------------------------------------
 
@@ -70,19 +84,50 @@ const scanIds = (file) => {
 // technique the audit used, mirroring tests/pdf-structural.mjs.
 const LINE_RE = /\/(F[123]) ([0-9.]+) Tf ([0-9.-]+) ([0-9.-]+) Td \(((?:\\[\s\S]|[^\\()])*)\) Tj/g;
 
-function extractLines(pdf) {
+// Page geometry, restated from the contract rather than imported from the
+// renderer the assertions check.
+const MARGIN = 54;
+const LABEL_COL = 84;
+
+// The footer's closing promise, quoted from lib/furniture's own output shape
+// (the renderer draws it as its own line of text).
+const FOOTER_TAIL_TEXT = 'report only; findings are not changed by this report.';
+
+function unpdf(operand) {
+  return operand.replace(/\\([()\\])/g, '$1');
+}
+
+function extractLinesFrom(body) {
   const out = [];
-  for (const m of pdf.toString('latin1').matchAll(LINE_RE)) {
+  for (const m of body.matchAll(LINE_RE)) {
     out.push({
       font: m[1],
       size: Number(m[2]),
       x: Number(m[3]),
       y: Number(m[4]),
-      text: m[5].replace(/\\([()\\])/g, '$1'),
+      text: unpdf(m[5]),
     });
   }
   return out;
 }
+
+function streamBodies(pdf) {
+  return [...pdf.toString('latin1').matchAll(/stream\n([\s\S]*?)\nendstream/g)].map(m => m[1]);
+}
+
+/** Every drawn line of the whole document, in stream (page) order. */
+function extractLines(pdf) {
+  return streamBodies(pdf).flatMap(extractLinesFrom);
+}
+
+/** The drawn lines page by page: header first, footer last, on every page. */
+function pageLines(pdf) {
+  return streamBodies(pdf).map(extractLinesFrom);
+}
+
+// Word wrapping collapses runs of whitespace, so a drawn line and the string
+// it was drawn from are compared with the runs collapsed on both sides.
+const squash = (text) => text.replace(/\s+/g, ' ').trim();
 
 // The kv label sits at x=54 (bold), its value at x=54+84=138 (regular).
 function kvValue(lines, label) {
@@ -92,6 +137,158 @@ function kvValue(lines, label) {
   assert(value && value.x === 138 && value.font === 'F1',
     `missing kv value row after ${label}: ${JSON.stringify(lines[i + 1])}`);
   return value.text;
+}
+
+/**
+ * The value of one kv row including every wrapped continuation line: a value
+ * wider than the value column continues at x=138 on the lines below, and a
+ * truncated read would compare only the first fragment.
+ */
+function kvValueAll(lines, label, from = 0) {
+  const i = lines.findIndex((l, j) =>
+    j >= from && l.text === label && l.x === MARGIN && l.font === 'F2' && l.size === 10.5);
+  assert(i >= 0, `missing kv label: ${label}`);
+  const parts = [];
+  for (let j = i + 1; j < lines.length
+    && lines[j].x === MARGIN + LABEL_COL && lines[j].font === 'F1'
+    && lines[j].size === 10.5; j++) {
+    parts.push(lines[j].text);
+  }
+  assert(parts.length > 0, `missing kv value row after ${label}`);
+  return squash(parts.join(' '));
+}
+
+// The legend's four columns, read positionally from the slice between the
+// `Category legend` heading and the next level-1 heading.
+function legendSlice(lines) {
+  const start = lines.findIndex(l =>
+    l.text === 'Category legend' && l.font === 'F2' && l.size === 16 && l.x === MARGIN);
+  assert(start >= 0, 'the category legend heading is present');
+  const end = lines.findIndex((l, j) =>
+    j > start && l.font === 'F2' && l.size === 16 && l.x === MARGIN);
+  return lines.slice(start + 1, end === -1 ? lines.length : end);
+}
+
+function legendFields(lines) {
+  const region = legendSlice(lines);
+  return {
+    names: region.filter(l => l.font === 'F2' && l.size === 10.5 && l.x === 86)
+      .map(l => l.text),
+    codes: region.filter(l => l.font === 'F2' && l.size === 8 && l.x > 54 && l.x < 80)
+      .map(l => l.text),
+    intents: region.filter(l => l.font === 'F1' && l.size === 9 && l.x === 200)
+      .map(l => l.text),
+    counts: region.filter(l => l.font === 'F1' && l.size === 9 && l.x > 400
+      && /^\d+$/.test(l.text)).map(l => Number(l.text)),
+  };
+}
+
+/**
+ * The JSON-side mirror of the WinAnsi fold, so a value read out of `--format
+ * json` can be compared with the bytes the PDF drew: curly quotes fold to
+ * ASCII, en/em dash take their WinAnsi bytes, the ellipsis becomes three dots
+ * and the soft hyphen disappears.
+ */
+const winansi = (text) => String(text)
+  .replace(/[\u2018\u2019]/g, "'")
+  .replace(/[\u201C\u201D]/g, '"')
+  .replace(/\u2013/g, '\u0096')
+  .replace(/\u2014/g, '\u0097')
+  .replace(/\u2026/g, '...')
+  .replace(/\u00AD/g, '');
+
+// Severity presentation, restated from the report's own rule: error and
+// warning keep their name, everything else reads as a note.
+const severityTag = (severity) =>
+  ({ error: 'ERROR', warning: 'WARNING', info: 'NOTE' }[severity] || 'NOTE');
+
+/**
+ * The banner text for a finding, built from the JSON finding the way
+ * lib/report.mjs composes it: severity, rule, category, confidence, and the
+ * location only while the group is a single occurrence.
+ */
+const bannerFor = (f, count) =>
+  `[${severityTag(f.severity)}] ${f.ruleId} · ${f.category} · ${f.confidence}`
+  + (count === 1 ? ` · line ${f.line}:${f.column}` : '');
+
+/** The counts paragraph as the summary would print it. */
+const countsFor = (json) =>
+  `${json.summary.errors} errors · ${json.summary.warnings} warnings · ${json.summary.info} notes`;
+
+/** Parse the same run's JSON output — the source the PDF must agree with. */
+const jsonOf = (file) => {
+  const result = capture([file, '--format', 'json']);
+  assert.notEqual(result.code, 2, `scan failed for ${file}: ${result.stderr}`);
+  return JSON.parse(result.stdout);
+};
+
+// All six provenance rows on one issue, in contract order, bounded by the
+// issue's own block (its banner to the next banner) so a row missing from
+// this issue cannot be satisfied by the next issue's copy of it.
+function assertProvenance(lines, bannerText, expected) {
+  const start = lines.findIndex(l =>
+    l.text === bannerText && l.font === 'F2' && l.size === 11);
+  assert(start >= 0, `the issue banner is drawn: ${bannerText}`);
+  const next = lines.findIndex((l, j) =>
+    j > start && l.font === 'F2' && l.size === 11 && l.text.startsWith('['));
+  const end = next === -1 ? lines.length : next;
+  let cursor = start;
+  for (const [label, value] of expected) {
+    const idx = lines.findIndex((l, j) => j > cursor && j < end
+      && l.text === label && l.x === MARGIN && l.font === 'F2' && l.size === 10.5);
+    assert(idx > cursor && idx < end,
+      `issue ${bannerText} carries the ${label} row, after the rows before it`);
+    const parts = [];
+    for (let k = idx + 1; k < lines.length
+      && lines[k].x === MARGIN + LABEL_COL && lines[k].font === 'F1'
+      && lines[k].size === 10.5; k++) {
+      parts.push(lines[k].text);
+    }
+    assert.equal(squash(parts.join(' ')), squash(value),
+      `${label} on ${bannerText} prints its value`);
+    cursor = idx;
+  }
+}
+
+/**
+ * The header and footer furniture on every page of a real CLI report, plus
+ * the endorsement boundary: four header rows drawn from the cover's own Date
+ * and the scanned path (the cover's Targets value can wrap at the value
+ * column, so the known path variable is used rather than reading wrapped text
+ * back), and the three-line footer stamped with this report's version and
+ * page numbers.
+ */
+function assertFurniture(s, lines, pages, target) {
+  const expectedHeader = headerRows({
+    date: kvValue(lines, 'Date'), targets: [target], version: VERSION,
+  }).map(squash);
+  pages.forEach((ls, i) => {
+    assert.deepEqual(ls.slice(0, 4).map(l => squash(l.text)), expectedHeader,
+      `page ${i + 1} carries the four header rows verbatim`);
+    ls.slice(0, 4).forEach((l, j) => {
+      assert.equal(l.font, j === 0 ? 'F2' : 'F1', `header row ${j + 1} font on page ${i + 1}`);
+      assert.equal(l.size, j === 0 ? 9 : 8.5, `header row ${j + 1} size on page ${i + 1}`);
+      assert.equal(l.x, MARGIN, `header row ${j + 1} starts in the margin on page ${i + 1}`);
+    });
+    assert.deepEqual(ls.slice(-3).map(l => l.text), [
+      footerLine({ version: VERSION, page: i + 1, pages: pages.length }),
+      creditLine(),
+      FOOTER_TAIL_TEXT,
+    ], `page ${i + 1} carries its three footer lines verbatim`);
+    // The literal n/m stamp, quoted rather than derived from footerLine: if
+    // the furniture function itself lost the page numbers, the deepEqual
+    // above would follow it there — this one would not.
+    assert(ls.slice(-3)[0].text.includes(`page ${i + 1}/${pages.length}`),
+      `page ${i + 1} footer stamps its own n/m page number`);
+    for (const l of ls.slice(-3)) {
+      assert.equal(l.font, 'F1', `footer line is regular: ${l.text}`);
+      assert.equal(l.size, 7.5, `footer line is 7.5 pt: ${l.text}`);
+      assert(l.y < MARGIN, `footer sits below the content box: ${l.text} at y=${l.y}`);
+    }
+  });
+  assert(s.includes('EDITORIAL REVIEW'), 'the header text is present in the file');
+  assert(!s.includes('UNITED NATIONS'),
+    'the endorsement boundary: the report never prints UNITED NATIONS');
 }
 
 // --- item 1: the PDF shows a real en dash for UE-NU002 -----------------------
@@ -117,19 +314,20 @@ function kvValue(lines, label) {
   assert(s.includes('report only; findings are not changed by this report.'),
     'every report carries the report-only footer promise');
 
-  // Every page object carries its own n/m footer stamp.
+  // Every page object carries its own n/m footer stamp — the guarantee the
+  // old regex over `- page (\d+)/(\d+)` held, now checked against the real
+  // footer text line by line. The stream-to-page-object tie below is what
+  // makes "per page object" mean per page: a page object with no content
+  // stream, or a stream with no footer line, fails one of the two locks.
   const pageCount = (s.match(/\/Type \/Page(?!s)/g) || []).length;
   assert(pageCount >= 1, 'at least one page object');
-  const footers = [...s.matchAll(/- page (\d+)\/(\d+) -/g)].map(m => [Number(m[1]), Number(m[2])]);
-  assert.equal(footers.length, pageCount, 'one page n/m footer per page object');
-  footers.forEach(([n, total], i) => {
-    assert.equal(n, i + 1, `footer ${i + 1} prints its own page number`);
-    assert.equal(total, pageCount, 'footer total equals the page count');
-  });
+  const lines = extractLines(a);
+  const pages = pageLines(a);
+  assert.equal(pages.length, pageCount, 'one content stream per page object');
+  assertFurniture(s, lines, pages, target);
 
   // The defect: NU002's Current is a plain hyphen, its Should be an en dash.
   // Both halves must reach the page, and the en dash must be byte 0x96.
-  const lines = extractLines(a);
   const current = kvValue(lines, 'Current');
   const should = kvValue(lines, 'Should be');
   assert(current.includes('1990-2025'), `Current must print the hyphen range: ${JSON.stringify(current)}`);
@@ -138,6 +336,94 @@ function kvValue(lines, label) {
     'Should be must carry the WinAnsi en dash at 0x96: ' + JSON.stringify(should));
   assert(should !== current,
     'Current and Should be must not print identically: ' + JSON.stringify({ current, should }));
+
+  // The framing disclaimer leads the body, directly under the title banner,
+  // before any kv row or finding.
+  assert(lines[5].text.startsWith('The report never presents itself as verification of facts'),
+    'the framing disclaimer still leads the report body');
+
+  // Phase 9, on the real --report output: every string below is read from
+  // the same run's JSON, so the PDF and the machine-readable output cannot
+  // drift apart without one of the two comparisons failing.
+  const json = jsonOf(target);
+  assert.deepEqual(json.findings.map(f => f.ruleId), ['UE-NU002'],
+    'the fixture fires exactly one finding in JSON too');
+  const f = json.findings[0];
+
+  // The banner is composed from the finding: severity, rule, category,
+  // confidence — and the location, because this group is a lone finding.
+  const banner = bannerFor(f, 1);
+  assert.equal(banner, `[WARNING] ${f.ruleId} · ${f.category} · ${f.confidence} · line ${f.line}:${f.column}`,
+    'fixture: the lone-finding banner carries its line and column');
+  assert(lines.some(l => l.text === banner && l.font === 'F2' && l.size === 11),
+    `the issue banner is drawn from the finding: ${banner}`);
+
+  // A count is shown only when it is greater than one: a group of one is not
+  // a summary, so no count row is drawn at all.
+  assert(!lines.some(l => /^\d+ occurrences?$/.test(l.text)),
+    'a group of one shows no count at all');
+
+  // All six provenance rows, in contract order, bounded by this issue's own
+  // block: the next issue's copy of a row cannot satisfy a row missing here.
+  assertProvenance(lines, banner, [
+    ['Lane', f.lane],
+    ['Source', f.source],
+    ['Profile', f.profile],
+    ['Confidence', f.confidence],
+    ['Limitation', f.limitation],
+    ['Action', f.action],
+  ]);
+
+  // The Occurrences list: one heading, then File, Location, Content and
+  // Should be in order — every value compared with the JSON finding.
+  const occAt = lines.findIndex(l =>
+    l.text === 'Occurrences' && l.font === 'F2' && l.size === 13 && l.x === MARGIN);
+  assert(occAt > 0, 'the Occurrences heading is drawn');
+  const occIndex = {};
+  let cursor = occAt;
+  for (const label of ['File', 'Location', 'Content', 'Should be']) {
+    const idx = lines.findIndex((l, j) => j > cursor
+      && l.text === label && l.x === MARGIN && l.font === 'F2' && l.size === 10.5);
+    assert(idx > cursor, `the occurrence block carries a ${label} row in order`);
+    occIndex[label] = idx;
+    cursor = idx;
+  }
+  // The scanned path has no spaces, so where the value column wrapped the
+  // renderer broke a token mid-way; stripping the wrap's own spacing must
+  // leave exactly the path the JSON names.
+  assert(!target.includes(' '), 'fixture: the scanned path contains no spaces');
+  assert.equal(kvValueAll(lines, 'File', occIndex.File).replace(/ /g, ''), f.file,
+    'the File row prints the scanned path, wrap aside');
+  assert.equal(kvValueAll(lines, 'Location', occIndex.Location), `${f.line}:${f.column}`,
+    'the Location row prints the finding position from JSON');
+  assert(kvValueAll(lines, 'Content', occIndex.Content).includes(`\u00BB${f.current}\u00AB`),
+    'the Content row marks the matched copy between guillemets');
+  assert.equal(kvValueAll(lines, 'Should be', occIndex['Should be']), winansi(f.proposed),
+    'the Should be row prints the proposed copy, folded to WinAnsi');
+
+  // The counts paragraph: the JSON summary as printed, and restated straight
+  // from the findings so neither side can drift alone.
+  const countRows = lines.filter(l => l.font === 'F1' && l.size === 10.5 && l.x === MARGIN
+    && /^\d+ errors \u00B7 \d+ warnings \u00B7 \d+ notes$/.test(l.text));
+  assert.equal(countRows.length, 1, 'exactly one counts paragraph is drawn');
+  assert.equal(countRows[0].text, countsFor(json),
+    'the counts paragraph is the JSON summary');
+  const errors = json.findings.filter(x => x.severity === 'error').length;
+  const warnings = json.findings.filter(x => x.severity === 'warning').length;
+  assert.equal(countRows[0].text,
+    `${errors} errors \u00B7 ${warnings} warnings \u00B7 ${json.findings.length - errors - warnings} notes`,
+    'the counts paragraph is also restated from the findings themselves');
+
+  // The legend: exactly twelve categories by their text labels, with the
+  // counts taken from the findings of this run.
+  const legend = legendFields(lines);
+  assert.deepEqual(legend.names, CATEGORY_LEGEND.map(e => e.category),
+    'the legend lists exactly the twelve categories by name, in catalogue order');
+  assert.deepEqual(legend.codes, CATEGORY_LEGEND.map(e => e.code),
+    'each legend row prints its short code');
+  assert.equal(legend.counts.length, 12, 'twelve count cells');
+  assert.deepEqual(legend.counts, legendRows(json.findings).map(r => r.count),
+    'the legend counts are the findings per category of this run');
 }
 
 // --- item 1b: em dash at 0x97, every other fold unchanged --------------------
@@ -151,6 +437,168 @@ function kvValue(lines, label) {
   assert(text.includes("it's"), 'the curly apostrophe still folds to ASCII');
   assert(text.includes('...'), 'the ellipsis still folds to three dots');
   assert(text.includes('and ? stays.'), 'a character outside WinAnsi still becomes ?');
+}
+
+// --- item 1c: Phase 9 — a grouped issue of two, on the real report -----------
+
+{
+  const target = write('count2.txt',
+    'The range 1990-2025 was set.\nThe range 1990-2025 was noted.\n');
+  const json = jsonOf(target);
+  assert.deepEqual(json.findings.map(f => f.line), [1, 2],
+    'the fixture fires two findings, on lines 1 and 2');
+
+  const pdfPath = path.join(tmp, 'count2.pdf');
+  const result = capture([target, '--report', pdfPath]);
+  assert.equal(result.code, 0, `a warning-only file must exit 0: ${result.stderr}`);
+  const pdf = fs.readFileSync(pdfPath);
+  const s = pdf.toString('latin1');
+  const lines = extractLines(pdf);
+
+  // Two findings that render identically collapse into one issue: the banner
+  // carries the shared fields and no location — the model left it out.
+  const banner = bannerFor(json.findings[0], 2);
+  assert.equal(banner,
+    `[WARNING] ${json.findings[0].ruleId} · ${json.findings[0].category} · ${json.findings[0].confidence}`,
+    'fixture: the grouped banner carries no location');
+  assert(lines.some(l => l.text === banner && l.font === 'F2' && l.size === 11),
+    `the grouped banner is drawn: ${banner}`);
+  assert(!lines.some(l => /^\[WARNING\]/.test(l.text) && l.text.includes(' · line ')),
+    'a grouped banner never invents a location the model left out');
+
+  // A count is shown only when it is greater than one — here exactly one
+  // count marker, for the two-occurrence group.
+  const countRows = lines.filter(l => /^\d+ occurrences$/.test(l.text));
+  assert.equal(countRows.length, 1, 'exactly one count marker in the document');
+  assert.equal(countRows[0].text, '2 occurrences', 'the count is the group size');
+  assert.equal(countRows[0].font, 'F1', 'the count sits in the regular weight');
+  assert.equal(countRows[0].size, 10.5, 'the count sits at body size');
+  assert(countRows[0].x > 400, 'the count is right-aligned in the marker row');
+  assert(!lines.some(l => l.text === '1 occurrences' || l.text === '1 occurrence'),
+    'no part of the report counts a lone finding');
+
+  // All six provenance rows, in contract order, on the grouped issue.
+  const f = json.findings[0];
+  assertProvenance(lines, banner, [
+    ['Lane', f.lane],
+    ['Source', f.source],
+    ['Profile', f.profile],
+    ['Confidence', f.confidence],
+    ['Limitation', f.limitation],
+    ['Action', f.action],
+  ]);
+
+  // One Occurrences list for the group, one File row per occurrence, and the
+  // positions in the order the findings listed them.
+  const occHeadings = lines.filter(l => l.text === 'Occurrences'
+    && l.font === 'F2' && l.size === 13 && l.x === MARGIN);
+  assert.equal(occHeadings.length, 1, 'the group draws one Occurrences heading');
+  const fileRows = lines.filter(l => l.text === 'File'
+    && l.font === 'F2' && l.size === 10.5 && l.x === MARGIN);
+  assert.equal(fileRows.length, 2, 'one File row per occurrence');
+  const locations = [];
+  const contents = [];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.x !== MARGIN || l.font !== 'F2' || l.size !== 10.5) continue;
+    if (l.text === 'Location') locations.push(kvValueAll(lines, 'Location', i));
+    if (l.text === 'Content') contents.push(kvValueAll(lines, 'Content', i));
+  }
+  assert.deepEqual(locations, json.findings.map(x => `${x.line}:${x.column}`),
+    'every occurrence prints its position, in order');
+  assert.equal(contents.length, 2, 'one Content row per occurrence');
+  for (const content of contents) {
+    assert(content.includes(`\u00BB${f.current}\u00AB`),
+      `each Content row marks the matched copy: ${content}`);
+  }
+
+  // The counts paragraph: what the JSON summary says, restated from the
+  // findings as a second, independent computation.
+  const summaryRows = lines.filter(l => l.font === 'F1' && l.size === 10.5 && l.x === MARGIN
+    && /^\d+ errors \u00B7 \d+ warnings \u00B7 \d+ notes$/.test(l.text));
+  assert.equal(summaryRows.length, 1, 'exactly one counts paragraph is drawn');
+  assert.equal(summaryRows[0].text, countsFor(json),
+    'the counts paragraph is the JSON summary');
+  const errors = json.findings.filter(x => x.severity === 'error').length;
+  const warnings = json.findings.filter(x => x.severity === 'warning').length;
+  assert.equal(summaryRows[0].text,
+    `${errors} errors \u00B7 ${warnings} warnings \u00B7 ${json.findings.length - errors - warnings} notes`,
+    'the counts paragraph is also restated from the findings themselves');
+
+  // The legend counts both occurrences — never one per grouped issue.
+  const legend = legendFields(lines);
+  assert.deepEqual(legend.counts, legendRows(json.findings).map(r => r.count),
+    'the legend counts are the findings per category of this run');
+  assert.equal(legend.counts.reduce((a, b) => a + b, 0), json.findings.length,
+    'the legend rows sum to the findings behind them');
+}
+
+// --- item 1d: Phase 9 — --report-detail full is presentation only ------------
+
+{
+  const target = write('count2.txt',
+    'The range 1990-2025 was set.\nThe range 1990-2025 was noted.\n');
+  const json = jsonOf(target);
+  const pdfPath = path.join(tmp, 'count2-full.pdf');
+  const result = capture([target, '--report', pdfPath, '--report-detail', 'full']);
+  assert.equal(result.code, 0, `a warning-only file must exit 0: ${result.stderr}`);
+  const pdf = fs.readFileSync(pdfPath);
+  const s = pdf.toString('latin1');
+  const lines = extractLines(pdf);
+
+  // One block per finding: both findings keep their own banner, and each
+  // carries its location because in this layout nothing is grouped.
+  for (const finding of json.findings) {
+    const banner = bannerFor(finding, 1);
+    assert(lines.some(l => l.text === banner && l.font === 'F2' && l.size === 11),
+      `full detail draws the located banner: ${banner}`);
+  }
+
+  // Grouping is presentation: no Occurrences list, no count marker.
+  assert(!lines.some(l => l.text === 'Occurrences'),
+    'full detail has no Occurrences list');
+  assert(!lines.some(l => /^\d+ occurrences$/.test(l.text)),
+    'full detail shows no count marker');
+
+  // The matched copy still reaches the page.
+  assert.equal(kvValue(lines, 'Current'), json.findings[0].current,
+    'full detail still prints the matched copy');
+
+  // The counts paragraph is byte-identical to the grouped report's: counts
+  // are computed from the findings before either layout runs.
+  const countsOf = (ls) => ls.filter(l => l.font === 'F1' && l.size === 10.5 && l.x === MARGIN
+    && /^\d+ errors \u00B7 \d+ warnings \u00B7 \d+ notes$/.test(l.text));
+  const fullCounts = countsOf(lines);
+  assert.equal(fullCounts.length, 1, 'full detail draws one counts paragraph');
+  assert.equal(fullCounts[0].text, countsFor(json),
+    'the full-detail counts paragraph is the JSON summary');
+  const groupedCounts = countsOf(extractLines(fs.readFileSync(path.join(tmp, 'count2.pdf'))));
+  assert.equal(groupedCounts.length, 1, 'the grouped report draws one counts paragraph too');
+  assert.equal(fullCounts[0].text, groupedCounts[0].text,
+    'grouping changes presentation, never the counts');
+
+  // The legend here is parsed from the finding banners the model printed,
+  // not from an issue element — the counts must still be the findings'.
+  const legend = legendFields(lines);
+  assert.deepEqual(legend.names, CATEGORY_LEGEND.map(e => e.category),
+    'full detail lists all twelve categories by name');
+  assert.deepEqual(legend.counts, legendRows(json.findings).map(r => r.count),
+    'full-detail legend counts are parsed from the findings');
+
+  // The provenance rows in full detail: confidence rides the banner, the
+  // other five rows follow each block, in order and bounded by its banner.
+  for (const finding of json.findings) {
+    assertProvenance(lines, bannerFor(finding, 1), [
+      ['Lane', finding.lane],
+      ['Source', finding.source],
+      ['Profile', finding.profile],
+      ['Limitation', finding.limitation],
+      ['Action', finding.action],
+    ]);
+  }
+
+  // The same furniture and endorsement boundary as the grouped report.
+  assertFurniture(s, lines, pageLines(pdf), target);
 }
 
 // --- item 4: sentence-start capitalisation in the fixer ----------------------
@@ -310,5 +758,8 @@ const applyFix = (name, body) => {
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('ok — audit report/fix: PDF en/em dash bytes, determinism, footers, '
+console.log('ok — audit report/fix: PDF en/em dash bytes, determinism, header and '
+  + 'three-line footer furniture on every page, issue banner and six provenance rows '
+  + 'from JSON, count only above one, occurrence list, counts paragraph, twelve-row '
+  + 'legend, endorsement boundary, grouped vs full detail, '
   + 'sentence-start capitalisation, terminology never rewritten, offset-mismatch skip');
