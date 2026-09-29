@@ -1,0 +1,11 @@
+# Socket repository configuration — https://docs.socket.dev/docs/socket-yml
+# Every field except `version` is optional; `version` must be 2.
+version: 2
+
+# `tests/fixtures/audits/security.mjs` is a deliberate test fixture that is
+# never executed. A scanner reading it as source reports the fixture's own
+# contents as though this repository had written them. Patterns in this key
+# work like .gitignore patterns, and Socket documents the defaults (.git,
+# node_modules, coverage, and the rest) as always included alongside them.
+projectIgnorePaths:
+  - "tests/fixtures/audits/security.mjs"

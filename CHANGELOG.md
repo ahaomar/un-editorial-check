@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.1 – 29 September 2026
+
+A short release prompted by a static analyser's report on this repository. Neither change alters what the tool finds, what it prints, or how it exits.
+
+### Changed
+
+- **The conditional spread that gives a PDF finding its page number no longer has `null` as its empty branch.** Spreading `null` into an object literal is a legal no-op, but an analyser pattern-matches the form as a possible spread of a non-object, so `{}` is used instead. The spread stays inside the finding's `properties`, and the SARIF shape is unchanged: a scan of any format other than `.pdf` emits properties byte-identical to 1.3.0, because neither branch ever added a key for a finding that has no page.
+- **`socket.yml` names `tests/fixtures/audits/security.mjs` under `projectIgnorePaths`.** The fixture is a deliberate test fixture that is never executed, and a scanner reading it as source reports the fixture's own contents as though this repository had written them. This is the documented mechanism, and it supersedes an earlier attempt to record the same intent in a file Socket does not read.
+
+### Unchanged
+
+Everything else. The thirty-seven rules, the five lanes, the clean-run wording, the exit-code contract, the grouping arithmetic, the report formats, the twelve-category legend and zero npm dependencies are as in 1.3.0.
+
 ## 1.3.0 – 29 September 2026
 
 Two features in one release: `.pdf` became a supported input, and the reports were redesigned around grouped issues.
