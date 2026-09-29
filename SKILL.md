@@ -1,6 +1,6 @@
 ---
 name: un-editorial-check
-description: Reads user-visible copy the way a United Nations editor would — language, wording, tone, grammar, hate speech, spelling, terminology, dates, numbers, claims and register — and reports what fails. Use when reviewing web pages, dashboards, blog posts, page titles, meta descriptions or copy baked into JavaScript by a coding agent. Checks HTML, Markdown, plain text and rendered JavaScript string literals only; it is not a code-quality, accessibility, security or SEO linter (those run only as explicit opt-in audits) and it does not judge whether a claim is true.
+description: Reads user-visible copy the way a United Nations editor would — language, wording, tone, grammar, hate speech, spelling, terminology, dates, numbers, claims and register — and reports what fails. Use when reviewing web pages, dashboards, blog posts, page titles, meta descriptions, copy baked into JavaScript by a coding agent, or the text of a PDF document. Checks HTML, Markdown, plain text, rendered JavaScript string literals and PDF text only; it is not a code-quality, accessibility, security or SEO linter (those run only as explicit opt-in audits) and it does not judge whether a claim is true.
 license: MIT
 compatibility: Requires Node.js 18 or later and a host that can load the portable Agent Skills SKILL.md format.
 metadata:
@@ -26,7 +26,9 @@ Verify an installation with `node <skill-base>/bin/check.mjs --self-test` (bundl
 
 ## What is checked, and what is not
 
-Only classified user-visible copy is checked: prose in HTML text nodes and attributes that carry copy, Markdown, plain text, and JavaScript string literals that have render evidence (an assignment to a render target, a template or concatenation used as copy, a sentence-like literal). Comments, code, identifiers, URLs and cited titles are masked before any rule runs. Quoted and block-quoted material is classified with its context rather than silently dropped: where the harmful or discriminatory review applies, it is reported separately as quoted or reported content.
+Only classified user-visible copy is checked: prose in HTML text nodes and attributes that carry copy, Markdown, plain text, JavaScript string literals that have render evidence (an assignment to a render target, a template or concatenation used as copy, a sentence-like literal), and the text recovered from a PDF. Comments, code, identifiers, URLs and cited titles are masked before any rule runs. Quoted and block-quoted material is classified with its context rather than silently dropped: where the harmful or discriminatory review applies, it is reported separately as quoted or reported content.
+
+A PDF (`.pdf`) is supported for reading. It is a rendered page, not a source: the tool recovers the text and reports findings in it, but it cannot tell a quotation from a paragraph, so **every unit of PDF copy is treated as `authored`** and quoted material inside a PDF is screened rather than left alone. `line` addresses a visual line reconstructed from text positioning, counted continuously across the document, and is not a source line; a finding carries `pdfPage` in the JSON and SARIF output. Scanned or image-only documents, encrypted documents, and documents whose fonts have no recoverable encoding are refused with exit `2` and a reason — never reported as clean, and never partially read. Do not describe a refused PDF as checked, and do not offer OCR: the tool does not perform it. `--fix` refuses a PDF, so take PDF corrections from the report rather than from an applied rewrite.
 
 Code quality, accessibility, security and SEO findings are **audits**, not editorial rules. They run only when asked for with `--profile publishing`, `--profile accessibility` or `--profile security`, they are reported in their own section, and they never change the exit code.
 
@@ -38,7 +40,7 @@ Code quality, accessibility, security and SEO findings are **audits**, not edito
 
 ## Boundaries
 
-Never use `--fix` without showing the user the target files first. `--fix` prints a `(proposed)` diff and writes nothing; `--fix --apply` writes and labels results `(applied)`. It is limited to deterministic replacements (British spelling, `per cent`, en-dash ranges, `the United States`, a doubled word, a space before punctuation and a missing space between sentences) in `.md`, `.markdown` and `.txt` files, and it refuses symbolic links, hard-linked files and anything that is not a regular file. Review every resulting diff. It does not rewrite dates, terminology, claims or exclamation marks.
+Never use `--fix` without showing the user the target files first. `--fix` prints a `(proposed)` diff and writes nothing; `--fix --apply` writes and labels results `(applied)`. It is limited to deterministic replacements (British spelling, `per cent`, en-dash ranges, `the United States`, a doubled word, a space before punctuation and a missing space between sentences) in `.md`, `.markdown` and `.txt` files, and it refuses symbolic links, hard-linked files, PDFs and anything that is not a regular file. Review every resulting diff. It does not rewrite dates, terminology, claims or exclamation marks.
 
 Exit codes: `0` no error-severity editorial findings, `1` error-severity editorial findings, `2` usage, configuration, scan or write failure. Audits never move the exit code. A run with no findings prints `No findings under the enabled, documented local rules.` — that is the whole meaning of a clean result, and it is the only clean wording to report to the user.
 

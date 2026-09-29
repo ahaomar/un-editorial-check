@@ -48,18 +48,18 @@ Live value, verbatim:
 What the live string does not contain: `rules`, `lint`, `pdf`, `sarif`, `dependency`. Those are the terms a searcher types, and `npm search` matches on the description. An alternative that adds them while staying under the live length, verbatim:
 
 ```json
-  "description": "Reads user-visible copy the way a UN editor would: 43 rules, five review lanes, report-first, zero npm dependencies. Markdown, HTML, text and source in; PDF, JSON and SARIF out.",
+  "description": "Reads user-visible copy the way a UN editor would: 43 rules, five review lanes, report-first, zero npm dependencies. Markdown, HTML, text, source and PDF in; PDF, JSON and SARIF out.",
 ```
 
 Length check, verbatim:
 
 ```text
 live description: 183 characters
-alternative:      177 characters
+alternative:      182 characters
 longer option:    200 characters (enumeration kept, searchable terms added)
 ```
 
-The trade-off is real and it is the reason this is not a recommendation. The alternative drops the element enumeration — language, wording, tone, spelling, terminology, dates, numbers, claims and register — which is the single most informative part of the current string for a human reader. Keeping the enumeration and adding the searchable terms lands at 200 characters, longer than what is there now. There is no string that is shorter, keeps the enumeration and adds the terms, so the choice is between three imperfect options rather than an upgrade. Pick the 177-character version only if search matching matters more to you than the enumeration.
+The trade-off is real and it is the reason this is not a recommendation. The alternative drops the element enumeration — language, wording, tone, spelling, terminology, dates, numbers, claims and register — which is the single most informative part of the current string for a human reader. Keeping the enumeration and adding the searchable terms lands at 200 characters, longer than what is there now. There is no string that is shorter, keeps the enumeration and adds the terms, so the choice is between three imperfect options rather than an upgrade. Pick the 182-character version only if search matching matters more to you than the enumeration.
 
 Claim check for the alternative, in case you take it. Each assertion is traceable to a shipped artefact.
 
@@ -69,10 +69,13 @@ Claim check for the alternative, in case you take it. Each assertion is traceabl
 | five review lanes | The lane set printed by `--help` and exercised by `tests/fixtures/lanes` |
 | report-first | The report-before-write behaviour documented in `USER-GUIDE.md` |
 | zero npm dependencies | The absent `dependencies` block in `package.json` |
-| Markdown, HTML, text and source in | `SUPPORTED_EXTENSIONS` in `lib/extract.mjs`: `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx` |
+| Markdown, HTML, text, source and PDF in | `SUPPORTED_EXTENSIONS` in `lib/extract.mjs`: `.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx`, `.pdf` |
 | PDF, JSON and SARIF out | `--report` for PDF, `--format json` and `--format sarif` in `--help` |
+| PDF both in and out | Reading is the narrower of the two, and the string does not pretend otherwise: the limitations are listed in the note below and in `README.md` |
 
-Note what the alternative does not claim. The tool does not read email as a distinct format; `.txt` covers that case, and no `.eml` extension is in `SUPPORTED_EXTENSIONS`. It writes PDF rather than reading it, so the string says `in` and `out` rather than listing PDF among the inputs.
+Note what the alternative does not claim. The tool does not read email as a distinct format; `.txt` covers that case, and no `.eml` extension is in `SUPPORTED_EXTENSIONS`.
+
+As of 1.3.0 PDF is both read and written, so the string now lists it on both sides. Reading it is narrower than writing it, and the distinction is documented rather than blurred: a PDF is a rendered page, so the tool recovers its text and cannot tell a quotation from a paragraph, every unit is treated as authored copy, `line` addresses a visual line rather than a source line, and scanned documents, encrypted documents and documents whose fonts have no recoverable encoding are refused with exit `2` rather than read. The tool performs no optical character recognition and does not claim to.
 
 ## Keywords
 

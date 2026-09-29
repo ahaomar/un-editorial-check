@@ -1,12 +1,13 @@
-# Migration guide — upgrading to 1.0.0
+# Migration guide
 
-This guide lists every behaviour change in the 1.0.0 release and what an existing user must do about it. Read only the sections for the features you use; nothing here is required to keep a plain report-only workflow running. The release notes are in [CHANGELOG.md](../CHANGELOG.md); every claim made here is tracked with its evidence in [CLAIM-EVIDENCE-AUDIT.md](CLAIM-EVIDENCE-AUDIT.md).
+This guide lists every behaviour change in each release and what an existing user must do about it. Read only the sections for the features you use; nothing here is required to keep a plain report-only workflow running. The release notes are in [CHANGELOG.md](../CHANGELOG.md); every claim made here is tracked with its evidence in [CLAIM-EVIDENCE-AUDIT.md](CLAIM-EVIDENCE-AUDIT.md).
 
 ## Quick reference
 
-| Change | Migration action |
-|---|---|
-| The clean-run sentence changed wording | Update any grep, test or dashboard that matches the old sentence; exit codes are unchanged |
+| Version | Change | Migration action |
+|---|---|---|
+| 1.3.0 | `.pdf` is a supported input | Check any pipeline that enumerated the supported extensions, or that extracted PDF text itself before scanning |
+| 1.0.0 | The clean-run sentence changed wording | Update any grep, test or dashboard that matches the old sentence; exit codes are unchanged |
 | Five output lanes replace the flat section list | Re-key text-report parsers; `--format json` and SARIF gain fields, existing fields stay |
 | Heuristic findings are review severity by default | If you relied on them failing the build, set `severities` for those rules |
 | The `-ize`/`-ise` spelling conflict family warns by default | Pick a bundled `--profile`, or set `severities` / `allowlist.spellings` |
@@ -15,7 +16,19 @@ This guide lists every behaviour change in the 1.0.0 release and what an existin
 | Contested-claim findings report as diplomatic review, not factual error | Set `severities` on `UE-DP001` if you want it to fail a run |
 | New opt-ins: `--init`, `--self-test`, `--baseline`, GitHub Action, hook, templates | Optional; no existing flag changes behaviour |
 
-## The clean-run sentence
+## PDF documents became a supported input (1.3.0)
+
+**What changed.** `.pdf` moved into the supported-extension list. Before this release a PDF named on the command line was a refusal with exit `2` and a message telling you to extract the text yourself; now the tool recovers the text from the document's own bytes and screens it with the same rules as any other copy. Nothing else about reading a text file changed, and no rule was added: PDF support is a way of reading bytes, not a new check.
+
+This is a behaviour change a pipeline will notice, in three specific ways.
+
+1. **A file that used to be refused is now scanned.** If your job names a `.pdf` and expects exit `2`, it will now get a result — and possibly exit `1` if the copy has an error-severity finding. If a directory scan previously skipped PDFs silently, the file count in the run header and in the JSON `files` field will now include them.
+2. **A refused PDF is a refusal, not a clean run.** A scanned or image-only document, an encrypted document, and a document whose fonts carry no recoverable encoding are all still refused with exit `2`, with the reason named on standard error and nothing on standard output. A run that refuses a PDF never prints the clean-run sentence for it. If your pipeline treats "exit `0`" as "checked", that assumption now holds more often and, where it previously covered a PDF that was never read, it no longer does.
+3. **A PDF finding carries an extra field.** JSON and SARIF findings from a PDF include `pdfPage`, the 1-based page. The text output is unchanged: still `file:line:column`, where the line is a *visual* line reconstructed from the page layout rather than a line of a source file. Existing fields are untouched, so a consumer that ignores unknown keys needs no change.
+
+**What you must do.** If your pipeline enumerated supported extensions to decide what to scan, add `.pdf` deliberately rather than by accident — decide whether you want a PDF screened in place, and if you previously extracted PDF text to a `.txt` and scanned that, you may now prefer the direct route. Keep the paste-the-text-into-a-`.txt` path for the documents that still refuse: it is the documented route for scanned, encrypted and undecodable-font PDFs, and it also gives a cleaner result, because a text file lets the tool classify quotations and the recovered PDF text cannot. Do not add a rule of your own that assumes `--fix` will rewrite a PDF: it refuses, as it refuses HTML, JavaScript and JSON.
+
+## The clean-run sentence (1.0.0)
 
 **What changed.** A run with no findings used to print `No editorial findings.` It now prints exactly:
 
@@ -105,13 +118,14 @@ Every documented `.un-editorial.json` key keeps its meaning and precedence (`ign
 - Exit codes `0` / `1` / `2`, and audits never moving the exit code.
 - Report-first operation: a finding identifies a review requirement; it does not establish truth.
 - Zero npm dependencies and offline-deterministic operation.
-- `--fix` remains opt-in, prose-only and diff-previewed; symbolic links, hard links and non-regular files remain refused.
+- `--fix` remains opt-in, prose-only and diff-previewed; symbolic links, hard links and non-regular files remain refused, and a PDF is now refused by that gate as well.
 - Inline suppression syntax (`ue:ignore`) and its span rules.
 - The approval-gated `/un-diplomatic-agent` flow.
+- The rule catalogue: PDF support adds no rule. It is a way of reading bytes, and the same documented rules run over the recovered text.
 
 ## Suggested upgrade steps
 
-1. Read the 1.0.0 release notes in [CHANGELOG.md](../CHANGELOG.md).
+1. Read the release notes for the version you are moving to in [CHANGELOG.md](../CHANGELOG.md).
 2. Update the installed skill (`npx skills update un-editorial-check`) or reinstall as described in the README.
 3. Run `un-editorial-check --self-test` (or `npm test` in a checkout) to verify the installation.
 4. Apply the sections above that match your setup, then re-run your pipeline once and compare the lane output with your expectations.
