@@ -6,6 +6,7 @@ This guide lists every behaviour change in each release and what an existing use
 
 | Version | Change | Migration action |
 |---|---|---|
+| 1.5.0 | The report's sections are re-ordered and renamed, section titles carry no numbers, an empty lane says it was checked, warnings are capped at twenty with the count withheld and the re-run command beside them, paths print relative to a scan root the report states, and both formats draw a severity mark and a category mark on every row | Re-key any parser that matched the old headings; read a capped section from the command it prints, or pass `--report-detail full`; a parser of report paths must resolve them against the `Root` row; JSON and SARIF are unchanged |
 | 1.3.0 | `.pdf` is a supported input | Check any pipeline that enumerated the supported extensions, or that extracted PDF text itself before scanning |
 | 1.3.0 | PDF and HTML reports group identical issues into one counted row, and carry a category legend and document header, footer and symbol; the terminal prints a category marker on each finding line and a legend of its own | Use `--report-detail full` for the previous report layout; JSON and SARIF are unchanged, and a parser of the terminal text needs the two additions noted below |
 | 1.0.0 | The clean-run sentence changed wording | Update any grep, test or dashboard that matches the old sentence; exit codes are unchanged |
@@ -16,6 +17,22 @@ This guide lists every behaviour change in each release and what an existing use
 | `maternal mortality rate` is context-gated; the `women's work` pair is removed; the percentage sign is silent in running prose | Expect those findings to narrow or disappear; this is source evidence, not a broken rule |
 | Contested-claim findings report as diplomatic review, not factual error | Set `severities` on `UE-DP001` if you want it to fail a run |
 | New opt-ins: `--init`, `--self-test`, `--baseline`, GitHub Action, hook, templates | Optional; no existing flag changes behaviour |
+
+## The report redesign (1.5.0)
+
+**What changed.** Seven presentation changes to the PDF and the HTML report. None of them is a rule, a severity or a count: the scan finds what it found before, `--format json` and `--format sarif` are untouched by this release and by 1.4.0, and the exit code is untouched.
+
+1. **The sections are re-ordered and renamed, and both formats read the same plan.** `Summary`, then `Categories`, then the findings under `Harmful / Discriminatory Content`, `Diplomatic Sensitivity`, `Editorial Errors`, `Editorial Warnings`, `Agent Review Required`, `Audit Findings`, then `Quoted material`, `Priority Recommendations` and `Sources`. The PDF previously drew one `Issues` heading for every authored finding, and the HTML report used its own lane titles (`Deterministic violations`, `Heuristic editorial review`, `Harmful-discriminatory review`, `Diplomatic sensitivity`, `Optional audits`); the deterministic lane is now split by severity into `Editorial Errors` and `Editorial Warnings`. `Priority Recommendations` is new, and is derived only from counts this scan produced. `--report-detail full` keeps one heading per file, `Findings by file`.
+2. **The separate heuristic review queue is gone.** `Review queue (heuristic findings)` was a second, shorter listing of findings already printed above it. `Agent Review Required` is that queue now, and carries every field the other sections do.
+3. **Section titles carry no numbers.** A heading is its title, the lane it holds and the count beside it.
+4. **A lane with nothing in it says so.** Its heading stays and the body reads that the lane was checked, so a clean lane cannot be mistaken for one that never ran.
+5. **Warnings are capped in the body.** Under `grouped`, a section that would print more than twenty findings prints twenty, then `Showing 18 of 41 · 23 not listed above.` and the exact command that lists the rest. `Editorial Errors`, `Harmful / Discriminatory Content`, `Diplomatic Sensitivity` and `Audit Findings` are never capped, groups are never split at the boundary, and `--report-detail full` is never capped.
+6. **Paths are relative to a scan root the report states.** The root — the common ancestor of the targets the scan was pointed at — appears once, as `Root` in `Summary`, and every path printed after it resolves against that root. Through 1.4.0 both formats printed absolute paths from the machine that ran the scan.
+7. **Every row is drawn with its marks, and every row is the same row.** A severity mark, then the category's own mark beside its short code, then the position, the rule, the advice and all six provenance fields — in both formats and under both detail modes. The marks are drawn as vector paths, so nothing outside the file is fetched to draw them.
+
+**What the redesign does not do.** It changes no finding, no severity, no lane count and no exit code. Grouping is still presentation only: `grouped` and `full` report the same numbers, and neither JSON nor SARIF takes `--report-detail`. The cap hides nothing from JSON or SARIF, which carry one result per finding whatever the report shows. The framing disclaimer, the endorsement boundary, the document symbol and the twelve-category legend are as they were; the legend has simply gained its own heading and its own drawn marks.
+
+**What you must do.** If you parse the PDF or the HTML by section title, re-key to the names above — the old PDF headings `Issues`, `Review queue (heuristic findings)` and `Quoted material (<n>)`, and the old HTML lane titles, are all gone. If you resolve report paths, take `Root` from `Summary` and resolve against it; `--format json` and SARIF still carry absolute paths and need no change. If you want every finding in the body rather than twenty of them, pass `--report-detail full`, which is never capped. If a capped section's printed command matters to your readers, note that it is quoted for POSIX shells and names the package as the package names itself, so it assumes the tool is installed where it is run.
 
 ## PDF documents became a supported input (1.3.0)
 

@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.5.0 – 30 September 2026
+
+The remainder of the report redesign that 1.4.0 opened: what order the sections appear in, how much of the body they print, what every row carries and how a path is named. 1.4.0 shipped the frame — the document title, the repeating header and the footer; this release ships what the frame surrounds. What the tool finds, the counts it reports, the rule catalogue and how it exits are as they were in 1.4.0, and were as they were in 1.3.1 before it.
+
+### Changed
+
+- **The sections are re-ordered and renamed, and both formats read one plan for them.** `Summary`, then `Categories`, then the findings under `Harmful / Discriminatory Content`, `Diplomatic Sensitivity`, `Editorial Errors`, `Editorial Warnings`, `Agent Review Required` and `Audit Findings`, then `Quoted material`, then `Priority Recommendations`, then `Sources`. The PDF previously drew a single `Issues` heading over every authored finding; the HTML report ordered its own lanes as `Deterministic violations`, `Heuristic editorial review`, `Harmful-discriminatory review`, `Diplomatic sensitivity` and `Optional audits`, and the deterministic lane is now split by severity into `Editorial Errors` and `Editorial Warnings`. One table is the only place the section list exists, so the two formats cannot reorder it between themselves, cap one of them and not the other, or disagree about a section's title. [docs/MIGRATION.md](docs/MIGRATION.md) sets out the rename for anyone parsing either file.
+- **Section titles carry no numbers.** A heading is its title, the lane it holds and the count beside it — never a number set before the title. The count is where the number's information went.
+- **A lane with nothing in it says so.** Its heading is drawn and its body reads that the lane was checked, so a reader can tell a clean lane from a lane that never ran. Omitting the section would have made those two indistinguishable.
+- **Warnings are capped in the body, and a capped section states what it withheld.** Under the default `grouped` layout a section that would print more than twenty findings prints twenty and then `Showing 18 of 41 · 23 not listed above.` beside the exact command that lists the rest. `Editorial Errors`, `Harmful / Discriminatory Content`, `Diplomatic Sensitivity` and `Audit Findings` are never capped, a group is never split at the boundary — which is why a capped section can show fewer than twenty rather than exactly it — and `--report-detail full` is never capped. A cap that had no runnable command to print would refuse the build rather than promise the reader a way back that does not exist. The cap changes no count: the section header still claims every finding the scan produced, and severity counts, lane counts and the exit code are identical between a capped and an uncapped rendering. The cap never reaches JSON or SARIF.
+- **Paths are relative to a scan root the report states.** The root — the common ancestor of the targets the scan was pointed at, not the working directory — is printed once as `Root` in `Summary`, and every path in the report resolves against it. Both formats printed absolute paths from the machine that ran the scan before this release, which made a forwarded report name a directory its recipient does not have. `--format json` and SARIF are untouched and still carry absolute paths.
+- **Every finding row is the same row, drawn with its marks.** A severity mark, then the category's own mark beside its short code, the position, the rule, the matched copy under `Current`, the repair under `Should be`, the explanation and all six provenance fields — in the PDF and in the HTML, under `grouped` and under `full`. `--report-detail full` is now a count of rows rather than a second row shape, so a reader moving between the two finds the same fields in the same places. The marks are hand-authored path data drawn as PDF path operators and as inline `<svg>`: no image asset, no icon font and no glyph, so nothing outside the file is fetched to draw them and no glyph can fall through to `?` in WinAnsi Helvetica. Each mark is chosen from the row's own severity and its own category, and the two-letter code and the category's own name are printed beside it, so colour and shape are never the only signal and a greyscale print loses no information.
+
+### Added
+
+- **`Priority Recommendations`**, between `Quoted material` and `Sources`. It is derived only from counts that are in this report — how many harmful or discriminatory findings there are, how many diplomatic claims, and the rules that fired most often — so the section cannot advise a reader about anything the scan did not find.
+
+### Removed
+
+- **`Review queue (heuristic findings)`.** It listed heuristic findings a second time, at a shorter length and with fewer fields, after the body had already printed them in full. `Agent Review Required` is that queue: it sits after `Editorial Warnings` in the section order, it carries every field the other sections carry, and it groups and caps like them. Nothing was dropped — the queue was a summary of material the report already showed.
+
+### Unchanged
+
+The thirty-seven rules, the five lanes, the clean-run wording, the exit-code contract, the grouping arithmetic, the twelve-category legend, the construction of the document symbol, the endorsement boundary, the framing disclaimer and zero npm dependencies are as in 1.3.1. `--report-detail` still selects the layout, and JSON and SARIF are untouched: one result per finding, absolute paths included, whatever the report draws.
+
+### Verified, and how
+
+Full suite green at 68 suites; `p48-gate.sh` `fail=0` over eight steps and the four corpus verifiers; `smoke.sh 1.5.0` 5/5; `--self-scan` exits `0` at forty-two warnings and no errors over ninety-eight files. That count is not pinned by any test and moved in both directions while this release was built: five warnings left `lib/icons.mjs` once the `xmlns` attribute and the only URL it printed were removed, two left the prose of a test that was rewritten for this release, and five arrived in the HTML and structural tests and in `docs/MIGRATION.md`. What the gate pins is the shape of the number — no errors — because a warning count is a smell and not a contract. Measured on the nine-file corpus that the design was checked against: both formats draw twenty-one grouped blocks and ninety-five under `full`, reconciling to 95 findings, 17 errors and 78 warnings, lanes 49 / 41 / 4 / 1 / 0, and 39 grouped issues, with the two cap lines reading `Showing 20 of 34 · 14 not listed above.` and `Showing 18 of 41 · 23 not listed above.` Each lock moved in this release was shown to fail when its guarantee is removed, and every claim above has a row with its limitations in [docs/CLAIM-EVIDENCE-AUDIT.md](docs/CLAIM-EVIDENCE-AUDIT.md).
+
 ## 1.4.0 – 30 September 2026
 
 The first instalment of the report redesign approved for this release: the furniture that frames every page of both report formats, and the document title. What the tool finds, the counts it reports, the order of the report's sections and how it exits are as they were in 1.3.1.
@@ -18,10 +47,9 @@ The first instalment of the report redesign approved for this release: the furni
 
 Everything else. The thirty-seven rules, the five lanes, the clean-run wording, the exit-code contract, the grouping arithmetic, the twelve-category legend, the construction of the document symbol, the endorsement boundary and zero npm dependencies are as in 1.3.1. `--report-detail` still selects the layout, and JSON and SARIF are untouched.
 
-### Not in this release
+### Followed by
 
-The rest of the approved redesign is deliberately left for a following release: the new order of the report's sections, sections carrying no numbers, the cap of twenty warnings printed with the count withheld and the exact re-run command beside it, and the drawing of the category artwork in both formats. The artwork itself is built and held in `lib/icons.mjs`, and the legend already carries an icon for each of the twelve categories, but neither format draws them yet.
-
+Everything this section called not in 1.4.0 shipped in **1.5.0**, one release later: the new order of the report's sections under their new names, sections carrying no numbers, a lane with nothing in it that says so, the cap of twenty warnings printed with the count withheld and the exact re-run command beside it, paths relative to a stated scan root, one row shape for both detail modes, the `Priority Recommendations` section, and the drawing of the category artwork in both formats. The artwork was already built and held in `lib/icons.mjs` at 1.4.0 and the legend already carried an icon for each of the twelve categories, but neither format drew them yet; 1.5.0 is where they are drawn, as vector paths in the PDF and inline SVG in the HTML. Nothing 1.4.0 shipped was withdrawn to do it.
 ## 1.3.1 – 29 September 2026
 
 A short release prompted by a static analyser's report on this repository. Neither change alters what the tool finds, what it prints, or how it exits.

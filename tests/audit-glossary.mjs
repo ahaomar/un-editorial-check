@@ -226,20 +226,26 @@ console.log('ok — glossary catalogue: UE-GL001/UE-GL002 registered, no invente
   assert.match(text, /^lanes: deterministic 0 · heuristic-review 0 · harmful-discriminatory 0 · diplomacy 0 · audit \d+ · quoted 0$/m,
     'every glossary finding is counted in the audit lane');
 
-  // The report model closes the block with the same five rows, and the audit
-  // row names the glossary.
+  // The report model closes the block with the same six provenance fields
+  // every other row closes with (D12), and the audit row names the glossary.
   const { buildReport } = await import('../lib/report.mjs');
   const report = buildReport({
     version: '0.0.0', date: '2026-01-01', targets: [draft], profiles: [],
     filesCount: 1, findings: json(scan(draft, '--glossary', house)).findings, sources: [],
   }, { detail: 'full' });
-  const kv = label => report.find(e => e.type === 'kv' && e.label === label);
-  assert.equal(kv('Audit').value, 'glossary', 'the PDF block carries the glossary audit row');
-  assert.match(kv('Profile').value, /glossary/, 'the PDF block carries the glossary profile');
-  assert.match(kv('Source').value, /user-supplied glossary/i,
-    'the PDF block carries the glossary source');
-  assert.match(kv('Action').value, /never rewrites a glossary term/,
-    'the PDF block states that a glossary term is never rewritten');
+  const row = report.find(e => e.type === 'issue');
+  assert(row, 'the glossary finding renders as the shared issue row');
+  assert.equal(row.audit, 'glossary', 'the block carries the glossary audit row');
+  const prov = label => {
+    const pair = row.provenance.find(p => p.label === label);
+    assert(pair, `the glossary row carries no ${label} provenance field`);
+    return pair.value;
+  };
+  assert.match(prov('Profile'), /glossary/, 'the block carries the glossary profile');
+  assert.match(prov('Source'), /user-supplied glossary/i,
+    'the block carries the glossary source');
+  assert.match(prov('Action'), /never rewrites a glossary term/,
+    'the block states that a glossary term is never rewritten');
 
   // The Sources appendix names the reader's file. A glossary has no URL, so
   // this is where its provenance is recorded instead of in the source

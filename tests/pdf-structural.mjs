@@ -13,6 +13,7 @@
 import assert from 'node:assert/strict';
 import { renderPdf } from '../lib/pdf.mjs';
 import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
+import { categoryIcon, pdfIcon, severityIcon } from '../lib/icons.mjs';
 import { footerCells, headerRows } from '../lib/furniture.mjs';
 
 // --- page geometry (mirrors the contract, restated independently) ----------
@@ -600,12 +601,12 @@ validateStructure(bare, 'bare', 1);
 // beside its marker, and the report never prints UNITED NATIONS.
 
 // The legend's four columns, read positionally from the slice between the
-// `Category legend` heading and the next level-1 heading: the category name
+// `Categories` heading and the next level-1 heading: the category name
 // (the text label, so colour and shape are never the only signal), the short
 // code inside its swatch, what the category covers, and the count cell.
 function legendSlice(lines) {
   const start = lines.findIndex(l =>
-    l.text === 'Category legend' && l.font === 'F2' && l.size === 16 && l.x === MARGIN);
+    l.text === 'Categories' && l.font === 'F2' && l.size === 16 && l.x === MARGIN);
   assert(start >= 0, 'the category legend heading is present');
   const end = lines.findIndex((l, j) =>
     j > start && l.font === 'F2' && l.size === 16 && l.x === MARGIN);
@@ -615,9 +616,12 @@ function legendSlice(lines) {
 function legendFields(lines) {
   const region = legendSlice(lines);
   return {
-    names: region.filter(l => l.font === 'F2' && l.size === 10.5 && l.x === 86)
+    // D11 moved both columns: the category's artwork now leads the row at the
+    // content margin, so the swatch sits at 65 and the name at 95 — read
+    // positionally, so an icon that pushed them back would fail here.
+    names: region.filter(l => l.font === 'F2' && l.size === 10.5 && l.x === 95)
       .map(l => l.text),
-    codes: region.filter(l => l.font === 'F2' && l.size === 8 && l.x > 54 && l.x < 80)
+    codes: region.filter(l => l.font === 'F2' && l.size === 8 && l.x > 65 && l.x < 91)
       .map(l => l.text),
     intents: region.filter(l => l.font === 'F1' && l.size === 9 && l.x === 200)
       .map(l => l.text),
@@ -766,16 +770,57 @@ assert(issueTexts.includes('[NOTE] UE-AR001 · agent-review · audit · line 9:3
   'a lone finding carries its line and column on the banner');
 
 // The marker row: the category name is the text label beside the code
-// swatch — colour and shape are never the only signal.
+// swatch — colour and shape are never the only signal. Since D11 the row
+// leads with two drawn marks, so the swatch starts at 76 and the name at
+// 108; both are read from the content stream, so an icon that displaced them
+// or a name that vanished would fail here.
 assert(issueLines.some(l => l.text === 'numerals' && l.font === 'F2'
-  && l.size === 10.5 && l.x === 86),
+  && l.size === 10.5 && l.x === 108),
   'the issue marker row prints the category name as its text label');
 assert(issueLines.some(l => l.text === 'NU' && l.font === 'F2' && l.size === 8
-  && l.x > 54 && l.x < 80),
+  && l.x > 76 && l.x < 102),
   'the issue marker row prints the short code inside its swatch');
 assert(issueLines.some(l => l.text === 'agent-review' && l.font === 'F2'
-  && l.size === 10.5 && l.x === 86),
+  && l.size === 10.5 && l.x === 108),
   'the lone issue prints its category name too');
+
+// D11: the mark beside a row is *that row's* mark. The artwork is selected by
+// severity and by category, so the only way this can go wrong is the renderer
+// picking the wrong one — and that is invisible to every count in this file:
+// a document where every row wore the spelling icon has exactly as many marks
+// as one drawn correctly. The expected block is rebuilt here from the icon
+// table at the placement the row gives it — the content margin for the
+// severity mark, twelve points in for the category mark, nine points tall, on
+// the row's own baseline, which is where `drawIssue` puts them — so a mark
+// borrowed from another row, drawn for the wrong severity, or moved off the
+// row fails outright.
+const markAt = (shapes, x, y) => pdfIcon(shapes, { x, y, size: 9 });
+const markerLine = (text) => {
+  const line = issueLines.find((l) => l.text === text && l.x === 108);
+  assert(line, `the issue row names its category: ${text}`);
+  return line.y;
+};
+const issueMarks = [
+  { category: 'numerals', severity: 'warning' },
+  { category: 'agent-review', severity: 'note' },
+];
+for (const { category, severity } of issueMarks) {
+  const y = markerLine(category);
+  assert(issueS.includes(markAt(categoryIcon(category), 65, y)),
+    `the ${category} issue wears the ${category} category mark, not a neighbour's`);
+  assert(issueS.includes(markAt(severityIcon(severity), 54, y)),
+    `the ${category} issue wears the ${severity} severity mark, not a neighbour's`);
+}
+
+// The same in the legend: each of the twelve rows teaches the mark the finding
+// rows use, keyed by the category the row itself names. The name sits at the
+// category column, and the mark leads it at the content margin.
+for (const entry of CATEGORY_LEGEND) {
+  const line = issueLines.find((l) => l.text === entry.category && l.x === 95);
+  assert(line, `the legend names its category: ${entry.category}`);
+  assert(issueS.includes(markAt(categoryIcon(entry.category), 54, line.y)),
+    `legend row ${entry.code} wears the ${entry.category} mark it names`);
+}
 
 // A count is shown only when it is greater than one.
 const countRow = issueLines.filter(l => /^\d+ occurrences$/.test(l.text));
@@ -857,11 +902,11 @@ assert.equal(kvValueAll(issueLines, 'Content', longContentStart),
 // The legend: exactly twelve categories, each with its name as the text
 // label beside its marker, its code, its intent and its count.
 const issueLegend = legendFields(issueLines);
-assert.equal(issueTexts.filter(t => t === 'Category legend').length, 1,
+assert.equal(issueTexts.filter(t => t === 'Categories').length, 1,
   'exactly one legend is drawn');
 const issuesHeadingAt = issueLines.findIndex(l => l.text === 'Issues'
   && l.font === 'F2' && l.size === 16);
-assert(issuesHeadingAt > issueLines.findIndex(l => l.text === 'Category legend'
+assert(issuesHeadingAt > issueLines.findIndex(l => l.text === 'Categories'
   && l.font === 'F2' && l.size === 16),
   'the legend is drawn before the findings section');
 assert.deepEqual(issueLegend.names, CATEGORY_LEGEND.map(e => e.category),
@@ -885,13 +930,25 @@ assert.equal(issueLegend.counts.reduce((a, b) => a + b, 0),
   'the legend rows sum to the findings behind them — never to issue.count');
 
 // The swatches: twelve legend colours in catalogue order, then one marker
-// swatch per issue, each computed independently from the category hex.
-const swatches = [...issueS.matchAll(/q ([0-9.]+ [0-9.]+ [0-9.]+) rg 54 [0-9.]+ 26 11 re f Q/g)]
+// swatch per issue, each computed independently from the category hex. The
+// x position is part of the lock since D11: both columns now lead with the
+// category's artwork, so the legend's swatch sits at 54+9+2 and the issue
+// row's at 54+9+11+2 — a swatch that crept back to the content margin would
+// have to be drawn over the icon to get there.
+const SWATCH_X = MARGIN;
+const LEGEND_SWATCH_X = SWATCH_X + 9 + 2;
+const ISSUE_SWATCH_X = SWATCH_X + 9 + 11 + 2;
+const legendSwatches = [...issueS.matchAll(
+  new RegExp(`q ([0-9.]+ [0-9.]+ [0-9.]+) rg ${LEGEND_SWATCH_X} [0-9.]+ 26 11 re f Q`, 'g'))]
   .map(m => m[1]);
-assert.equal(swatches.length, 14, 'twelve legend swatches plus one per issue');
-assert.deepEqual(swatches.slice(0, 12), CATEGORY_LEGEND.map(e => hexToRgb(e.colour)),
+const issueSwatches = [...issueS.matchAll(
+  new RegExp(`q ([0-9.]+ [0-9.]+ [0-9.]+) rg ${ISSUE_SWATCH_X} [0-9.]+ 26 11 re f Q`, 'g'))]
+  .map(m => m[1]);
+assert.equal(legendSwatches.length, 12, 'twelve legend swatches, each beside its icon');
+assert.equal(issueSwatches.length, 2, 'one marker swatch per issue, each beside its icon');
+assert.deepEqual(legendSwatches, CATEGORY_LEGEND.map(e => hexToRgb(e.colour)),
   'each legend swatch carries its category colour, computed independently');
-assert.deepEqual(swatches.slice(12), [hexToRgb('#2e8b57'), hexToRgb('#b8860b')],
+assert.deepEqual(issueSwatches, [hexToRgb('#2e8b57'), hexToRgb('#b8860b')],
   'each issue marker swatch carries its category colour');
 
 // The endorsement boundary on a findings-carrying report, and the guard note
@@ -950,7 +1007,7 @@ assert.deepEqual(fullLegend.counts, legendRows([
 assert.deepEqual(fullLegend.names, CATEGORY_LEGEND.map(e => e.category),
   'full detail lists all twelve categories too');
 assert(fullLines.findIndex(l => l.text === 'Findings by file' && l.font === 'F2')
-  > fullLines.findIndex(l => l.text === 'Category legend' && l.font === 'F2'),
+  > fullLines.findIndex(l => l.text === 'Categories' && l.font === 'F2'),
   'the full-detail legend is drawn before the findings section');
 const fullFooter = footerCells({ page: 1, pages: 1 });
 assert(fullLines.slice(-3).map(l => l.text).join(' | ')
@@ -959,9 +1016,74 @@ assert(fullLines.slice(-3).map(l => l.text).join(' | ')
 assert(!fullS.includes('UNITED NATIONS'),
   'the endorsement boundary holds in full detail as well');
 
+// --- 11: the cap block is drawn, not merely claimed --------------------------
+//
+// D13 (REPORT-REDESIGN-PLAN §4): a capped section prints a record under it
+// stating the count withheld and the exact re-run command, so a printed copy
+// states what it is not showing. The wording is lib/report.mjs capLines; this
+// suite builds its own cap element rather than importing one, so the check is
+// on the renderer. A block that was dropped, or that drew its first line and
+// stopped, fails here.
+
+{
+  const CAP_CMD = 'un-editorial-check docs --report-detail full --report docs.pdf';
+  const capPdf = renderPdf([
+    { type: 'banner', kind: 'title', text: 'Editorial Review Report' },
+    { type: 'kv', label: 'Version', value: '9.9.9' },
+    { type: 'spacer' },
+    { type: 'heading', level: 1, text: 'Categories',
+      meta: 'twelve checked categories', count: '41 findings' },
+    { type: 'heading', level: 1, text: 'Editorial Warnings',
+      meta: 'deterministic · warning only', count: '41 findings' },
+    { type: 'cap', shown: 17, total: 41, command: CAP_CMD },
+    { type: 'paragraph', text: 'Body text after the cap.' },
+  ], { version: '9.9.9' });
+
+  // Every line the renderer draws is checked against its column first, so the
+  // cap's wrapped lines are proven to fit the measure and not to run into the
+  // right margin.
+  const capExtracted = assertLinesFit(capPdf, 'cap');
+  const sequence = capExtracted.map(line => line.text).join('\n');
+  const start = capExtracted.findIndex(line =>
+    line.text === 'Showing 17 of 41 · 24 not listed above.');
+  assert(start > 0, 'the cap line reaches the page verbatim');
+
+  const body = capExtracted.findIndex(line => line.text === 'Body text after the cap.');
+  assert(body > start, 'the block closes before the body resumes');
+  const drawn = capExtracted.slice(start, body).map(line => line.text);
+  assert.equal(drawn[0], 'Showing 17 of 41 · 24 not listed above.',
+    'the count withheld leads the block');
+  assert(drawn.some(t => t.includes('Nothing is discarded. All 41 are in this run')),
+    'the promise that nothing was discarded follows it');
+  assert(drawn.some(t => t === CAP_CMD),
+    'the re-run command reaches the page whole, in the same monospace line');
+  assert(drawn.length >= 3, 'all three lines are drawn, however the promise wraps');
+  assert.equal(drawn[drawn.length - 1], CAP_CMD,
+    'the command is the last line of the block, immediately before the body resumes');
+
+  // The block is a bordered band, not three loose paragraphs: without the
+  // border a reader could take the cap for the end of the section.
+  assert(capPdf.toString('latin1').includes(' re S '),
+    'the cap block draws its border');
+
+  // The header beside it still claims the whole count, not the drawn part.
+  const header = capExtracted.findIndex(line => line.text === 'Editorial Warnings');
+  assert(header >= 0 && capExtracted[header + 1].text === 'deterministic · warning only',
+    'the lane metadata is set beside the header');
+  assert(capExtracted[header + 2].text === '41 findings'
+    && capExtracted[header + 2].x > MARGIN,
+    'the count sits at the right edge, level with the header it belongs to');
+
+  // Nothing above leaked the endorsement boundary on the way through.
+  assert(!sequence.includes('UNITED NATIONS'), 'the cap block never names the United Nations');
+}
+
 console.log('ok — pdf structure: magic, xref offsets, pages, fonts, extraction, '
   + 'transliteration, escaping, header and footer furniture on every page, '
   + 'stress token, determinism, documented and announced fold for characters '
   + 'WinAnsi cannot encode, issue block with six provenance rows and a count '
   + 'only above one, twelve-row legend with text labels and per-category '
-  + 'counts, and the endorsement boundary');
+  + 'counts, each row and legend row wearing the mark its own severity and '
+  + 'category ask for, '
+  + 'the capped section\'s three-line record with its re-run command, '
+  + 'and the endorsement boundary');

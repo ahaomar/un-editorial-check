@@ -32,6 +32,7 @@ import { run } from '../bin/check.mjs';
 import { renderHtml } from '../lib/html.mjs';
 import { buildReport } from '../lib/report.mjs';
 import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
+import { categoryIcon, severityIcon, svgIcon } from '../lib/icons.mjs';
 import { footerCells, headerRows, TITLE } from '../lib/furniture.mjs';
 import { LANE_NAMES } from '../lib/output.mjs';
 
@@ -78,10 +79,11 @@ const CLEAN = 'No findings under the enabled, documented local rules.';
 // The six fields every finding must carry, in the order the card renders them.
 const SIX_FIELDS = ['Lane', 'Source', 'Profile', 'Confidence', 'Limitation', 'Action'];
 
-// Long enough to prove the review queue cuts an excerpt at 80 characters.
+// Long enough that nothing in a findings section can plausibly be truncating
+// it — the old review queue's excerpt limit is gone with the queue itself.
 const LONG_MESSAGE =
   'Each finding explains why the wording was flagged and what a reviewer should consider before any change is made in the source document.';
-assert(LONG_MESSAGE.length > 80, 'fixture message must exceed the queue excerpt limit');
+assert(LONG_MESSAGE.length > 80, 'fixture message long enough to prove nothing shortens it');
 
 function finding(overrides = {}) {
   return {
@@ -148,7 +150,7 @@ assert.match(allLanes, /<meta charset="utf-8">/, 'the encoding is declared, so c
 // point of the file being a single artefact a reviewer can forward.
 assert(!/<script\b/i.test(allLanes), 'no script element may be emitted');
 assert(!/\son\w+\s*=/i.test(allLanes), 'no inline event-handler attribute may be emitted');
-assert(!/<(iframe|object|embed|link|img|svg)\b/i.test(allLanes), 'no element that fetches an external resource');
+assert(!/<(iframe|object|embed|link|img)\b/i.test(allLanes), 'no element that fetches an external resource');
 assert(!/@import/i.test(allLanes), 'the style block may not import another stylesheet');
 assert(!/url\(/i.test(allLanes), 'the style block may not reference an external url()');
 assert(!/<link\b/i.test(allLanes), 'no external stylesheet link');
@@ -156,18 +158,68 @@ assert.equal((allLanes.match(/<style>/g) || []).length, 1, 'exactly one inline s
 assert(!/\bhttps?:\/\/(?!www\.un\.org|www\.ohchr\.org|www\.un\.org)/i.test(allLanes.replace(/<li>[^]*?<\/li>/g, '')),
   'outside the sources appendix no http(s) URL may appear: nothing may be fetched or linked');
 
+// D11 put the report's own artwork inline, so <svg> had to come off the ban
+// above without dropping what that entry was standing for: the file reaches
+// for nothing. The blanket ban cannot say that about <svg> any more, so the
+// guarantee is restated here, on the element itself — an icon may declare
+// shapes and nothing else, may not point at a resource by any route an SVG
+// offers (an href, a url() paint server, a raster, another document), and
+// must stay out of the accessibility tree unless the caller asked for it to
+// be read. Every lock below fails on the markup that would fetch.
+const iconSvgs = [...allLanes.matchAll(/<svg\b[^>]*>([\s\S]*?)<\/svg>/g)].map((m) => m[0]);
+assert(iconSvgs.length > 0, 'the report draws its marks rather than reaching for an icon font');
+for (const icon of iconSvgs) {
+  assert(!/<image\b/i.test(icon), 'an icon may not embed a raster, which is one to fetch');
+  assert(!/<use\b/i.test(icon), 'an icon may not compose from a resource by reference');
+  assert(!/<foreignObject\b/i.test(icon), 'an icon may not carry foreign markup to load');
+  assert(!/\bhref\s*=/i.test(icon), 'an icon may not name an address outside the file');
+  assert(!/\burl\s*\(/i.test(icon), 'an icon may not paint from a url() paint server');
+  assert(/aria-hidden="true"/.test(icon),
+    'an icon is hidden from assistive technology unless the caller labelled it');
+}
+
 // --- 2: all five lanes render, with quoted material reported separately ------
 
 for (const lane of LANE_NAMES) {
   assert(allLanes.includes(`id="lane-${lane}"`),
     `the ${lane} lane must have its own section`);
 }
-assert.match(allLanes, /<h2>Deterministic violations \(1\)<\/h2>/, 'the deterministic lane renders its count');
-assert.match(allLanes, /<h2>Heuristic editorial review \(1\)<\/h2>/, 'the heuristic lane renders its count');
-assert.match(allLanes, /<h2>Harmful-discriminatory review \(1\)<\/h2>/, 'the harmful lane renders its count');
-assert.match(allLanes, /<h2>Diplomatic sensitivity \(1\)<\/h2>/, 'the diplomacy lane renders its count');
-assert.match(allLanes, /<h2>Optional audits \(1\)<\/h2>/, 'the audits lane renders its count');
-assert.match(allLanes, /<h2>Quoted material \(1\)<\/h2>/, 'quoted material has its own section and its own count');
+// D5/D6: the section headers carry their title, their lane metadata and
+// their finding count as three separate spans, so no number is ever part of a
+// section's name, and every section is drawn — including Editorial Warnings,
+// which this fixture leaves empty, because a lane with nothing in it still
+// says it was checked (D10).
+const head = (title, meta, count) =>
+  `<h2><span class="sec-t">${title}</span><span class="sec-d">${meta}</span>`
+  + `<span class="sec-c">${count}</span></h2>`;
+const HEADS = [
+  ['Harmful / Discriminatory Content', 'harmful-discriminatory', '1 finding'],
+  ['Diplomatic Sensitivity', 'diplomacy', '1 finding'],
+  ['Editorial Errors', 'deterministic · error only', '1 finding'],
+  ['Editorial Warnings', 'deterministic · warning only', '0 findings'],
+  ['Agent Review Required', 'heuristic-review', '1 finding'],
+  ['Audit Findings', 'audit', '1 finding'],
+];
+let cursor = -1;
+for (const [title, meta, count] of HEADS) {
+  const text = head(title, meta, count);
+  const at = allLanes.indexOf(text);
+  assert(at > cursor, `the ${title} section renders, in D5 order`);
+  cursor = at;
+}
+assert(allLanes.includes('<p class="empty">No findings under this lane in this scan. The lane was checked.</p>'),
+  'an empty lane states that it was checked rather than being omitted (D10)');
+assert.match(allLanes, /<span class="sec-t">Summary<\/span><span class="sec-c">6 findings<\/span><\/h2>/,
+  'Summary opens the report and states the finding count');
+assert.match(allLanes, /<span class="sec-t">Categories<\/span><span class="sec-d">twelve checked categories<\/span>/,
+  'the legend hangs from the Categories section');
+assert.match(allLanes,
+  /<span class="sec-t">Quoted material<\/span><span class="sec-d">context, not a lane<\/span><span class="sec-c">1 finding<\/span>/,
+  'quoted material has its own section and its own count');
+assert.match(allLanes, /<span class="sec-t">Priority Recommendations<\/span>/,
+  'the report closes its findings with priority recommendations');
+assert(allLanes.includes('<ol>'), 'the recommendations render as an ordered list');
+assert(!/class="sec-t">\s*\d/.test(allLanes), 'no section title begins with a number (D6)');
 
 // Every non-quoted finding is inside a lane section; the quoted one is not.
 {
@@ -222,6 +274,53 @@ const assertCardShape = (list, label) => {
   }
 };
 assertCardShape(cards, 'grouped issue card');
+
+// --- 3b: every row is marked, and only rows are (D11) -----------------------
+
+// The marks D11 draws are not decoration sprinkled where it was convenient:
+// the severity artwork leads every row and appears nowhere else, the category
+// artwork follows it in every row and in every legend row, so the legend
+// teaches a mark the rows actually use. Both counts are read out of the
+// document, so a row that quietly lost its mark, or a mark drawn outside a
+// row, fails here rather than reaching a reader as a blank.
+const severityMarks = (allLanes.match(/class="icon sev"/g) || []).length;
+const categoryMarks = (allLanes.match(/class="icon cat"/g) || []).length;
+assert.equal(severityMarks, cards.length,
+  'every row carries a severity mark, and a severity mark appears only in rows');
+assert.equal(categoryMarks, cards.length + 12,
+  'every row and every one of the twelve legend rows carries its category mark, and nothing else does');
+for (const [index, card] of cards.entries()) {
+  assert(/<svg[^>]*class="icon sev"/.test(card),
+    `row ${index + 1} opens with its severity mark`);
+  assert(card.indexOf('class="icon sev"') < card.indexOf('class="icon cat"'),
+    `row ${index + 1} puts the severity mark before the category mark — D12's row order`);
+  assert(card.indexOf('class="icon cat"') < card.indexOf('class="marker"'),
+    `row ${index + 1} puts the category mark beside the code it names`);
+
+  // And it is *that row's* mark. A renderer that drew one icon for every row
+  // would satisfy every count above — same number of marks, same places — so
+  // the expected artwork is rebuilt here from the icon table using what the
+  // row itself says it is: its own severity class and its own category, read
+  // off the headline rather than handed in by the renderer.
+  const kind = /class="finding issue severity-(\w+)"/.exec(card)[1];
+  assert(card.includes(svgIcon(severityIcon(kind), { size: 13, className: 'icon sev' })),
+    `row ${index + 1} wears the ${kind} severity mark its own severity asks for`);
+  const category = /\] \S+ · (\S+) ·/.exec(card)[1];
+  const shapes = categoryIcon(category);
+  assert(card.includes(svgIcon(shapes, { size: 13, className: 'icon cat' })),
+    `row ${index + 1} wears the ${category} category mark it names, not a neighbour's`);
+}
+// The legend's mark must be the same artwork the rows use. It is keyed by
+// category name, so a legend row that borrowed a neighbour's icon would be
+// saying which category it is, and the rows would then disagree with it.
+const legendRowsHtml = [...allLanes.matchAll(/<tr><td><svg[\s\S]*?<\/tr>/g)].map((m) => m[0]);
+assert.equal(legendRowsHtml.length, 12, 'twelve legend rows, each led by a mark');
+for (const [index, row] of legendRowsHtml.entries()) {
+  const category = /<\/td><td>([^<]*)<\/td>/.exec(row)[1];
+  assert(category, `legend row ${index + 1} names its category`);
+  assert(row.includes(svgIcon(categoryIcon(category), { size: 13, className: 'icon cat' })),
+    `legend row ${index + 1} wears the ${category} mark it names, not a neighbour's`);
+}
 
 // The lane row names the lane the section is in, and the source row names the
 // rule file, for every lane — the metadata is real, not a placeholder.
@@ -281,24 +380,43 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
     'a deterministic card must not claim to be routed to review');
 }
 {
-  // The PDF's review queue is carried over, so no content is dropped.
-  assert.match(allLanes, /<h2>Review queue \(heuristic findings\) \(1\)<\/h2>/);
-  const queue = allLanes.slice(allLanes.indexOf('id="review-queue"'),
-    allLanes.indexOf('id="sources"') === -1 ? undefined : allLanes.indexOf('id="sources"'));
-  assert(queue.includes('b.txt:3:1 UE-GR002 — '), 'the queue line names file, position and rule');
-  assert(queue.includes(`${LONG_MESSAGE.slice(0, 80)}...`), 'a long message is cut at 80 characters and marked');
-  assert(!queue.includes(LONG_MESSAGE.slice(0, 81)), 'the queue excerpt stops at 80 characters');
-  assert(!queue.includes(LONG_MESSAGE), 'the queue never carries the whole message');
+  // D5 gives the old review queue's job to the Agent Review Required section,
+  // which prints whole issue blocks instead of an excerpt: every heuristic
+  // finding of that lane is listed, and none of them is shortened. Quoted
+  // material and the other lanes stay out — lane choice is by category and
+  // audit first, so a heuristic finding elsewhere is reported there.
+  const sliceLane = (html, lane) => {
+    const at = html.indexOf(`id="lane-${lane}"`);
+    assert(at > 0, `the ${lane} section is drawn`);
+    return html.slice(at, html.indexOf('</section>', at));
+  };
+  const agent = sliceLane(allLanes, 'heuristic-review');
+  assert.match(agent, /<span class="sec-c">1 finding<\/span>/,
+    'the agent review section counts its own findings');
+  assert(agent.includes(LONG_MESSAGE),
+    'the section carries the whole explanation, where the old queue cut it at 80 characters');
+  assert(!agent.includes(`${LONG_MESSAGE.slice(0, 80)}...`),
+    'nothing in a findings section is ever an excerpt');
   // The full message still reaches the reader in the finding card itself.
   assert(allLanes.includes(LONG_MESSAGE), 'the finding card carries the untruncated explanation');
-  // The quoted finding is deterministic, and a quoted heuristic would stay out:
-  // neither can add itself to the queue.
-  const noQueue = render(makeInput({ findings: [finding({ confidence: 'deterministic' })] }));
-  assert(!noQueue.includes('Review queue'), 'the queue section is skipped when nothing is heuristic');
+
+  // A scan with nothing in the lane still draws the section, stating zero and
+  // saying it was checked: a reader can tell a clean lane from one that was
+  // never run (D10).
+  const noAgent = render(makeInput({ findings: [finding({ confidence: 'deterministic' })] }));
+  assert.match(noAgent,
+    /<span class="sec-t">Agent Review Required<\/span><span class="sec-d">heuristic-review<\/span><span class="sec-c">0 findings<\/span>/,
+    'a lane with nothing in it still renders its header with a zero count');
+  assert(noAgent.includes('The lane was checked.'), 'and it says the lane was checked');
+
+  // A quoted heuristic is a quotation, not work for an agent to take on: it
+  // keeps its own section and never counts towards this one.
   const quotedHeuristic = render(makeInput({ findings: [finding({ confidence: 'heuristic',
     context: 'quoted', message: LONG_MESSAGE })] }));
-  assert(!quotedHeuristic.includes('Review queue'),
-    'a quoted heuristic stays out of the review queue');
+  assert.match(sliceLane(quotedHeuristic, 'heuristic-review'), /<span class="sec-c">0 findings<\/span>/,
+    'a quoted heuristic stays out of the Agent Review Required section');
+  assert(!sliceLane(quotedHeuristic, 'heuristic-review').includes(LONG_MESSAGE),
+    'and its message never leaks into that section');
 }
 
 // --- 5: framing, legend and the clean-run sentence --------------------------
@@ -417,15 +535,19 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
   assert(!/class="count"/.test(single), 'a lone finding shows no count');
   assert.match(single, /<table class="occurrences">/, 'a lone grouped issue still shows its occurrence row');
 
-  // Full detail never groups and never counts.
-  assert.equal((full.match(/<article class="finding severity-/g) || []).length, 3,
-    'full detail keeps one card per finding');
-  assert.equal((full.match(/<article class="finding issue/g) || []).length, 0,
-    'full detail renders no grouped issue block');
-  assert(!full.includes('<table class="occurrences">'), 'full detail carries no occurrence table');
+  // Full detail never groups and never counts. Since D12 it also draws the
+  // *same* card the grouped layout does, with a group of one, so the two
+  // layouts cannot drift apart field by field — what distinguishes them is now
+  // only how many cards there are: three here, one grouped issue over there.
+  assert.equal((full.match(/<article class="finding issue severity-/g) || []).length, 3,
+    'full detail keeps one shared row per finding');
+  assert.equal((full.match(/<table class="occurrences">/g) || []).length, 3,
+    'each uncapped row still carries its occurrence table, so it names the file it came from');
   assert(!/class="count"/.test(full), 'full detail never prints a group count');
-  assert.match(full, /<dt>File<\/dt><dd>docs\/a\.md<\/dd>/,
-    'full detail keeps the per-card File row the grouped table replaces');
+  assert.match(full, /<td>docs\/a\.md<\/td>/,
+    'the uncapped row names the file its finding was read from');
+  assert(!/<dt>File<\/dt>/.test(full),
+    'the file is carried by the occurrence table in both layouts, not by a row only one of them had');
 
   // Both formats agree on what one issue is: the shared model groups these
   // same findings into exactly one issue of three occurrences.
@@ -474,13 +596,29 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
     'the lane line names all five lanes plus quoted');
   assert.equal(summaryOf(grouped).audits, 'publishing 1', 'the audits row is unaffected by detail');
 
-  // Full detail keeps the pre-Phase-9 card layout, provenance lock included.
+  // Full detail keeps one card per finding — and since D12 that card is the
+  // shared issue row, not a second card layout with its own field set. The
+  // provenance lock above therefore already covers this mode.
   const fullCards = [...full.matchAll(CARD_RE)].map(m => m[0]);
   assert.equal(fullCards.length, 6, 'full detail renders one card per finding');
   assertCardShape(fullCards, 'full-detail card');
-  assert.equal((full.match(/<article class="finding issue/g) || []).length, 0,
-    'full detail renders no grouped issue block');
-  assert.match(full, /<dt>File<\/dt><dd>a\.txt<\/dd>/, 'full detail keeps the per-card File row');
+  assert.equal((full.match(/<article class="finding issue/g) || []).length, 6,
+    'full detail draws the shared issue row, once per finding');
+  // D12 moved this row: the file used to be a `<dt>File</dt>` in this layout
+  // only, and the grouped layout put it in the occurrence table. Both now use
+  // the table, so the two card shapes are the same shape — asserted by checking
+  // every uncapped row names its own file there, and that the row only one
+  // layout used to have is gone from both.
+  const fullModel = buildReport(makeInput(sample), { detail: 'full' })
+    .filter(element => element.type === 'issue');
+  assert.equal(fullModel.length, fullCards.length,
+    'the model draws exactly the cards the renderer does');
+  for (const row of fullModel) {
+    assert(full.includes(`<td>${row.occurrences[0].file}</td>`),
+      `the uncapped row names the file it came from: ${row.occurrences[0].file}`);
+  }
+  assert(!/<dt>File<\/dt>/.test(full),
+    'the file is carried by the occurrence table in both layouts, not by a row only one of them had');
 }
 
 // --- 5c: the category legend, twelve rows, text labels always ----------------
@@ -606,10 +744,11 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
 // allowed to write and no angle bracket may survive, so no piece of user text
 // can become a tag no matter what it contains. Phase 9 adds the header block,
 // the marker span and the tables (legend and occurrence), so those tags are
-// whitelisted too — the whitelist is the set of tags this renderer writes, and
-// user text still cannot forge one because it never reaches the document
-// unescaped (locked by the "<td>injected cell</td>" fixture below).
-const KNOWN_TAG = /<!DOCTYPE html>|<\/?(?:html|head|header|meta|title|style|body|main|h1|h2|h3|hr|dl|dt|dd|p|article|section|table|thead|tbody|tr|th|td|span|ul|li|footer)\b[^<>]*>/;
+// whitelisted too — and D11 adds `svg` and `path`, because the report now
+// draws its own marks inline. The whitelist is the set of tags this renderer
+// writes, and user text still cannot forge one because it never reaches the
+// document unescaped (locked by the "<td>injected cell</td>" fixture below).
+const KNOWN_TAG = /<!DOCTYPE html>|<\/?(?:html|head|header|meta|title|style|body|main|h1|h2|h3|hr|dl|dt|dd|p|article|section|table|thead|tbody|tr|th|td|span|ul|ol|li|pre|code|footer|svg|path)\b[^<>]*>/;
 const assertNoInjectedMarkup = (document, label) => {
   const stripped = document.replace(new RegExp(KNOWN_TAG.source, 'g'), '');
   assert(!stripped.includes('<'), `${label}: an unescaped "<" reached the document`);
@@ -623,6 +762,8 @@ assert(new RegExp(KNOWN_TAG.source).test('<dd>value</dd>'),
   'the tag whitelist must accept a row the renderer writes');
 assert(new RegExp(KNOWN_TAG.source).test('<table class="occurrences">'),
   'the tag whitelist must accept the occurrence table the renderer writes');
+assert(new RegExp(KNOWN_TAG.source).test('<path d="M8 1.6 15 13.6H1z"/>'),
+  'the tag whitelist must accept the icon artwork D11 draws');
 // The same check over an ordinary report, so it is not only the hostile fixture
 // that is proved clean.
 assertNoInjectedMarkup(allLanes, 'ordinary report');
@@ -633,7 +774,7 @@ assertNoInjectedMarkup(allLanes, 'ordinary report');
   // into the occurrence table, whose Content cell carries the excerpt with its
   // » … « match marks.
   const hostile = 'docs/<script>alert(1)</script>.md';
-  const message = '</dd></dl><script>alert(2)</script> & "quoted" \'apos\' <img src=x onerror=alert(3)> <td>injected cell</td>';
+  const message = '</dd></dl><script>alert(2)</script> & "quoted" \'apos\' <img src=x onerror=alert(3)> <td>injected cell</td> <path d="M0 0"/>';
   const html = render(makeInput({
     targets: [hostile],
     findings: [finding({ file: hostile, message, current: '<b>bold</b>',
@@ -646,6 +787,11 @@ assertNoInjectedMarkup(allLanes, 'ordinary report');
   // one: this is the assertion that proves user text never becomes one.
   assert(html.includes('Say »&lt;td&gt;injected cell&lt;/td&gt;« twice'),
     'the occurrence Content cell carries the escaped excerpt with its match marks intact');
+  // The same for <path>, which D11 whitelisted: a piece of copy shaped like an
+  // icon must not become one, or the whitelist above would be a hole rather
+  // than a list of what the renderer itself writes.
+  assert(html.includes('&lt;path d=&quot;M0 0&quot;/&gt;'),
+    'copy shaped like the icon artwork stays escaped text, never an icon');
   assert(!html.includes('<td>injected cell</td>'),
     'a table tag from user text never reaches the document unescaped');
   assert(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'),
@@ -875,6 +1021,69 @@ const rendered = [allLanes];
   assert.match(help.stdout, /\.html/, 'the help text names the HTML format');
 }
 
+// --- 8b: paths are relative to a stated scan root (D9) -----------------------
+//
+// The report prints paths relative to the scan root and states that root once
+// in Summary, so a reader holding a printed copy can still resolve
+// `nu002.txt` back to the file that was scanned. JSON is the machine format
+// and must keep the absolute paths the engine produced — CI consumes it, and
+// a relative path there would break every consumer that resolves against its
+// own working directory.
+//
+// The root rule is restated rather than imported from lib/cli.mjs, so this
+// cannot pass by agreeing with the code under test: the root is the directory
+// the target sits in.
+
+{
+  const target = write('d9.txt', 'The the organisation reports the figure in the report line.\n');
+  assert.equal(json(capture([target, '--format', 'json'])).findings.length, 1,
+    'the D9 fixture fires exactly one finding');
+
+  const expectedRoot = path.dirname(path.resolve(target));
+  const docs = {};
+  for (const mode of ['grouped', 'full']) {
+    const extra = mode === 'full' ? ['--report-detail', 'full'] : [];
+    const out = path.join(tmp, `d9-${mode}.html`);
+    const run = capture([target, '--report', out, ...extra]);
+    assert.equal(run.code, 0, `${mode}: the D9 fixture scans cleanly: ${run.stderr}`);
+    docs[mode] = fs.readFileSync(out, 'utf8');
+    rendered.push(docs[mode]);
+  }
+
+  for (const mode of ['grouped', 'full']) {
+    const html = docs[mode];
+    const cell = /<dt>Root<\/dt><dd>([^<]*)<\/dd>/.exec(html);
+    assert.ok(cell, `${mode}: Summary states a scan root`);
+    assert.equal(cell[1], expectedRoot, `${mode}: and names the directory the scan was pointed at`);
+    // Counting the string would also match the header's target, which begins
+    // with the root as its own prefix — the row is what must appear once.
+    assert.equal((html.match(/<dt>Root<\/dt><dd>/g) || []).length, 1,
+      `${mode}: the root is stated exactly once, so it cannot be mistaken for a path being listed`);
+
+    // Every path the document shows, from the occurrence table and from the
+    // File row the uncapped detail uses. None may be absolute: an absolute
+    // path would be the old behaviour, and the root would then be redundant
+    // rather than load-bearing.
+    const paths = [
+      ...[...html.matchAll(/<tr><td>([^<]*)<\/td><td>/g)].map(m => m[1]),
+      ...[...html.matchAll(/<dt>File<\/dt><dd>([^<]*)<\/dd>/g)].map(m => m[1]),
+    ];
+    assert.ok(paths.length > 0, `${mode}: the report shows at least one path`);
+    for (const printed of paths) {
+      assert(!path.isAbsolute(printed),
+        `${mode}: a path is printed absolutely, so D9 was not applied: ${printed}`);
+      assert.equal(path.resolve(cell[1], printed), path.resolve(target),
+        `${mode}: ${printed} resolves against the stated root to exactly the scanned file`);
+    }
+  }
+
+  // JSON keeps the absolute path: relativising must be a property of the
+  // report, not of the findings the scan produced.
+  const truth = json(capture([target, '--format', 'json']));
+  assert.equal(truth.findings[0].file, path.resolve(target),
+    'JSON still carries the absolute path the engine read');
+}
+
 // --- 9: banned-phrase sweep over every rendered report ----------------------
 
 const BANNED = /UN approved|fully compliant|finds all errors|factual verification|legal advice/i;
@@ -890,5 +1099,6 @@ for (const output of rendered) {
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('ok — html report: five lanes, grouped issues with occurrence tables, twelve-row '
-  + 'legend, two-row header and three-cell footer, six fields, framing, clean sentence, escaping, '
+  + 'legend, two-row header and three-cell footer, six fields, drawn marks in every row and '
+  + 'legend row, framing, clean sentence, escaping, '
   + 'determinism, dispatch, fail-closed extension, PDF unchanged, banned phrases');

@@ -173,10 +173,10 @@ function kvValueAll(lines, label, from = 0) {
 }
 
 // The legend's four columns, read positionally from the slice between the
-// `Category legend` heading and the next level-1 heading.
+// `Categories` heading and the next level-1 heading.
 function legendSlice(lines) {
   const start = lines.findIndex(l =>
-    l.text === 'Category legend' && l.font === 'F2' && l.size === 16 && l.x === MARGIN);
+    l.text === 'Categories' && l.font === 'F2' && l.size === 16 && l.x === MARGIN);
   assert(start >= 0, 'the category legend heading is present');
   const end = lines.findIndex((l, j) =>
     j > start && l.font === 'F2' && l.size === 16 && l.x === MARGIN);
@@ -185,10 +185,13 @@ function legendSlice(lines) {
 
 function legendFields(lines) {
   const region = legendSlice(lines);
+  // D11 moved both columns: the category's artwork now leads the row at the
+  // content margin, so the swatch sits at 65 and the name at 95. Read
+  // positionally, so an icon that displaced them would fail here.
   return {
-    names: region.filter(l => l.font === 'F2' && l.size === 10.5 && l.x === 86)
+    names: region.filter(l => l.font === 'F2' && l.size === 10.5 && l.x === 95)
       .map(l => l.text),
-    codes: region.filter(l => l.font === 'F2' && l.size === 8 && l.x > 54 && l.x < 80)
+    codes: region.filter(l => l.font === 'F2' && l.size === 8 && l.x > 65 && l.x < 91)
       .map(l => l.text),
     intents: region.filter(l => l.font === 'F1' && l.size === 9 && l.x === 200)
       .map(l => l.text),
@@ -422,12 +425,25 @@ function assertFurniture(s, lines, pages, target) {
     occIndex[label] = idx;
     cursor = idx;
   }
-  // The scanned path has no spaces, so where the value column wrapped the
-  // renderer broke a token mid-way; stripping the wrap's own spacing must
-  // leave exactly the path the JSON names.
+  // D9 moved this lock rather than deleting it, and it now checks the whole
+  // decision instead of one half of it. The rule is **restated here** rather
+  // than imported from lib/cli.mjs, so this cannot pass by simply agreeing
+  // with the code it is meant to check: the scan root is the directory the
+  // target sits in, the row is relative to that directory, and resolving one
+  // against the other reconstructs exactly the path JSON carries. A report
+  // that stated a plausible-but-wrong root would still be internally
+  // consistent, so the root itself is compared with the target first.
   assert(!target.includes(' '), 'fixture: the scanned path contains no spaces');
-  assert.equal(kvValueAll(lines, 'File', occIndex.File).replace(/ /g, ''), f.file,
-    'the File row prints the scanned path, wrap aside');
+  const expectedRoot = path.dirname(path.resolve(target));
+  const root = kvValue(lines, 'Root');
+  assert.equal(root, expectedRoot,
+    'Summary states the directory the scan was actually pointed at');
+  assert(path.isAbsolute(root), 'the scan root is absolute, so a relative path resolves against it');
+  const printed = kvValueAll(lines, 'File', occIndex.File).replace(/ /g, '');
+  assert.equal(printed, path.relative(root, f.file).split(path.sep).join('/'),
+    'the File row prints the scanned path relative to the stated root, wrap aside');
+  assert.equal(path.resolve(root, printed), f.file,
+    'the printed path resolves against the stated root to exactly the file JSON names');
   assert.equal(kvValueAll(lines, 'Location', occIndex.Location), `${f.line}:${f.column}`,
     'the Location row prints the finding position from JSON');
   assert(kvValueAll(lines, 'Content', occIndex.Content).includes(`\u00BB${f.current}\u00AB`),
@@ -588,9 +604,19 @@ function assertFurniture(s, lines, pages, target) {
       `full detail draws the located banner: ${banner}`);
   }
 
-  // Grouping is presentation: no Occurrences list, no count marker.
-  assert(!lines.some(l => l.text === 'Occurrences'),
-    'full detail has no Occurrences list');
+  // Grouping is presentation: `full` never groups, so no count marker is ever
+  // drawn. The Occurrences assertion moved with D12 — the uncapped row is now
+  // the *same* row the capped layout draws, occurrence table included. Before
+  // D12 this layout printed no file anywhere inside the block, so a reader of
+  // `--report-detail full` could not tell which file a finding came from at
+  // all: exactly the divergence D12 (and §10 item 4) exists to close.
+  const occurrenceBlocks = lines.filter(l => l.text === 'Occurrences');
+  assert.equal(occurrenceBlocks.length, json.findings.length,
+    'full detail draws one occurrence block per finding, never a merged one');
+  const fileLabels = lines.filter(l => l.text === 'File'
+    && l.x === MARGIN && l.font === 'F2' && l.size === 10.5);
+  assert.equal(fileLabels.length, json.findings.length,
+    'each uncapped row still names the file its finding was read from');
   assert(!lines.some(l => /^\d+ occurrences$/.test(l.text)),
     'full detail shows no count marker');
 
@@ -619,13 +645,17 @@ function assertFurniture(s, lines, pages, target) {
   assert.deepEqual(legend.counts, legendRows(json.findings).map(r => r.count),
     'full-detail legend counts are parsed from the findings');
 
-  // The provenance rows in full detail: confidence rides the banner, the
-  // other five rows follow each block, in order and bounded by its banner.
+  // The provenance rows in full detail — all six of them, in contract order.
+  // This list was five and had no Confidence in it: `full` printed confidence
+  // in the banner instead, which is why the row carried one field fewer than
+  // the grouped layout did. D12 (§10 item 4) requires every row, in every
+  // detail mode, to carry the same six.
   for (const finding of json.findings) {
     assertProvenance(lines, bannerFor(finding, 1), [
       ['Lane', finding.lane],
       ['Source', finding.source],
       ['Profile', finding.profile],
+      ['Confidence', finding.confidence],
       ['Limitation', finding.limitation],
       ['Action', finding.action],
     ]);

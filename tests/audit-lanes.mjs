@@ -588,11 +588,15 @@ const parseCounts = (text) => {
   return { errors: Number(m[1]), warnings: Number(m[2]), notes: Number(m[3]) };
 };
 
+// Total occurrence rows in the document. The grouped layout draws a single
+// table holding every place a defect appears; since D12 the uncapped layout
+// draws one table per finding — the same row either way. Counting across every
+// table keeps the number meaningful in both modes, where reading only the
+// first table would report one row for a document listing five.
 const occurrenceRows = (html) => {
-  const table = /<table class="occurrences">([\s\S]*?)<\/table>/.exec(html);
-  if (!table) return 0;
-  // One <tr> in <thead> is the column header, not an occurrence.
-  return (table[1].match(/<tr>/g) || []).length - 1;
+  const tables = [...html.matchAll(/<table class="occurrences">([\s\S]*?)<\/table>/g)];
+  // One <tr> in each <thead> is the column header, not an occurrence.
+  return tables.reduce((n, table) => n + (((table[1].match(/<tr>/g) || []).length) - 1), 0);
 };
 
 {
@@ -625,6 +629,7 @@ const occurrenceRows = (html) => {
     assert.equal(htmlRun.code, 1, `--report in ${mode} detail keeps the failing exit code`);
     reports[mode] = {
       pdf: pdfLines(fs.readFileSync(pdfPath)).join(' '),
+      raw: fs.readFileSync(pdfPath).toString('latin1'),
       html: fs.readFileSync(htmlPath, 'utf8'),
     };
   }
@@ -656,8 +661,46 @@ const occurrenceRows = (html) => {
     'the grouped PDF lists every finding as its own occurrence row');
   assert.equal(occurrenceRows(reports.grouped.html), truth.findings.length,
     'the grouped HTML lists every finding as its own table row');
-  assert.equal(occurrenceRows(reports.full.html), 0,
-    'the full detail HTML carries no occurrence table at all');
+  assert.equal(occurrenceRows(reports.full.html), truth.findings.length,
+    'the full detail HTML lists every finding too — D12 made it the same row');
+  assert.equal((reports.full.pdf.match(/\bFile\b/g) || []).length, truth.findings.length,
+    'the full detail PDF lists every finding too, one occurrence block per row');
+
+  // D11: the marks are drawn, and both formats draw the same set. The HTML
+  // carries one inline <svg> per severity and per category; the PDF carries a
+  // graphics-state block per icon — `q` and `Q` on lines of their own, which
+  // is the only way the renderer writes them, since every other `q` in the
+  // content stream sits inline with its own operators. A renderer that stopped
+  // drawing, or two renderers that disagreed about how many marks a row needs,
+  // would break here rather than in a reader's viewer, where a missing icon
+  // looks like a printing fault instead of a regression. Each block must also
+  // contain a moveto: `pdfIcon` on an empty shape list still opens and closes
+  // its graphics state, so counting pairs alone would accept an icon that
+  // paints nothing at all.
+  const iconBlocks = (raw) => {
+    const lines = raw.split('\n');
+    const blocks = [];
+    let open = -1;
+    for (const [index, line] of lines.entries()) {
+      if (line === 'q') open = index;
+      else if (line === 'Q' && open !== -1) {
+        blocks.push(lines.slice(open, index + 1));
+        open = -1;
+      }
+    }
+    return blocks;
+  };
+  for (const mode of ['grouped', 'full']) {
+    const svgs = (reports[mode].html.match(/<svg\b/g) || []).length;
+    assert(svgs > 0, `the ${mode} HTML draws its marks instead of reaching for an icon font`);
+    const blocks = iconBlocks(reports[mode].raw);
+    assert.equal(blocks.length, svgs,
+      `the ${mode} PDF draws exactly the ${svgs} marks the ${mode} HTML draws`);
+    for (const block of blocks) {
+      assert(block.some((line) => /^-?[\d.]+ -?[\d.]+ m$/.test(line)),
+        'every mark the PDF draws carries geometry: an icon of no shapes draws nothing');
+    }
+  }
 
   // Exactly one issue, because all five findings share a key — and the count
   // is shown, because it is more than one.
@@ -674,6 +717,146 @@ const occurrenceRows = (html) => {
   const drifted = reports.grouped.pdf.replace('5 errors', '4 errors');
   assert.notDeepEqual(parseCounts(drifted), expected,
     'the counts comparison actually rejects a report whose count drifted');
+}
+
+// --- 8c-ii: the cap is presentation too, never arithmetic -------------------
+//
+// D7, D8 and D13 (REPORT-REDESIGN-PLAN §4): a capped section may withhold
+// findings from the body, but it may not withhold them from the arithmetic.
+// The summary counts, the lane counts and the exit code of a capped run must
+// be the counts of every finding the scan produced — exactly what they are
+// when nothing is withheld — and the cap block must state both the number it
+// withheld and a command that lists the rest. Checked in both formats,
+// because a cap that only lies in one of them would still be a lie.
+//
+// The fixture is thirty files carrying two distinct defects, fifteen of each.
+// Two groups of fifteen: the second cannot be drawn once the body already
+// holds fifteen, so the cap stops at fifteen and withholds fifteen. A single
+// group of thirty would have been taken whole and withheld nothing, which is
+// not this test — that case is locked in tests/report-model.mjs §11b.
+
+{
+  const dir = path.join(tmp, 'cap-corpus');
+  fs.mkdirSync(dir, { recursive: true });
+  for (let i = 1; i <= 15; i += 1) {
+    write(path.join('cap-corpus', `a${i}.txt`),
+      'The the organisation reports the figure in the report. This is a very long sentence that is written in the report.\n');
+    write(path.join('cap-corpus', `b${i}.txt`),
+      'is is the position of the delegation on this article set out below in full in the text of the draft resolution itself.\n');
+  }
+
+  const truth = json(capture([dir, '--format', 'json']));
+  assert.equal(truth.findings.length, 30,
+    'the cap fixture is exactly thirty deterministic warnings');
+  const expected = truth.findings.reduce((acc, finding) => {
+    if (finding.severity === 'error') acc.errors += 1;
+    else if (finding.severity === 'warning') acc.warnings += 1;
+    else acc.notes += 1;
+    return acc;
+  }, { errors: 0, warnings: 0, notes: 0 });
+  assert.deepEqual(expected, { errors: 0, warnings: 30, notes: 0 },
+    'JSON, which is never capped, proves the truth the reports must agree with');
+
+  const lanesExpected = 'lanes: deterministic 30 · heuristic-review 0'
+    + ' · harmful-discriminatory 0 · diplomacy 0 · audit 0 · quoted 0';
+  const capLine = 'Showing 15 of 30 · 15 not listed above.';
+
+  const built = {};
+  for (const mode of ['grouped', 'full']) {
+    const extra = mode === 'full' ? ['--report-detail', 'full'] : [];
+    const pdfPath = path.join(tmp, `cap-${mode}.pdf`);
+    const htmlPath = path.join(tmp, `cap-${mode}.html`);
+    const pdfRun = capture([dir, '--report', pdfPath, ...extra]);
+    const htmlRun = capture([dir, '--report', htmlPath, ...extra]);
+    assert.equal(pdfRun.code, 0, `a warning-only run exits 0 in ${mode} detail`);
+    assert.equal(htmlRun.code, 0, `--report does not change it in ${mode} detail`);
+    const terminal = /editorial: (\d+) errors, (\d+) warnings, (\d+) notes/
+      .exec(htmlRun.stdout);
+    assert.ok(terminal, `${mode}: the terminal states the counts`);
+    assert.deepEqual(
+      { errors: Number(terminal[1]), warnings: Number(terminal[2]), notes: Number(terminal[3]) },
+      expected, `${mode}: the terminal counts every finding, capped or not`);
+    built[mode] = {
+      pdf: pdfLines(fs.readFileSync(pdfPath)).join(' '),
+      html: fs.readFileSync(htmlPath, 'utf8'),
+    };
+  }
+
+  // Every format in every mode reports what JSON proves. This is the whole
+  // claim: a cap reaches the body only.
+  for (const mode of ['grouped', 'full']) {
+    assert.deepEqual(parseCounts(built[mode].pdf), expected,
+      `the capped-or-not ${mode} PDF reports the counts JSON proves`);
+    assert.deepEqual(parseCounts(built[mode].html), expected,
+      `the capped-or-not ${mode} HTML reports the counts JSON proves`);
+    assert.ok(built[mode].pdf.includes(lanesExpected),
+      `the ${mode} PDF lane line counts all thirty findings`);
+    assert.ok(built[mode].html.includes(lanesExpected),
+      `the ${mode} HTML lane line counts all thirty findings`);
+  }
+
+  // The header of the section that got capped claims the whole count, not the
+  // drawn subset. Both detail modes of the HTML draw lane sections, so both
+  // are checked; the PDF's `full` mode hangs its body off Findings by file
+  // instead, and that is the header checked there.
+  assert.ok(built.grouped.html.includes(
+    '<span class="sec-t">Editorial Warnings</span>'
+    + '<span class="sec-d">deterministic · warning only</span>'
+    + '<span class="sec-c">30 findings</span>'),
+    'the capped section header claims all thirty findings, not the fifteen drawn');
+  assert.ok(built.full.html.includes(
+    '<span class="sec-t">Editorial Warnings</span>'
+    + '<span class="sec-d">deterministic · warning only</span>'
+    + '<span class="sec-c">30 findings</span>'),
+    'the uncapped HTML header claims the same thirty');
+  assert.ok(built.full.pdf.includes(
+    'Findings by file full detail · every finding 30 findings'),
+    'the uncapped PDF header claims the same thirty');
+  assert.ok(built.grouped.pdf.includes(
+    'Editorial Warnings deterministic · warning only 30 findings'),
+    'the PDF sets the same count beside the same header, on the same line');
+
+  // The cap block itself: present in grouped in both formats, absent from
+  // full, and phrased so that both the number withheld and the command that
+  // lists the rest are on the page.
+  assert.ok(built.grouped.html.includes(capLine),
+    'the grouped HTML states how much it withheld');
+  assert.ok(built.grouped.pdf.includes(capLine),
+    'the grouped PDF states how much it withheld');
+  assert.ok(!built.full.html.includes('Showing '), 'the full HTML never caps');
+  assert.ok(!/\bShowing \d+ of \d+/.test(built.full.pdf), 'the full PDF never caps');
+
+  const command = /un-editorial-check [^<]*--report-detail full --report \S+/
+    .exec(built.grouped.html);
+  assert.ok(command, 'the cap block prints a runnable re-run command');
+  assert.ok(command[0].includes('--report-detail full'),
+    'and that command asks for the detail level that lists everything');
+  assert.ok(built.grouped.pdf.includes('--report-detail full'),
+    'the PDF cap block prints the same command');
+
+  // Grouping and capping are both presentation: the grouped body draws the one
+  // group that fit, whole; the full body draws all thirty findings.
+  assert.equal((built.grouped.html.match(/<article class="finding/g) || []).length, 1,
+    'the capped grouped body draws only the group that fitted, whole');
+  assert.equal((built.full.html.match(/<article class="finding/g) || []).length, 30,
+    'the uncapped full body draws every finding');
+
+  // Read the cap line the way a reader does: its three numbers must reconcile
+  // with each other, with the truth JSON proves, and with the occurrences the
+  // body actually drew. A cap saying 20 while 15 rows are listed would fail
+  // the last of these — the drift this section exists to catch.
+  const cap = /Showing (\d+) of (\d+) · (\d+) not listed above\./.exec(built.grouped.html);
+  assert.ok(cap, 'the cap line is parseable');
+  assert.equal(Number(cap[2]), truth.findings.length,
+    'the cap line counts the whole scan, not the section');
+  assert.equal(Number(cap[1]) + Number(cap[3]), Number(cap[2]),
+    'what is drawn plus what is withheld is everything');
+  assert.deepEqual(
+    { shown: Number(cap[1]), withheld: Number(cap[3]) },
+    { shown: 15, withheld: 15 },
+    'the cap drew one whole group and withheld the other');
+  assert.equal(occurrenceRows(built.grouped.html), Number(cap[1]),
+    'the occurrences the body lists add up to exactly what the cap claims to have shown');
 }
 
 // --- 9: quoted material is a context, not a lane ----------------------------
@@ -705,4 +888,5 @@ for (const output of rendered) {
 console.log('ok — lanes: metadata, safety lane, diplomacy lane, sections, heuristic flip, '
   + 'audit lane, audit exit-code invariant, SARIF, PDF, quoted context, framing on both formats, '
   + 'grouping is presentation: counts and occurrence rows equal JSON in every format and mode, '
+  + 'the same drawn marks in both formats, '
   + 'terminal category marker and twelve-category legend, banned phrases');
