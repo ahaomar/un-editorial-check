@@ -51,7 +51,7 @@ import { run, VERSION } from '../bin/check.mjs';
 import { planFixes, writeSafely } from '../lib/fix.mjs';
 import { renderPdf } from '../lib/pdf.mjs';
 import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
-import { creditLine, footerLine, headerRows } from '../lib/furniture.mjs';
+import { footerCells, headerRows } from '../lib/furniture.mjs';
 
 // --- harness ----------------------------------------------------------------
 
@@ -89,9 +89,23 @@ const LINE_RE = /\/(F[123]) ([0-9.]+) Tf ([0-9.-]+) ([0-9.-]+) Td \(((?:\\[\s\S]
 const MARGIN = 54;
 const LABEL_COL = 84;
 
-// The footer's closing promise, quoted from lib/furniture's own output shape
-// (the renderer draws it as its own line of text).
-const FOOTER_TAIL_TEXT = 'report only; findings are not changed by this report.';
+// Page furniture is drawn outside the content box: the footer cells sit below
+// MARGIN and the header cells above the first line the body can draw. Their
+// baselines are 780.51 and 768.92 against a body that starts at 742, so 760
+// separates them without straddling either. A kv value may wrap across a page
+// break, and the next page's header is drawn between the two halves — the
+// continuation has to be read past the furniture rather than stopped by it.
+// Nothing else is skipped: any other run between two halves ends the value, so
+// an unrelated row can never be mistaken for its tail.
+const HEADER_CELL_FLOOR = 760;
+const isPageFurniture = (l) => l.y < MARGIN || l.y > HEADER_CELL_FLOOR;
+// The premise of the rule above, restated so it cannot rot silently if the
+// header moves closer to the body: a header cell is furniture, a line inside
+// the content box is not.
+assert(isPageFurniture({ y: 768.92 }) && isPageFurniture({ y: 30 }),
+  'header and footer baselines are recognised as page furniture');
+assert(!isPageFurniture({ y: 742.39 }),
+  'the first body line is not mistaken for page furniture');
 
 function unpdf(operand) {
   return operand.replace(/\\([()\\])/g, '$1');
@@ -239,10 +253,14 @@ function assertProvenance(lines, bannerText, expected) {
     assert(idx > cursor && idx < end,
       `issue ${bannerText} carries the ${label} row, after the rows before it`);
     const parts = [];
-    for (let k = idx + 1; k < lines.length
-      && lines[k].x === MARGIN + LABEL_COL && lines[k].font === 'F1'
-      && lines[k].size === 10.5; k++) {
-      parts.push(lines[k].text);
+    for (let k = idx + 1; k < lines.length; k++) {
+      const l = lines[k];
+      if (l.x === MARGIN + LABEL_COL && l.font === 'F1' && l.size === 10.5) {
+        parts.push(l.text);
+        continue;
+      }
+      if (isPageFurniture(l)) continue;
+      break;
     }
     assert.equal(squash(parts.join(' ')), squash(value),
       `${label} on ${bannerText} prints its value`);
@@ -252,37 +270,47 @@ function assertProvenance(lines, bannerText, expected) {
 
 /**
  * The header and footer furniture on every page of a real CLI report, plus
- * the endorsement boundary: four header rows drawn from the cover's own Date
- * and the scanned path (the cover's Targets value can wrap at the value
- * column, so the known path variable is used rather than reading wrapped text
- * back), and the three-line footer stamped with this report's version and
- * page numbers.
+ * the endorsement boundary: two header rows of two cells drawn from the
+ * cover's own Date and from this report's version, and the three footer cells
+ * carrying the page number, the copyright and the repository address
+ * (decisions D2 and D3). The scanned target is passed in so the header can be
+ * asserted *not* to repeat it: targets are cover material now.
  */
 function assertFurniture(s, lines, pages, target) {
-  const expectedHeader = headerRows({
-    date: kvValue(lines, 'Date'), targets: [target], version: VERSION,
-  }).map(squash);
+  const date = kvValue(lines, 'Date');
+  const expectedHeader = headerRows({ date, targets: [target], version: VERSION }, VERSION)
+    .map((row) => ({ left: squash(row.left), right: squash(row.right) }));
+  const expectedCells = [
+    expectedHeader[0].left, expectedHeader[0].right,
+    expectedHeader[1].left, expectedHeader[1].right,
+  ];
   pages.forEach((ls, i) => {
-    assert.deepEqual(ls.slice(0, 4).map(l => squash(l.text)), expectedHeader,
-      `page ${i + 1} carries the four header rows verbatim`);
+    assert.deepEqual(ls.slice(0, 4).map((l) => squash(l.text)), expectedCells,
+      `page ${i + 1} carries the two header rows, cell by cell`);
     ls.slice(0, 4).forEach((l, j) => {
-      assert.equal(l.font, j === 0 ? 'F2' : 'F1', `header row ${j + 1} font on page ${i + 1}`);
-      assert.equal(l.size, j === 0 ? 9 : 8.5, `header row ${j + 1} size on page ${i + 1}`);
-      assert.equal(l.x, MARGIN, `header row ${j + 1} starts in the margin on page ${i + 1}`);
+      const row = j < 2 ? 1 : 2;
+      assert.equal(l.font, row === 1 ? 'F2' : 'F1', `header row ${row} font on page ${i + 1}`);
+      assert.equal(l.size, row === 1 ? 9 : 8.5, `header row ${row} size on page ${i + 1}`);
+      if (j % 2 === 0) {
+        assert.equal(l.x, MARGIN, `header row ${row} left cell starts in the margin on page ${i + 1}`);
+      } else {
+        assert(l.x > MARGIN, `header row ${row} right cell is not sitting on the left margin on page ${i + 1}`);
+      }
     });
-    assert.deepEqual(ls.slice(-3).map(l => l.text), [
-      footerLine({ version: VERSION, page: i + 1, pages: pages.length }),
-      creditLine(),
-      FOOTER_TAIL_TEXT,
-    ], `page ${i + 1} carries its three footer lines verbatim`);
-    // The literal n/m stamp, quoted rather than derived from footerLine: if
-    // the furniture function itself lost the page numbers, the deepEqual
-    // above would follow it there — this one would not.
-    assert(ls.slice(-3)[0].text.includes(`page ${i + 1}/${pages.length}`),
+    assert(ls.slice(0, 4).every((l) => !l.text.includes(target)),
+      `page ${i + 1} header does not repeat the scanned target`);
+    const cells = footerCells({ date, page: i + 1, pages: pages.length });
+    assert.deepEqual(ls.slice(-3).map((l) => l.text),
+      [cells.left, cells.centre, cells.right],
+      `page ${i + 1} carries its three footer cells verbatim`);
+    // The literal n/m stamp, quoted rather than derived from footerCells: if
+    // the furniture function itself lost the page numbers, the deepEqual above
+    // would follow it there — this one would not.
+    assert.equal(ls.slice(-3)[0].text, `Page ${i + 1} of ${pages.length}`,
       `page ${i + 1} footer stamps its own n/m page number`);
     for (const l of ls.slice(-3)) {
-      assert.equal(l.font, 'F1', `footer line is regular: ${l.text}`);
-      assert.equal(l.size, 7.5, `footer line is 7.5 pt: ${l.text}`);
+      assert.equal(l.font, 'F1', `footer cell is regular: ${l.text}`);
+      assert.equal(l.size, 7.5, `footer cell is 7.5 pt: ${l.text}`);
       assert(l.y < MARGIN, `footer sits below the content box: ${l.text} at y=${l.y}`);
     }
   });
@@ -311,8 +339,14 @@ function assertFurniture(s, lines, pages, target) {
   const s = a.toString('latin1');
   assert(s.startsWith('%PDF-1.4\n'), 'the report starts with the PDF 1.4 magic');
   assert(s.endsWith('%%EOF\n'), 'the report ends with the %%EOF trailer');
-  assert(s.includes('report only; findings are not changed by this report.'),
-    'every report carries the report-only footer promise');
+  // The three footer cells (decision D3). This block took the place of the
+  // report-only promise lock, which moved with that line's removal rather than
+  // being deleted, so "every report carries its footer" still fails if a
+  // renderer stops drawing one.
+  assert(/Page \d+ of \d+/.test(s), 'every report stamps its page position');
+  assert(s.includes('un-editorial-check contributors'), 'every report carries the copyright');
+  assert(s.includes('github.com/ahaomar/un-editorial-check'),
+    'every report carries the repository address');
 
   // Every page object carries its own n/m footer stamp — the guarantee the
   // old regex over `- page (\d+)/(\d+)` held, now checked against the real
@@ -759,7 +793,7 @@ const applyFix = (name, body) => {
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('ok — audit report/fix: PDF en/em dash bytes, determinism, header and '
-  + 'three-line footer furniture on every page, issue banner and six provenance rows '
+  + 'three-cell footer furniture on every page, issue banner and six provenance rows '
   + 'from JSON, count only above one, occurrence list, counts paragraph, twelve-row '
   + 'legend, endorsement boundary, grouped vs full detail, '
   + 'sentence-start capitalisation, terminology never rewritten, offset-mismatch skip');

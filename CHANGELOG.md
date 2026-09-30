@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.4.0 – 30 September 2026
+
+The first instalment of the report redesign approved for this release: the furniture that frames every page of both report formats, and the document title. What the tool finds, the counts it reports, the order of the report's sections and how it exits are as they were in 1.3.1.
+
+### Changed
+
+- **The document title is `Editorial Review Report`.** Both formats carried `UN Editorial Review` before: it was the HTML `<title>` and `<h1>`, the PDF's banner, and the fallback used when a scan supplied no targets. The new wording names what the document is instead of restating the tool, and one constant in `lib/furniture.mjs` now feeds every place it appears, so the two formats cannot drift apart on it.
+- **The header is two rows of two cells, repeated on every page.** The first row is `un-editorial-check <version>` on the left against `EDITORIAL REVIEW` on the right; the second is `Document symbol: UE/<year>/<4 digits> · <date>` on the left against `Distribution: General` on the right. The header was four full-width lines: `EDITORIAL REVIEW`, then the scanned targets or `UN Editorial Review` where a scan supplied none, then the symbol and the date together, then the distribution marking. The targets are no longer repeated on every page because the cover already states them, and the space they occupied is what lets the right-hand cells sit at the right margin. The header reads `EDITORIAL REVIEW` and never `UNITED NATIONS`, exactly as before.
+- **The footer is three cells across the width of the page.** `Page N of M` on the left, `© <year> un-editorial-check contributors` in the centre, and `github.com/ahaomar/un-editorial-check` on the right. The year is read from the scan's own date; where the input carries no date the year is left out of the line rather than guessed or taken from the machine running the scan, so two runs over one input draw the same footer.
+
+### Removed
+
+- **Two footer lines.** `Prepared by un-editorial-check, an independent editorial tool` and `report only; findings are not changed by this report.` are no longer printed under either report. Neither carried a promise the reader could act on. The footer is where the page position and the source belong, and the sentence a reader can act on — *This report changes nothing; re-run the checker to verify corrections.* — still opens the framing block of every report as it did before.
+
+### Unchanged
+
+Everything else. The thirty-seven rules, the five lanes, the clean-run wording, the exit-code contract, the grouping arithmetic, the twelve-category legend, the construction of the document symbol, the endorsement boundary and zero npm dependencies are as in 1.3.1. `--report-detail` still selects the layout, and JSON and SARIF are untouched.
+
+### Not in this release
+
+The rest of the approved redesign is deliberately left for a following release: the new order of the report's sections, sections carrying no numbers, the cap of twenty warnings printed with the count withheld and the exact re-run command beside it, and the drawing of the category artwork in both formats. The artwork itself is built and held in `lib/icons.mjs`, and the legend already carries an icon for each of the twelve categories, but neither format draws them yet.
+
 ## 1.3.1 – 29 September 2026
 
 A short release prompted by a static analyser's report on this repository. Neither change alters what the tool finds, what it prints, or how it exits.

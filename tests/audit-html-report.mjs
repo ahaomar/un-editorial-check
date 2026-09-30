@@ -32,7 +32,7 @@ import { run } from '../bin/check.mjs';
 import { renderHtml } from '../lib/html.mjs';
 import { buildReport } from '../lib/report.mjs';
 import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
-import { creditLine, footerLine, headerRows } from '../lib/furniture.mjs';
+import { footerCells, headerRows, TITLE } from '../lib/furniture.mjs';
 import { LANE_NAMES } from '../lib/output.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -313,11 +313,14 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
     'the heuristic promise from lib/report.mjs is present verbatim');
   assert.match(allLanes, /This report changes nothing; re-run the checker to verify corrections\./,
     'the report-only promise from lib/report.mjs is present');
+  // The footer's own promise ("report only; findings are not changed by this
+  // report.") was retired with the footer itself under decision D3. The footer
+  // now carries the page position, the copyright and the repository address,
+  // and that is locked cell by cell in 5d below; the sentence a reader can act
+  // on is the one three lines up and still leads the framing block.
   assert.match(allLanes,
     /The report never presents itself as verification of facts, legal opinion or United Nations endorsement\./,
     'the framing disclaimer is present');
-  assert.match(allLanes, /report only; findings are not changed by this report\./,
-    'the footer promise from lib/pdf.mjs is present');
   // The three promises must be in the shipped order.
   const atDeterministic = allLanes.indexOf('Deterministic finding: the wording proves the defect.');
   const atHeuristic = allLanes.indexOf('Heuristic finding: routed to review;');
@@ -519,36 +522,56 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
   assert.equal(legendRowsOf(full).rows.length, 12, 'the twelve-row legend appears in full detail too');
 }
 
-// --- 5d: UN-style header and footer, in both detail modes --------------------
+// --- 5d: the document header and footer, in both detail modes ----------------
 
 {
   const headerRowsOf = html => {
     const block = /<header class="doc-header">[\s\S]*?<\/header>/.exec(html);
     assert(block, 'the document header renders');
-    return [...block[0].matchAll(/<p>([^<]*)<\/p>/g)].map(m => m[1]);
+    return [...block[0].matchAll(/<p><span class="l">([^<]*)<\/span><span class="r">([^<]*)<\/span><\/p>/g)]
+      .map(m => ({ left: m[1], right: m[2] }));
   };
   // headerRows over the same input the render received: if the renderer
-  // hand-wrote its own masthead, this comparison is where it drifts.
-  const expectedHeader = headerRows(makeInput());
+  // hand-wrote its own masthead, this comparison is where it drifts. Rows are
+  // pairs of cells, so the pair is compared, cell by cell.
+  const expectedHeader = headerRows(makeInput(), '1.1.0');
   const groupedHeader = headerRowsOf(allLanes);
   assert.deepEqual(groupedHeader, expectedHeader,
-    'the header is drawn from lib/furniture.mjs headerRows, in order');
-  assert.equal(groupedHeader[0], 'EDITORIAL REVIEW', 'the header reads EDITORIAL REVIEW');
-  assert.match(groupedHeader[2], /^Document symbol: UE\/\d{4}\/\d{4} {3}Date: 28 September 2026$/,
-    'the document symbol and date line are derived from the scan input');
-  assert.equal(groupedHeader[3], 'Distribution: General', 'the distribution marking is printed');
+    'the header is drawn from lib/furniture.mjs headerRows, cell by cell');
+  assert.equal(groupedHeader[0].left, 'un-editorial-check 1.1.0',
+    'the header leads with the tool and its version (decision D2)');
+  assert.equal(groupedHeader[0].right, 'EDITORIAL REVIEW',
+    'the header reads EDITORIAL REVIEW — the endorsement boundary, restated here');
+  assert.match(groupedHeader[1].left, /^Document symbol: UE\/\d{4}\/\d{4} · 28 September 2026$/,
+    'the document symbol and date cell are derived from the scan input');
+  assert.equal(groupedHeader[1].right, 'Distribution: General', 'the distribution marking is printed');
+  assert(groupedHeader.every(row => !row.left.includes('.md') && !row.right.includes('.md')),
+    'targets are cover material and never repeat in the header');
 
-  const footerText = footerLine({ version: '1.1.0', page: 1, pages: 1 });
-  assert(allLanes.includes(`<p>${footerText}</p>`), 'the footer line is drawn from footerLine');
-  assert(allLanes.includes(`<p>${creditLine()}</p>`), 'the credit line is drawn from creditLine');
-  assert(allLanes.includes('<p>report only; findings are not changed by this report.</p>'),
-    'the report-only promise from lib/pdf.mjs still closes the page');
+  // The title (decision D1): one constant, in both places the HTML names the
+  // document. The retired string is asserted absent rather than assumed gone.
+  assert(allLanes.includes(`<title>${TITLE} - un-editorial-check 1.1.0</title>`),
+    'the HTML <title> is the document title');
+  assert(allLanes.includes(`<h1>${TITLE}</h1>`), 'the HTML <h1> is the document title');
+  assert(!allLanes.includes('UN Editorial Review'),
+    'the retired title string is gone from the HTML report');
+
+  const footer = footerCells({ date: makeInput().date, page: 1, pages: 1 });
+  assert(allLanes.includes(`<span class="l">${footer.left}</span>`),
+    'the page position cell is drawn from footerCells');
+  assert(allLanes.includes(`<span class="c">${footer.centre}</span>`),
+    'the copyright cell is drawn from footerCells');
+  assert(allLanes.includes(`<span class="r">${footer.right}</span>`),
+    'the repository cell is drawn from footerCells');
+  assert(!allLanes.includes('report only; findings are not changed by this report.'),
+    'the retired report-only footer promise is gone from the HTML report');
 
   // Both surfaces appear in full detail too.
   const full = render(makeInput({ findings: ALL_LANES, profiles: ['publishing'] }),
     { version: '1.1.0', detail: 'full' });
   assert.deepEqual(headerRowsOf(full), expectedHeader, 'the header appears in full detail');
-  assert(full.includes(`<p>${footerText}</p>`) && full.includes(`<p>${creditLine()}</p>`),
+  assert(full.includes(`<span class="c">${footer.centre}</span>`)
+    && full.includes(`<span class="r">${footer.right}</span>`),
     'the footer appears in full detail');
 }
 
@@ -781,9 +804,14 @@ const rendered = [allLanes];
   const bytes = fs.readFileSync(pdf, 'latin1');
   assert(bytes.startsWith('%PDF-1.4'), '--report path.pdf still writes a PDF');
   assert(bytes.trimEnd().endsWith('%%EOF'), 'the PDF is structurally complete');
-  assert.match(bytes, /UN Editorial Review/, 'the PDF still carries its title');
-  assert.match(bytes, /report only; findings are not changed by this report\./,
-    'the PDF footer promise is unchanged');
+  assert.match(bytes, /Editorial Review Report/, 'the PDF still carries its title');
+  // The footer's three cells (decision D3), replacing the report-only promise
+  // lock that moved with that line's removal.
+  assert.match(bytes, /Page \d+ of \d+/, 'the PDF stamps its page position');
+  assert.match(bytes, /© \d{4} un-editorial-check contributors/,
+    'the PDF stamps the copyright with the year read from the scan date');
+  assert(bytes.includes('github.com/ahaomar/un-editorial-check'),
+    'the PDF stamps the repository address');
   // The report is written before --fix, recording the pre-fix wording.
   const target = write('prefix.txt', 'We noted the the point twice.\n');
   const fixPdf = path.join(tmp, 'prefix.pdf');
@@ -862,5 +890,5 @@ for (const output of rendered) {
 
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('ok — html report: five lanes, grouped issues with occurrence tables, twelve-row '
-  + 'legend, UN-style header/footer, six fields, framing, clean sentence, escaping, '
+  + 'legend, two-row header and three-cell footer, six fields, framing, clean sentence, escaping, '
   + 'determinism, dispatch, fail-closed extension, PDF unchanged, banned phrases');

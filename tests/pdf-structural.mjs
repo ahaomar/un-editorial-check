@@ -13,7 +13,7 @@
 import assert from 'node:assert/strict';
 import { renderPdf } from '../lib/pdf.mjs';
 import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
-import { creditLine, footerLine, headerRows } from '../lib/furniture.mjs';
+import { footerCells, headerRows } from '../lib/furniture.mjs';
 
 // --- page geometry (mirrors the contract, restated independently) ----------
 
@@ -264,7 +264,7 @@ const longTwo = paragraphSeed.repeat(8);
 const longThree = (SENT_B + ' ' + SENT_D + ' ' + SENT_A + ' ' + SENT_C + ' ').repeat(8);
 
 const elements = [
-  { type: 'banner', kind: 'title', text: 'UN Editorial Review' },
+  { type: 'banner', kind: 'title', text: 'Editorial Review Report' },
   { type: 'kv', label: 'Version', value: '9.9.9' },
   { type: 'kv', label: 'Date', value: '27 September 2026' },
   { type: 'spacer' },
@@ -306,7 +306,7 @@ assert(s.includes('0.5 w '), 'rules draw a half-point line');
 
 const lines = assertLinesFit(pdf, 'report');
 const texts = lines.map((line) => line.text);
-assert(texts.some((t) => t.includes('UN Editorial Review')),
+assert(texts.some((t) => t.includes('Editorial Review Report')),
   'title banner text round-trips through extraction');
 assert(texts.some((t) => t.includes("'smart' \u0096 ok...")),
   'curly quotes and the ellipsis fold to ASCII; the en dash keeps WinAnsi byte 0x96');
@@ -328,54 +328,80 @@ assert(s.includes('a \\(b\\) c'), 'parentheses are escaped inside the raw litera
 
 // --- 6: header and footer on every page --------------------------------------
 //
-// Both are drawn from lib/furniture.mjs: the header block (EDITORIAL REVIEW
-// and the scan's own rows) at the top of every page, the three-line footer
-// (page stamp, credit line, the report-only promise) at the bottom of every
-// page. The old free-form stamp is gone; the lock is the deepEqual below —
-// remove any footer line, any header row, or the furniture functions behind
-// them and it fails.
+// Both are drawn from lib/furniture.mjs: the header block — two rows of two
+// cells, the tool and its version against EDITORIAL REVIEW, then the document
+// symbol and date against the distribution marking — at the top of every page,
+// and the three footer cells — page position, copyright, repository address —
+// at the bottom of every page (decisions D2 and D3). Each cell is its own
+// drawn run in stream order, so the deepEqual below is the lock: remove any
+// cell, or the furniture function behind it, and it fails.
 
-const FOOTER_TAIL_TEXT = 'report only; findings are not changed by this report.';
 // The header is derived from the cover's own kv rows when the caller holds no
-// explicit `opts.input`: Date from the Date row, targets from the (absent)
-// Targets row — so the fallback title — and the report's version.
+// explicit `opts.input`: the date from the Date row, and the version from the
+// renderer's own argument. Targets are cover material and no longer reach the
+// repeating header at all.
 const HEADER_INPUT = { date: '27 September 2026', targets: [], version: '9.9.9' };
-const expectedHeader = headerRows(HEADER_INPUT).map(squash);
-assert.equal(expectedHeader[0], 'EDITORIAL REVIEW',
+/** A header row with whitespace collapsed, as the `{ left, right }` it is. */
+const headerRowOf = (row) => ({ left: squash(row.left), right: squash(row.right) });
+const expectedHeader = headerRows(HEADER_INPUT, '9.9.9').map(headerRowOf);
+assert.equal(expectedHeader[0].right, 'EDITORIAL REVIEW',
   'the header reads EDITORIAL REVIEW — the endorsement boundary, restated here');
+assert.equal(expectedHeader[0].left, 'un-editorial-check 9.9.9',
+  'the header leads with the tool and its version (decision D2)');
+assert.equal(expectedHeader[1].right, 'Distribution: General',
+  'the distribution marking sits opposite the document symbol');
+
+/** The four header runs a page opens with, in the order they are drawn. */
+const EXPECTED_HEADER_CELLS = [
+  expectedHeader[0].left, expectedHeader[0].right,
+  expectedHeader[1].left, expectedHeader[1].right,
+];
 
 const pageArr = pageLines(pdf);
 assert(pageArr.length >= 2, `fixture renders at least two pages, got ${pageArr.length}`);
 pageArr.forEach((ls, i) => {
-  assert.deepEqual(ls.slice(-3).map((l) => l.text), [
-    footerLine({ version: '9.9.9', page: i + 1, pages: pageArr.length }),
-    creditLine(),
-    FOOTER_TAIL_TEXT,
-  ], `page ${i + 1} carries its three footer lines verbatim`);
-  // The literal n/m stamp, quoted rather than derived from footerLine: the
-  // deepEqual above follows footerLine wherever it goes — this one does not,
+  // The footer is one row of three cells (decision D3), drawn last, in stream
+  // order, all on the same baseline below the content box.
+  const cells = footerCells({ date: HEADER_INPUT.date, page: i + 1, pages: pageArr.length });
+  assert.deepEqual(ls.slice(-3).map((l) => l.text),
+    [cells.left, cells.centre, cells.right],
+    `page ${i + 1} carries its three footer cells verbatim`);
+  // The literal n/m stamp, quoted rather than derived from footerCells: the
+  // deepEqual above follows footerCells wherever it goes — this one does not,
   // so a footer that stamped a wrong total would fail here too.
-  assert(ls.slice(-3)[0].text.includes(`page ${i + 1}/${pageArr.length}`),
+  assert.equal(ls.slice(-3)[0].text, `Page ${i + 1} of ${pageArr.length}`,
     `page ${i + 1} footer stamps its own n/m page number`);
   for (const l of ls.slice(-3)) {
-    assert.equal(l.font, 'F1', `footer line is regular: ${l.text}`);
-    assert.equal(l.size, 7.5, `footer line is 7.5 pt: ${l.text}`);
+    assert.equal(l.font, 'F1', `footer cell is regular: ${l.text}`);
+    assert.equal(l.size, 7.5, `footer cell is 7.5 pt: ${l.text}`);
     assert(l.y < MARGIN, `footer sits below the content box: ${l.text} at y=${l.y}`);
   }
+  // The three cells must read as columns rather than as one centred pile: their
+  // x positions strictly increase, so no cell can be drawn over the one before
+  // it however long the copyright or the repository address becomes.
+  const footerCellsDrawn = ls.slice(-3);
+  assert(footerCellsDrawn[0].x < footerCellsDrawn[1].x
+    && footerCellsDrawn[1].x < footerCellsDrawn[2].x,
+    `page ${i + 1} footer cells are placed left, centre and right`);
 
   const head = ls.slice(0, 4);
-  assert.deepEqual(head.map((l) => squash(l.text)), expectedHeader,
-    `page ${i + 1} carries the four header rows verbatim`);
+  assert.deepEqual(head.map((l) => squash(l.text)), EXPECTED_HEADER_CELLS,
+    `page ${i + 1} carries the two header rows, cell by cell`);
   head.forEach((l, j) => {
-    assert.equal(l.font, j === 0 ? 'F2' : 'F1', `header row ${j + 1} font on page ${i + 1}`);
-    assert.equal(l.size, j === 0 ? 9 : 8.5, `header row ${j + 1} size on page ${i + 1}`);
-    assert.equal(l.x, MARGIN, `header row ${j + 1} starts in the margin on page ${i + 1}`);
+    const row = j < 2 ? 1 : 2;
+    assert.equal(l.font, row === 1 ? 'F2' : 'F1', `header row ${row} font on page ${i + 1}`);
+    assert.equal(l.size, row === 1 ? 9 : 8.5, `header row ${row} size on page ${i + 1}`);
+    if (j % 2 === 0) {
+      assert.equal(l.x, MARGIN, `header row ${row} left cell starts in the margin on page ${i + 1}`);
+    } else {
+      assert(l.x > MARGIN, `header row ${row} right cell is not sitting on the left margin on page ${i + 1}`);
+    }
   });
   assert.equal(head[3].text, 'Distribution: General',
     'the header carries the distribution marking');
 });
-assert(s.includes('page 1/'), 'page 1 footer stamp present');
-assert(s.includes('page 2/'), 'page 2 footer stamp present');
+assert(s.includes('Page 1 of '), 'page 1 footer stamp present');
+assert(s.includes('Page 2 of '), 'page 2 footer stamp present');
 assert(s.includes('EDITORIAL REVIEW'), 'the header text is present in the file');
 assert(!s.includes('UNITED NATIONS'),
   'the endorsement boundary: the report never prints UNITED NATIONS');
@@ -407,15 +433,15 @@ assert.throws(() => renderPdf([{ type: 'mystery' }]), /unknown element type/,
 const bare = renderPdf([{ type: 'paragraph', text: 'A short closing line.' }]);
 validateStructure(bare, 'bare', 1);
 {
-  // An empty version still produces a well-formed three-line footer — with
-  // the double space footerLine itself produces, so the lock quotes the
-  // furniture function rather than a hand-written string.
+  // An input with no date still produces a well-formed three-cell footer. The
+  // year is dropped rather than guessed, so a report that cannot source a year
+  // prints a copyright without one instead of reaching for the host clock.
+  const bareCells = footerCells({ page: 1, pages: 1 });
   const bareLast = pageLines(bare)[0].slice(-3).map((l) => l.text);
-  assert.deepEqual(bareLast, [
-    footerLine({ version: '', page: 1, pages: 1 }),
-    creditLine(),
-    FOOTER_TAIL_TEXT,
-  ], 'an empty version still produces a well-formed footer');
+  assert.deepEqual(bareLast, [bareCells.left, bareCells.centre, bareCells.right],
+    'an input with no date still produces a well-formed footer');
+  assert.equal(bareLast[1], '© un-editorial-check contributors',
+    'a date with no four-digit year drops the year rather than inventing one');
 }
 
 // --- 9: characters WinAnsi cannot encode -------------------------------------
@@ -637,25 +663,31 @@ function assertProvenance(lines, bannerText, expected) {
   }
 }
 
-// opts.input feeds the header verbatim: a caller that holds the real report
-// input gets its date, targets and document symbol, while the footer still
-// stamps the renderer's own version argument.
+// opts.input feeds the header and the footer verbatim: a caller that holds the
+// real report input gets its date and document symbol in the header and its
+// year in the footer's copyright, while the version in the header's first cell
+// is still the renderer's own argument rather than the one the input carries.
 {
   const overrideInput = { date: '2026-01-02', targets: ['/tmp/a.md', '/tmp/b.md'], version: '1.2.3' };
   const override = renderPdf([{ type: 'paragraph', text: 'Body.' }],
     { version: '9.9.9', input: overrideInput });
   validateStructure(override, 'override', 1);
   const overrideLines = assertLinesFit(override, 'override');
-  assert.deepEqual(overrideLines.slice(0, 4).map(l => squash(l.text)),
-    headerRows(overrideInput).map(squash),
-    'opts.input feeds headerRows exactly — symbol, date and title rows');
-  assert.equal(overrideLines[1].text, '/tmp/a.md /tmp/b.md',
-    'the header title row joins the supplied targets');
-  assert.deepEqual(pageLines(override)[0].slice(-3).map(l => l.text), [
-    footerLine({ version: '9.9.9', page: 1, pages: 1 }),
-    creditLine(),
-    FOOTER_TAIL_TEXT,
-  ], 'the footer stamps the renderer version even when opts.input carries its own');
+  const expectedOverride = headerRows(overrideInput, '9.9.9').map(headerRowOf);
+  assert.deepEqual(overrideLines.slice(0, 4).map(l => squash(l.text)), [
+    expectedOverride[0].left, expectedOverride[0].right,
+    expectedOverride[1].left, expectedOverride[1].right,
+  ], 'opts.input feeds headerRows exactly — symbol and date cell included');
+  assert.equal(overrideLines[0].text, 'un-editorial-check 9.9.9',
+    'the header leads with the renderer version, not the one opts.input carries');
+  assert.match(overrideLines[2].text, /^Document symbol: UE\/2026\/\d{4} · 2 January 2026$/,
+    'the header stamps the date opts.input carries');
+  assert(overrideLines.slice(0, 4).every(l => !l.text.includes('/tmp/')),
+    'targets are cover material and no longer repeat in the header');
+  const overrideFooter = footerCells({ date: overrideInput.date, page: 1, pages: 1 });
+  assert.deepEqual(pageLines(override)[0].slice(-3).map(l => l.text),
+    [overrideFooter.left, overrideFooter.centre, overrideFooter.right],
+    'the footer copyright reads its year from the opts.input date');
 }
 
 // A grouped-detail document: one issue of seven occurrences and one lone
@@ -711,7 +743,7 @@ const issue1 = {
   ],
 };
 const issueElements = [
-  { type: 'banner', kind: 'title', text: 'UN Editorial Review' },
+  { type: 'banner', kind: 'title', text: 'Editorial Review Report' },
   { type: 'kv', label: 'Version', value: '9.9.9' },
   { type: 'kv', label: 'Date', value: '2026-09-29' },
   { type: 'kv', label: 'Targets', value: 'reports/sample.md' },
@@ -897,7 +929,7 @@ const fullBanners = [
   '[WARNING] UE-NU002 · numerals · deterministic · line 2:11',
 ];
 const fullPdf = renderPdf([
-  { type: 'banner', kind: 'title', text: 'UN Editorial Review' },
+  { type: 'banner', kind: 'title', text: 'Editorial Review Report' },
   { type: 'banner', kind: 'error', text: fullBanners[0] },
   { type: 'banner', kind: 'warning', text: fullBanners[1] },
   { type: 'banner', kind: 'warning', text: fullBanners[2] },
@@ -920,9 +952,10 @@ assert.deepEqual(fullLegend.names, CATEGORY_LEGEND.map(e => e.category),
 assert(fullLines.findIndex(l => l.text === 'Findings by file' && l.font === 'F2')
   > fullLines.findIndex(l => l.text === 'Category legend' && l.font === 'F2'),
   'the full-detail legend is drawn before the findings section');
+const fullFooter = footerCells({ page: 1, pages: 1 });
 assert(fullLines.slice(-3).map(l => l.text).join(' | ')
-  === [footerLine({ version: '9.9.9', page: 1, pages: 1 }), creditLine(), FOOTER_TAIL_TEXT].join(' | '),
-  'the full-detail footer is the same three-line furniture');
+  === [fullFooter.left, fullFooter.centre, fullFooter.right].join(' | '),
+  'the full-detail footer is the same three-cell furniture');
 assert(!fullS.includes('UNITED NATIONS'),
   'the endorsement boundary holds in full detail as well');
 

@@ -807,9 +807,18 @@ for (const format of ['json', 'sarif']) {
   assert(withReport.code === 0, 'the clean fixture must scan clean');
   const cleanBytes = pdfText(cleanPdf);
   assert(isPdf(cleanBytes), 'the report must be a structurally complete PDF');
-  assert.match(cleanBytes, /UN Editorial Review/, 'the report must carry its title');
-  assert.match(cleanBytes, /report only; findings are not changed by this report\./,
-    'every report must carry the report-only footer promise');
+  assert.match(cleanBytes, /Editorial Review Report/, 'the report must carry its title');
+  // The footer's three cells (decision D3) are stamped into every report, clean
+  // or not. This is the lock the report-only promise line used to hold: it
+  // moved with that line's removal rather than being deleted, so the guarantee
+  // "every report carries its footer" still fails if a renderer stops drawing
+  // one. The year is matched as a shape rather than pinned, because a CLI scan
+  // dates itself from its own input and this fixture is not a fixed date.
+  assert.match(cleanBytes, /Page 1 of 1/, 'every report stamps its page position');
+  assert.match(cleanBytes, /© \d{4} un-editorial-check contributors/,
+    'every report stamps the copyright, its year read from the scan date');
+  assert.match(cleanBytes, /github\.com\/ahaomar\/un-editorial-check/,
+    'every report stamps the repository address');
 
   // The exit code is identical with and without --report on a failing corpus.
   const hs = fixture('positive', 'hs001-dehumanising.txt');

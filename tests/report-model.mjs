@@ -149,7 +149,7 @@ const report = buildReportFull(makeInput({
   profiles: ['publishing', 'accessibility'],
 }));
 
-assert.deepEqual(report[0], { type: 'banner', kind: 'title', text: 'UN Editorial Review' });
+assert.deepEqual(report[0], { type: 'banner', kind: 'title', text: 'Editorial Review Report' });
 assert.deepEqual(
   report.slice(1, 6).map(e => e.label),
   ['Version', 'Date', 'Targets', 'Profiles', 'Files scanned'],
@@ -427,7 +427,7 @@ assert(noFindingsIdx >= 0, 'empty scan says No findings.');
 const emptyLegend3 = empty.findIndex(e => e.type === 'paragraph' && e.text.includes('changes nothing'));
 assert.equal(noFindingsIdx, emptyLegend3 + 1, 'No findings. follows the legend directly');
 assert(paragraphTexts(empty).includes('0 errors · 0 warnings · 0 notes'), 'zero counts on an empty scan');
-assert.deepEqual(empty[0], { type: 'banner', kind: 'title', text: 'UN Editorial Review' });
+assert.deepEqual(empty[0], { type: 'banner', kind: 'title', text: 'Editorial Review Report' });
 
 const emptyWithSources = buildReportFull(makeInput({ findings: [], sources: ['House style guide, chapter 4'] }));
 const emptyNoteIdx = emptyWithSources.findIndex(e => e.type === 'paragraph' && e.text === 'No findings.');
