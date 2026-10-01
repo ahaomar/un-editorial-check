@@ -1071,7 +1071,7 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
     {
       name: 'the all-unreadable directory returns a clean run instead of refusing',
       file: 'lib/cli.mjs',
-      from: 'if (paths.length > 0 && files.length === 0) {',
+      from: 'if (candidateCount > 0 && files.length === 0) {',
       to: 'if (false) {',
       // The F1 shape comes back: exit 0 plus the canonical clean sentence.
       broken: (o) => o.allExit === 0 && /No findings under/.test(o.allOut),
