@@ -71,6 +71,33 @@ The three files are short enough to read in full. Open them in the checkout:
 
 Their contents are not reproduced here. Copy that breaks the rules belongs in the fixture and nowhere else, so a reader who wants the flawed text has to open the file the scanner checks. Run 1 prints the offending line and column for every finding, which locates each one precisely without this page holding a copy of it.
 
+## A finished report
+
+The output is committed, so a reader can see the design before running anything. The scan is built from two short files written for the purpose, `tests/fixtures/demo/report-source.md` and `tests/fixtures/demo/report-source.html`. They carry typographical and stylistic defects only: a doubled word, a space before punctuation, a full stop running into the next word, a numeric date, a hyphenated year range, an all-caps word, malformed wording, a verbless fragment, an unsourced figure, a missing page title and an image without alt text. The copy names no country, no group, no person and no animal, and it makes no claim about any government, so nothing in the sample can be read as a position.
+
+![The editorial review report, rendered](./sample-report.png)
+
+| File | What it is |
+|---|---|
+| `tests/fixtures/demo/sample-report.html` | The full self-contained HTML report |
+| `tests/fixtures/demo/sample-report.pdf` | The same review as a PDF |
+| `sample-report.png` | The rendered page shown above |
+
+The HTML and the PDF sit under `tests/fixtures/` rather than here for the reason given above: a report quotes the copy it reviewed, and a directory scan skips `fixtures`, so the deliberate defects in the sample stay outside the self-scan that this page describes. The screenshot carries the same content as an image, which no text sweep reads.
+
+The run reports one error, eleven warnings and five audit findings, routed as eight deterministic, four agent-review and five audit, with the harmful or discriminatory, the diplomatic and the quoted lanes present and stated to be checked with nothing found in them.
+
+Regenerate all three from a neutral directory, so the report states a path of its own rather than a contributor's working tree:
+
+```sh
+mkdir -p /tmp/un-editorial-check-demo
+cp tests/fixtures/demo/report-source.md tests/fixtures/demo/report-source.html /tmp/un-editorial-check-demo/
+cd /tmp/un-editorial-check-demo
+node /path/to/checkout/bin/check.mjs --profile publishing --profile accessibility \
+  --report /path/to/checkout/tests/fixtures/demo/sample-report.html \
+  report-source.md report-source.html
+```
+
 ## Further reading
 
 - [USER-GUIDE.md](../../USER-GUIDE.md) — the plain-language walkthrough

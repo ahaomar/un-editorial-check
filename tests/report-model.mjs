@@ -276,7 +276,10 @@ assert(full.some(e => e.type === 'paragraph' && e.text.includes('changes nothing
   'report-only promise');
 
 // counts exclude audits; audits get their own sorted row
-assert.equal(full[iCounts].text, '2 errors · 1 warnings · 0 notes');
+// The single warning is what pins the singular: before the shared pluraliser
+// this line read "1 warnings", because both renderers wrote the plural no
+// matter what the count was. Breaking severityCounts must make this fail.
+assert.equal(full[iCounts].text, '2 errors · 1 warning · 0 notes');
 assert.equal(kvValue(full, 'Audits'), 'accessibility 1, publishing 1',
   'audit rows sorted by profile name, audits excluded from severity counts');
 

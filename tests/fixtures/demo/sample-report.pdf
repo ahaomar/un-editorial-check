@@ -1,0 +1,1859 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R] /Count 10 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 11093 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+q 0.216 0.278 0.31 rg 54 723.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 728.95 Td (Editorial Review Report) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 710.78 Td (The report never presents itself as verification of facts, legal opinion or United Nations endorsement.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 686.78 Td (Version) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 686.78 Td (1.5.1) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 670.78 Td (Date) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 670.78 Td (2026-10-01) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 654.78 Td (Targets) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 654.78 Td (report-source.md report-source.html) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 638.78 Td (Profiles) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 638.78 Td (publishing, accessibility) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 622.78 Td (Files scanned) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 622.78 Td (2) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 611.39 m 541.28 611.39 l S Q
+0 0 0 rg BT /F2 16 Tf 54 576.27 Td (Summary) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 497.76 576.27 Td (17 findings) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 554.78 Td (1 error · 11 warnings · 0 notes) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 536.78 Td (lanes: deterministic 8 · heuristic-review 4 · harmful-discriminatory 0 · diplomacy 0 · audit 5 · quoted 0) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 518.78 Td (Root) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 518.78 Td (/private/tmp/un-editorial-check-demo) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 502.78 Td (Audits) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 502.78 Td (accessibility 1, publishing 4) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 486.78 Td (Deterministic finding: the wording proves the defect.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 468.78 Td (Heuristic finding: routed to review; this report never asserts that a claim is true or false, or that any legal) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 454.78 Td (threshold is met.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 436.78 Td (This report changes nothing; re-run the checker to verify corrections.) Tj ET
+0 0 0 rg BT /F2 16 Tf 54 396.27 Td (Categories) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 142.69 396.27 Td (twelve checked categories) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 497.76 396.27 Td (17 findings) Tj ET
+0 0 0 rg BT /F2 9 Tf 54 376.01 Td (Marker) Tj ET
+0 0 0 rg BT /F2 9 Tf 95 376.01 Td (Category) Tj ET
+0 0 0 rg BT /F2 9 Tf 200 376.01 Td (What it covers) Tj ET
+0 0 0 rg BT /F2 9 Tf 503.78 376.01 Td (Findings) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+55.406 358.796 m
+58.5 364.984 l
+61.594 358.796 l
+56.756 361.215 m
+60.244 361.215 l
+S
+Q
+q 0.122 0.435 0.659 rg 65 354.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.66 357.39 Td (SP) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 357.39 Td (spelling) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 357.39 Td (orthography) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 357.39 Td (1) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+55.35 350.14 m
+57.825 350.14 l
+57.825 347.271 l
+57.825 345.921 57.038 345.077 55.631 344.796 c
+55.631 345.865 l
+56.419 346.09 56.756 346.54 56.756 347.159 c
+55.35 347.159 l
+h
+59.175 350.14 m
+61.65 350.14 l
+61.65 347.271 l
+61.65 345.921 60.862 345.077 59.456 344.796 c
+59.456 345.865 l
+60.244 346.09 60.581 346.54 60.581 347.159 c
+59.175 347.159 l
+h
+S
+Q
+q 0.824 0.412 0.118 rg 65 340.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72 343.39 Td (GR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 343.39 Td (grammar) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 343.39 Td (high-precision grammar) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 343.39 Td (3) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+57.6 336.928 m
+56.756 330.852 l
+60.244 336.928 m
+59.4 330.852 l
+55.462 334.959 m
+61.538 334.959 l
+55.462 332.821 m
+61.538 332.821 l
+S
+Q
+q 0.18 0.545 0.341 rg 65 326.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.22 329.39 Td (NU) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 329.39 Td (numerals) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 329.39 Td (dates, ranges, figures) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 329.39 Td (2) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+58.556 323.152 m
+61.65 323.152 l
+61.65 320.059 l
+58.275 316.74 l
+55.237 319.777 l
+h
+S
+0 0 0 RG
+0.844 w
+60.834 321.69 m
+60.834 321.395 60.595 321.156 60.3 321.156 c
+60.005 321.156 59.766 321.395 59.766 321.69 c
+59.766 321.985 60.005 322.224 60.3 322.224 c
+60.595 322.224 60.834 321.985 60.834 321.69 c
+h
+S
+Q
+q 0.482 0.263 0.592 rg 65 312.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.22 315.39 Td (TM) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 315.39 Td (terminology) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 315.39 Td (institutional terminology) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 315.39 Td (0) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+55.35 307.915 m
+61.65 307.915 l
+55.35 305.89 m
+61.65 305.89 l
+55.35 303.865 m
+61.65 303.865 l
+S
+0 0 0 rg
+58.106 307.915 m
+58.106 307.387 57.678 306.959 57.15 306.959 c
+56.622 306.959 56.194 307.387 56.194 307.915 c
+56.194 308.443 56.622 308.871 57.15 308.871 c
+57.678 308.871 58.106 308.443 58.106 307.915 c
+h
+f
+0 0 0 rg
+60.806 305.89 m
+60.806 305.362 60.378 304.934 59.85 304.934 c
+59.322 304.934 58.894 305.362 58.894 305.89 c
+58.894 306.418 59.322 306.846 59.85 306.846 c
+60.378 306.846 60.806 306.418 60.806 305.89 c
+h
+f
+0 0 0 rg
+58.781 303.865 m
+58.781 303.337 58.353 302.909 57.825 302.909 c
+57.297 302.909 56.869 303.337 56.869 303.865 c
+56.869 304.393 57.297 304.821 57.825 304.821 c
+58.353 304.821 58.781 304.393 58.781 303.865 c
+h
+f
+Q
+q 0.753 0.224 0.169 rg 65 298.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72 301.39 Td (RG) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 301.39 Td (register) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 301.39 Td (voice, tone, promotion, threat posture) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 301.39 Td (2) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+54.788 291.89 m
+56.25 293.971 60.75 293.971 62.212 291.89 c
+60.75 289.809 56.25 289.809 54.788 291.89 c
+h
+S
+0 0 0 RG
+0.844 w
+59.681 291.89 m
+59.681 291.238 59.152 290.709 58.5 290.709 c
+57.848 290.709 57.319 291.238 57.319 291.89 c
+57.319 292.542 57.848 293.071 58.5 293.071 c
+59.152 293.071 59.681 292.542 59.681 291.89 c
+h
+S
+Q
+q 0.722 0.525 0.043 rg 65 284.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.22 287.39 Td (AR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 287.39 Td (agent-review) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 287.39 Td (judgement calls routed to review) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 287.39 Td (4) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+56.138 275.527 m
+60.862 280.252 l
+S
+0 0 0 RG
+0.844 w
+61.875 277.89 m
+61.875 276.026 60.364 274.515 58.5 274.515 c
+56.636 274.515 55.125 276.026 55.125 277.89 c
+55.125 279.754 56.636 281.265 58.5 281.265 c
+60.364 281.265 61.875 279.754 61.875 277.89 c
+h
+S
+Q
+q 0.09 0.463 0.482 rg 65 270.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.44 273.39 Td (HS) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 273.39 Td (hate-speech) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 273.39 Td (dehumanising and collective framing) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 273.39 Td (0) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+55.069 260.74 m
+55.069 262.202 56.138 263.102 57.431 263.102 c
+58.725 263.102 59.794 262.202 59.794 260.74 c
+S
+0 0 0 RG
+0.844 w
+60.356 262.934 m
+61.425 262.934 62.156 262.034 62.156 260.74 c
+S
+0 0 0 RG
+0.844 w
+58.669 265.352 m
+58.669 264.669 58.115 264.115 57.431 264.115 c
+56.748 264.115 56.194 264.669 56.194 265.352 c
+56.194 266.036 56.748 266.59 57.431 266.59 c
+58.115 266.59 58.669 266.036 58.669 265.352 c
+h
+S
+0 0 0 RG
+0.844 w
+61.538 264.959 m
+61.538 264.431 61.109 264.002 60.581 264.002 c
+60.053 264.002 59.625 264.431 59.625 264.959 c
+59.625 265.487 60.053 265.915 60.581 265.915 c
+61.109 265.915 61.538 265.487 61.538 264.959 c
+h
+S
+Q
+q 0.69 0.227 0.471 rg 65 256.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.44 259.39 Td (DS) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 259.39 Td (discriminatory) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 259.39 Td (demeaning and discriminatory wording) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 259.39 Td (0) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+55.125 249.89 m
+61.875 249.89 l
+58.5 253.265 m
+60.019 251.296 60.019 248.484 58.5 246.515 c
+58.5 253.265 m
+56.981 251.296 56.981 248.484 58.5 246.515 c
+S
+0 0 0 RG
+0.844 w
+61.875 249.89 m
+61.875 248.026 60.364 246.515 58.5 246.515 c
+56.636 246.515 55.125 248.026 55.125 249.89 c
+55.125 251.754 56.636 253.265 58.5 253.265 c
+60.364 253.265 61.875 251.754 61.875 249.89 c
+h
+S
+Q
+q 0.478 0.322 0.188 rg 65 242.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.44 245.39 Td (DP) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 245.39 Td (diplomacy) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 245.39 Td (contested territorial status) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 245.39 Td (0) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+56.25 239.152 m
+59.288 239.152 l
+61.2 237.24 l
+61.2 232.627 l
+56.25 232.627 l
+h
+S
+0 0 0 RG
+0.844 w
+59.175 239.04 m
+59.175 237.184 l
+61.087 237.184 l
+S
+Q
+q 0.29 0.333 0.376 rg 65 228.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.44 231.39 Td (PB) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 231.39 Td (publishing) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 231.39 Td (page title, meta, headings, cards) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 231.39 Td (4) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+56.362 222.79 m
+60.638 222.79 l
+58.5 222.79 m
+58.5 220.709 l
+58.5 220.709 m
+57.206 218.627 l
+58.5 220.709 m
+59.794 218.627 l
+S
+0 0 0 RG
+0.844 w
+59.456 224.421 m
+59.456 223.893 59.028 223.465 58.5 223.465 c
+57.972 223.465 57.544 223.893 57.544 224.421 c
+57.544 224.949 57.972 225.377 58.5 225.377 c
+59.028 225.377 59.456 224.949 59.456 224.421 c
+h
+S
+Q
+q 0.357 0.486 0.125 rg 65 214.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.22 217.39 Td (AC) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 217.39 Td (accessibility) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 217.39 Td (labelling and form controls) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 217.39 Td (1) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+58.5 211.321 m
+61.538 210.196 l
+61.538 207.89 l
+61.538 205.977 60.188 204.852 58.5 204.29 c
+56.813 204.852 55.462 205.977 55.462 207.89 c
+55.462 210.196 l
+h
+S
+Q
+q 0.294 0.247 0.561 rg 65 200.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 72.44 203.39 Td (SC) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 95 203.39 Td (security) Tj ET
+0 0 0 rg BT /F1 9 Tf 200 203.39 Td (bounded source-code policies) Tj ET
+0 0 0 rg BT /F1 9 Tf 536.28 203.39 Td (0) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 195.39 m 541.28 195.39 l S Q
+0 0 0 rg BT /F2 16 Tf 54 160.27 Td (Harmful / Discriminatory Content) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 310.7 160.27 Td (harmful-discriminatory) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 502.76 160.27 Td (0 findings) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 138.78 Td (No findings under this lane in this scan. The lane was checked.) Tj ET
+0 0 0 rg BT /F2 16 Tf 54 98.27 Td (Diplomatic Sensitivity) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 226.27 98.27 Td (diplomacy) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 502.76 98.27 Td (0 findings) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 76.78 Td (No findings under this lane in this scan. The lane was checked.) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 1 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 6666 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+0 0 0 rg BT /F2 16 Tf 54 717.27 Td (Editorial Errors) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 176.48 717.27 Td (deterministic · error only) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 507.26 717.27 Td (1 finding) Tj ET
+q 0.776 0.157 0.157 rg 54 685.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 690.95 Td ([ERROR] UE-RE005 · register · deterministic · line 9:41) Tj ET
+q
+1 J
+1 j
+0 0 0 rg
+58.5 679.49 m
+62.438 672.74 l
+54.563 672.74 l
+h
+f
+1 1 1 RG
+0.9 w
+58.5 677.24 m
+58.5 675.215 l
+58.5 674.428 m
+58.5 673.752 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+66.35 677.915 m
+72.65 677.915 l
+66.35 675.89 m
+72.65 675.89 l
+66.35 673.865 m
+72.65 673.865 l
+S
+0 0 0 rg
+69.106 677.915 m
+69.106 677.387 68.678 676.959 68.15 676.959 c
+67.622 676.959 67.194 677.387 67.194 677.915 c
+67.194 678.443 67.622 678.871 68.15 678.871 c
+68.678 678.871 69.106 678.443 69.106 677.915 c
+h
+f
+0 0 0 rg
+71.806 675.89 m
+71.806 675.362 71.378 674.934 70.85 674.934 c
+70.322 674.934 69.894 675.362 69.894 675.89 c
+69.894 676.418 70.322 676.846 70.85 676.846 c
+71.378 676.846 71.806 676.418 71.806 675.89 c
+h
+f
+0 0 0 rg
+69.781 673.865 m
+69.781 673.337 69.353 672.909 68.825 672.909 c
+68.297 672.909 67.869 673.337 67.869 673.865 c
+67.869 674.393 68.297 674.821 68.825 674.821 c
+69.353 674.821 69.781 674.393 69.781 673.865 c
+h
+f
+Q
+q 0.753 0.224 0.169 rg 76 668.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83 671.39 Td (RG) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 671.39 Td (register) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 656.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 656.78 Td (!) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 640.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 640.78 Td (Remove the exclamation mark and state the point in a measured tone. — manual /) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 626.78 Td (agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 610.78 Td (Exclamation mark in formal copy.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 592.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 592.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 576.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 576.78 Td (rules/register.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 560.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 560.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 544.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 544.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 528.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 528.78 Td (Deterministic match on extracted copy; quoted, cited and code spans are outside the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 514.78 Td (scan.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 498.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 498.78 Td (Editorial correction; verify in context before applying.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 471.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 457.39 m 541.28 457.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 444.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 444.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 428.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 428.78 Td (9:41) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 412.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 412.78 Td (All three sessions concluded on schedule»!«) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 396.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 396.78 Td (Remove the exclamation mark and state the point in a measured tone.) Tj ET
+0 0 0 rg BT /F2 16 Tf 54 358.27 Td (Editorial Warnings) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 201.36 358.27 Td (deterministic · warning only) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 502.76 358.27 Td (7 findings) Tj ET
+q 0.902 0.318 0 rg 54 326.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 331.95 Td ([WARNING] UE-GR001 · grammar · deterministic · line 3:21) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 320.49 m
+62.438 313.74 l
+54.563 313.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 318.015 m
+58.5 316.102 l
+58.5 315.428 m
+58.5 314.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+66.35 319.14 m
+68.825 319.14 l
+68.825 316.271 l
+68.825 314.921 68.037 314.077 66.631 313.796 c
+66.631 314.865 l
+67.419 315.09 67.756 315.54 67.756 316.159 c
+66.35 316.159 l
+h
+70.175 319.14 m
+72.65 319.14 l
+72.65 316.271 l
+72.65 314.921 71.862 314.077 70.456 313.796 c
+70.456 314.865 l
+71.244 315.09 71.581 315.54 71.581 316.159 c
+70.175 316.159 l
+h
+S
+Q
+q 0.824 0.412 0.118 rg 76 309.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83 312.39 Td (GR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 312.39 Td (grammar) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 297.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 297.78 Td (the the) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 281.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 281.78 Td (the — --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 265.78 Td (The word "the" appears twice in a row in "the the".) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 247.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 247.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 231.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 231.78 Td (rules/grammar.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 215.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 215.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 199.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 199.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 183.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 183.78 Td (Deterministic match on extracted copy; quoted, cited and code spans are outside the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 169.78 Td (scan.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 153.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 153.78 Td (Editorial correction; verify in context before applying.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 126.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 112.39 m 541.28 112.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 99.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 99.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 83.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 83.78 Td (3:21) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 67.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 67.78 Td (The Office reviewed »the the« draft of the note , and the text was finalised.Next the) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 2 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 6248 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+0 0 0 rg BT /F1 10.5 Tf 138 733.78 Td (Committe...) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 717.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 717.78 Td (the) Tj ET
+q 0.902 0.318 0 rg 54 691.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 696.95 Td ([WARNING] UE-GR002 · grammar · deterministic · line 3:42) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 685.49 m
+62.438 678.74 l
+54.563 678.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 683.015 m
+58.5 681.102 l
+58.5 680.428 m
+58.5 679.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+66.35 684.14 m
+68.825 684.14 l
+68.825 681.271 l
+68.825 679.921 68.037 679.077 66.631 678.796 c
+66.631 679.865 l
+67.419 680.09 67.756 680.54 67.756 681.159 c
+66.35 681.159 l
+h
+70.175 684.14 m
+72.65 684.14 l
+72.65 681.271 l
+72.65 679.921 71.862 679.077 70.456 678.796 c
+70.456 679.865 l
+71.244 680.09 71.581 680.54 71.581 681.159 c
+70.175 681.159 l
+h
+S
+Q
+q 0.824 0.412 0.118 rg 76 674.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83 677.39 Td (GR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 677.39 Td (grammar) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 662.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 662.78 Td (note ,) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 646.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 646.78 Td (note, — --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 630.78 Td (A space sits between "note" and ",".) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 612.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 612.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 596.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 596.78 Td (rules/grammar.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 580.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 580.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 564.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 564.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 548.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 548.78 Td (Deterministic match on extracted copy; quoted, cited and code spans are outside the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 534.78 Td (scan.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 518.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 518.78 Td (Editorial correction; verify in context before applying.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 491.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 477.39 m 541.28 477.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 464.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 464.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 448.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 448.78 Td (3:42) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 432.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 432.78 Td (The Office reviewed the the draft of the »note ,« and the text was finalised.Next the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 418.78 Td (Committe...) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 402.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 402.78 Td (note,) Tj ET
+q 0.902 0.318 0 rg 54 376.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 381.95 Td ([WARNING] UE-GR003 · grammar · deterministic · line 3:75) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 370.49 m
+62.438 363.74 l
+54.563 363.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 368.015 m
+58.5 366.102 l
+58.5 365.428 m
+58.5 364.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+66.35 369.14 m
+68.825 369.14 l
+68.825 366.271 l
+68.825 364.921 68.037 364.077 66.631 363.796 c
+66.631 364.865 l
+67.419 365.09 67.756 365.54 67.756 366.159 c
+66.35 366.159 l
+h
+70.175 369.14 m
+72.65 369.14 l
+72.65 366.271 l
+72.65 364.921 71.862 364.077 70.456 363.796 c
+70.456 364.865 l
+71.244 365.09 71.581 365.54 71.581 366.159 c
+70.175 366.159 l
+h
+S
+Q
+q 0.824 0.412 0.118 rg 76 359.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83 362.39 Td (GR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 362.39 Td (grammar) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 347.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 347.78 Td (.Next) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 331.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 331.78 Td (. Next — --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 315.78 Td (The full stop in ".Next" runs straight into the next word.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 297.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 297.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 281.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 281.78 Td (rules/grammar.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 265.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 265.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 249.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 249.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 233.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 233.78 Td (Deterministic match on extracted copy; quoted, cited and code spans are outside the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 219.78 Td (scan.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 203.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 203.78 Td (Editorial correction; verify in context before applying.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 176.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 162.39 m 541.28 162.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 149.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 149.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 133.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 133.78 Td (3:75) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 117.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 117.78 Td (...ft of the note , and the text was finalised».Next« the Committee took up the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 103.78 Td (amendments.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 87.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 87.78 Td (. Next) Tj ET
+q 0.902 0.318 0 rg 54 61.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 66.95 Td ([WARNING] UE-SP001 · spelling · deterministic · line 7:44) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 3 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 6200 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 740.49 m
+62.438 733.74 l
+54.563 733.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 738.015 m
+58.5 736.102 l
+58.5 735.428 m
+58.5 734.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+66.406 733.796 m
+69.5 739.984 l
+72.594 733.796 l
+67.756 736.215 m
+71.244 736.215 l
+S
+Q
+q 0.122 0.435 0.659 rg 76 729.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.66 732.39 Td (SP) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 732.39 Td (spelling) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 717.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 717.78 Td (organized) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 701.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 701.78 Td ("organized" is an "-ize" family spelling; whether it stands is a profile choice. Run with) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 687.78 Td (--profile un-secretariat-document to accept it or --profile generic-british-english to) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 673.78 Td (enforce "-ise". — manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 657.78 Td ("organized" is an "-ize" family spelling; whether it stands is a profile choice. Run with --profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 643.78 Td (un-secretariat-document to accept it or --profile generic-british-english to enforce "-ise".) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 625.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 625.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 609.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 609.78 Td (rules/spelling.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 593.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 593.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 577.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 577.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 561.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 561.78 Td (Deterministic match on extracted copy; quoted, cited and code spans are outside the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 547.78 Td (scan.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 531.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 531.78 Td (Editorial correction; verify in context before applying.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 504.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 490.39 m 541.28 490.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 477.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 477.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 461.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 461.78 Td (7:44) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 445.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 445.78 Td (...e schedule for the exchange of views was »organized« by the Office, and the figures) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 431.78 Td (for 1990-2...) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 415.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 415.78 Td ("organized" is an "-ize" family spelling; whether it stands is a profile choice. Run with) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 401.78 Td (--profile un-secretariat-document to accept it or --profile generic-british-english to) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 387.78 Td (enforce "-ise".) Tj ET
+q 0.902 0.318 0 rg 54 361.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 366.95 Td ([WARNING] UE-NU002 · numerals · deterministic · line 7:89) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 355.49 m
+62.438 348.74 l
+54.563 348.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 353.015 m
+58.5 351.102 l
+58.5 350.428 m
+58.5 349.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+68.6 354.928 m
+67.756 348.852 l
+71.244 354.928 m
+70.4 348.852 l
+66.463 352.959 m
+72.537 352.959 l
+66.463 350.821 m
+72.537 350.821 l
+S
+Q
+q 0.18 0.545 0.341 rg 76 344.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.22 347.39 Td (NU) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 347.39 Td (numerals) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 332.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 332.78 Td (1990-2025) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 316.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 316.78 Td (1990–2025 — --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 300.78 Td (Numeric range "1990-2025" uses a hyphen.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 282.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 282.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 266.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 266.78 Td (rules/numerals.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 250.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 250.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 234.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 234.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 218.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 218.78 Td (Deterministic match on extracted copy; quoted, cited and code spans are outside the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 204.78 Td (scan.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 188.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 188.78 Td (Editorial correction; verify in context before applying.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 161.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 147.39 m 541.28 147.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 134.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 134.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 118.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 118.78 Td (7:89) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 102.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 102.78 Td (...nized by the Office, and the figures for »1990-2025« were submitted on 10/07/2026.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 86.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 86.78 Td (1990–2025) Tj ET
+q 0.902 0.318 0 rg 54 60.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 65.95 Td ([WARNING] UE-NU001 · numerals · deterministic · line 7:117) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 4 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 6646 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 740.49 m
+62.438 733.74 l
+54.563 733.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 738.015 m
+58.5 736.102 l
+58.5 735.428 m
+58.5 734.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+68.6 739.928 m
+67.756 733.852 l
+71.244 739.928 m
+70.4 733.852 l
+66.463 737.959 m
+72.537 737.959 l
+66.463 735.821 m
+72.537 735.821 l
+S
+Q
+q 0.18 0.545 0.341 rg 76 729.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.22 732.39 Td (NU) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 732.39 Td (numerals) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 717.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 717.78 Td (10/07/2026) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 701.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 701.78 Td (Write the date as day month year with the month spelled out, for example 9 November) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 687.78 Td (2026. — manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 671.78 Td (Numeric date "10/07/2026" does not use the UN day-month-year form.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 653.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 653.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 637.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 637.78 Td (rules/numerals.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 621.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 621.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 605.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 605.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 589.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 589.78 Td (Deterministic match on extracted copy; quoted, cited and code spans are outside the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 575.78 Td (scan.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 559.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 559.78 Td (Editorial correction; verify in context before applying.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 532.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 518.39 m 541.28 518.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 505.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 505.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 489.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 489.78 Td (7:117) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 473.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 473.78 Td (... figures for 1990-2025 were submitted on »10/07/2026«.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 457.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 457.78 Td (Write the date as day month year with the month spelled out, for example 9 November) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 443.78 Td (2026.) Tj ET
+q 0.902 0.318 0 rg 54 417.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 422.95 Td ([WARNING] UE-RE008 · register · deterministic · line 15:51) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 411.49 m
+62.438 404.74 l
+54.563 404.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 409.015 m
+58.5 407.102 l
+58.5 406.428 m
+58.5 405.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+66.35 409.915 m
+72.65 409.915 l
+66.35 407.89 m
+72.65 407.89 l
+66.35 405.865 m
+72.65 405.865 l
+S
+0 0 0 rg
+69.106 409.915 m
+69.106 409.387 68.678 408.959 68.15 408.959 c
+67.622 408.959 67.194 409.387 67.194 409.915 c
+67.194 410.443 67.622 410.871 68.15 410.871 c
+68.678 410.871 69.106 410.443 69.106 409.915 c
+h
+f
+0 0 0 rg
+71.806 407.89 m
+71.806 407.362 71.378 406.934 70.85 406.934 c
+70.322 406.934 69.894 407.362 69.894 407.89 c
+69.894 408.418 70.322 408.846 70.85 408.846 c
+71.378 408.846 71.806 408.418 71.806 407.89 c
+h
+f
+0 0 0 rg
+69.781 405.865 m
+69.781 405.337 69.353 404.909 68.825 404.909 c
+68.297 404.909 67.869 405.337 67.869 405.865 c
+67.869 406.393 68.297 406.821 68.825 406.821 c
+69.353 406.821 69.781 406.393 69.781 405.865 c
+h
+f
+Q
+q 0.753 0.224 0.169 rg 76 400.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83 403.39 Td (RG) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 403.39 Td (register) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 388.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 388.78 Td (APPROVED) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 372.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 372.78 Td (Set the word in lower case in running prose; keep upper case for accepted initialisms) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 358.78 Td (and headings. — manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 342.78 Td (All-caps word "APPROVED" in running prose.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 324.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 324.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 308.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 308.78 Td (rules/register.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 292.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 292.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 276.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 276.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 260.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 260.78 Td (Deterministic match on extracted copy; quoted, cited and code spans are outside the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 246.78 Td (scan.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 230.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 230.78 Td (Editorial correction; verify in context before applying.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 203.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 189.39 m 541.28 189.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 176.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 176.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 160.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 160.78 Td (15:51) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 144.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 144.78 Td (Distribution of the guidance note will begin once »APPROVED« by the Board.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 128.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 128.78 Td (Set the word in lower case in running prose; keep upper case for accepted initialisms) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 114.78 Td (and headings.) Tj ET
+0 0 0 rg BT /F2 16 Tf 54 76.27 Td (Agent Review Required) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 238.7 76.27 Td (heuristic-review) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 502.76 76.27 Td (4 findings) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 5 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 7014 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+q 0.902 0.318 0 rg 54 723.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 728.95 Td ([WARNING] UE-RE003 · agent-review · heuristic · line 5:35) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 717.49 m
+62.438 710.74 l
+54.563 710.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 715.015 m
+58.5 713.102 l
+58.5 712.428 m
+58.5 711.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+65.787 713.89 m
+67.25 715.971 71.75 715.971 73.213 713.89 c
+71.75 711.809 67.25 711.809 65.787 713.89 c
+h
+S
+0 0 0 RG
+0.844 w
+70.681 713.89 m
+70.681 713.238 70.152 712.709 69.5 712.709 c
+68.848 712.709 68.319 713.238 68.319 713.89 c
+68.319 714.542 68.848 715.071 69.5 715.071 c
+70.152 715.071 70.681 714.542 70.681 713.89 c
+h
+S
+Q
+q 0.722 0.525 0.043 rg 76 706.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.22 709.39 Td (AR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 709.39 Td (agent-review) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 694.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 694.78 Td (65 per cent) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 678.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 678.78 Td (Add a hedge such as "approximately" and identify the source and reference date. —) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 664.78 Td (manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 648.78 Td (Figure "65 per cent" appears without a hedge or a source in the same sentence.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 630.78 Td (Heuristic finding — routed to review.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 612.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 612.78 Td (heuristic-review) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 596.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 596.78 Td (rules/register.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 580.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 580.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 564.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 564.78 Td (heuristic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 548.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 548.78 Td (Heuristic signal: routed to review, never proof of a defect.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 532.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 532.78 Td (Human or agent review before any change.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 505.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 491.39 m 541.28 491.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 478.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 478.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 462.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 462.78 Td (5:35) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 446.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 446.78 Td (Attendance at the session reached »65 per cent« of the invited participants.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 430.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 430.78 Td (Add a hedge such as "approximately" and identify the source and reference date.) Tj ET
+q 0.902 0.318 0 rg 54 404.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 409.95 Td ([WARNING] UE-HR002 · agent-review · heuristic · line 11:18) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 398.49 m
+62.438 391.74 l
+54.563 391.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 396.015 m
+58.5 394.102 l
+58.5 393.428 m
+58.5 392.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+65.787 394.89 m
+67.25 396.971 71.75 396.971 73.213 394.89 c
+71.75 392.809 67.25 392.809 65.787 394.89 c
+h
+S
+0 0 0 RG
+0.844 w
+70.681 394.89 m
+70.681 394.238 70.152 393.709 69.5 393.709 c
+68.848 393.709 68.319 394.238 68.319 394.89 c
+68.319 395.542 68.848 396.071 69.5 396.071 c
+70.152 396.071 70.681 395.542 70.681 394.89 c
+h
+S
+Q
+q 0.722 0.525 0.043 rg 76 387.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.22 390.39 Td (AR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 390.39 Td (agent-review) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 375.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 375.78 Td (could of) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 359.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 359.78 Td (Write "could have" — the verb is "have". — manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 343.78 Td (Malformed wording "could of" — non-standard English form.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 325.78 Td (Heuristic finding — routed to review.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 307.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 307.78 Td (heuristic-review) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 291.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 291.78 Td (rules/register.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 275.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 275.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 259.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 259.78 Td (heuristic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 243.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 243.78 Td (Heuristic signal: routed to review, never proof of a defect.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 227.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 227.78 Td (Human or agent review before any change.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 200.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 186.39 m 541.28 186.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 173.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 173.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 157.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 157.78 Td (11:18) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 141.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 141.78 Td (The revised text »could of« been clearer.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 125.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 125.78 Td (Write "could have" — the verb is "have".) Tj ET
+q 0.902 0.318 0 rg 54 99.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 104.95 Td ([WARNING] UE-HR001 · agent-review · heuristic · line 13:1) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 93.49 m
+62.438 86.74 l
+54.563 86.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 91.015 m
+58.5 89.102 l
+58.5 88.427 m
+58.5 87.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+65.787 89.89 m
+67.25 91.971 71.75 91.971 73.213 89.89 c
+71.75 87.809 67.25 87.809 65.787 89.89 c
+h
+S
+0 0 0 RG
+0.844 w
+70.681 89.89 m
+70.681 89.238 70.152 88.709 69.5 88.709 c
+68.848 88.709 68.319 89.238 68.319 89.89 c
+68.319 90.542 68.848 91.071 69.5 91.071 c
+70.152 91.071 70.681 90.542 70.681 89.89 c
+h
+S
+Q
+q 0.722 0.525 0.043 rg 76 82.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.22 85.39 Td (AR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 85.39 Td (agent-review) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 70.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 70.78 Td (The annual report on the situation.) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 6 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 19 0 R >>
+endobj
+19 0 obj
+<< /Length 6097 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 733.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 733.78 Td (Add a finite verb, or merge the fragment into the surrounding sentence. — manual /) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 719.78 Td (agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 703.78 Td (Sentence-like fragment "The annual report on the situation." reads as a phrase without a finite verb) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 689.78 Td (\(heuristic\).) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 671.78 Td (Heuristic finding — routed to review.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 653.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 653.78 Td (heuristic-review) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 637.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 637.78 Td (rules/register.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 621.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 621.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 605.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 605.78 Td (heuristic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 589.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 589.78 Td (Heuristic signal: routed to review, never proof of a defect.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 573.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 573.78 Td (Human or agent review before any change.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 546.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 532.39 m 541.28 532.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 519.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 519.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 503.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 503.78 Td (13:1) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 487.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 487.78 Td (»The annual report on the situation.«) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 471.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 471.78 Td (Add a finite verb, or merge the fragment into the surrounding sentence.) Tj ET
+q 0.902 0.318 0 rg 54 445.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 450.95 Td ([WARNING] UE-HR002 · agent-review · heuristic · line 17:29) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 439.49 m
+62.438 432.74 l
+54.563 432.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 437.015 m
+58.5 435.102 l
+58.5 434.428 m
+58.5 433.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+65.787 435.89 m
+67.25 437.971 71.75 437.971 73.213 435.89 c
+71.75 433.809 67.25 433.809 65.787 435.89 c
+h
+S
+0 0 0 RG
+0.844 w
+70.681 435.89 m
+70.681 435.238 70.152 434.709 69.5 434.709 c
+68.848 434.709 68.319 435.238 68.319 435.89 c
+68.319 436.542 68.848 437.071 69.5 437.071 c
+70.152 437.071 70.681 436.542 70.681 435.89 c
+h
+S
+Q
+q 0.722 0.525 0.043 rg 76 428.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.22 431.39 Td (AR) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 431.39 Td (agent-review) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 416.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 416.78 Td (should of) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 400.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 400.78 Td (Write "should have" — the verb is "have". — manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 384.78 Td (Malformed wording "should of" — non-standard English form.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 366.78 Td (Heuristic finding — routed to review.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 348.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 348.78 Td (heuristic-review) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 332.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 332.78 Td (rules/register.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 316.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 316.78 Td (editorial baseline) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 300.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 300.78 Td (heuristic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 284.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 284.78 Td (Heuristic signal: routed to review, never proof of a defect.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 268.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 268.78 Td (Human or agent review before any change.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 241.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 227.39 m 541.28 227.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 214.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 214.78 Td (report-source.md) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 198.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 198.78 Td (17:29) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 182.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 182.78 Td (Badges and attendance lists »should of« been issued before the opening of the) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 168.78 Td (session.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 152.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 152.78 Td (Write "should have" — the verb is "have".) Tj ET
+0 0 0 rg BT /F2 16 Tf 54 114.27 Td (Audit Findings) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 172 114.27 Td (audit) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 502.76 114.27 Td (5 findings) Tj ET
+q 0.902 0.318 0 rg 54 82.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 87.95 Td ([WARNING] UE-EO001 · publishing · deterministic · line 1:1) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 76.49 m
+62.438 69.74 l
+54.563 69.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 74.015 m
+58.5 72.102 l
+58.5 71.427 m
+58.5 70.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+67.25 76.152 m
+70.287 76.152 l
+72.2 74.24 l
+72.2 69.627 l
+67.25 69.627 l
+h
+S
+0 0 0 RG
+0.844 w
+70.175 76.04 m
+70.175 74.184 l
+72.088 74.184 l
+S
+Q
+q 0.29 0.333 0.376 rg 76 65.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.44 68.39 Td (PB) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 68.39 Td (publishing) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 7 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 21 0 R >>
+endobj
+21 0 obj
+<< /Length 6070 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 733.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 733.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 717.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 717.78 Td (Add a page title of at most 60 characters. — manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 701.78 Td (No <title> element found.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 683.78 Td (Audit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 683.78 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 667.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 667.78 Td (audit) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 651.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 651.78 Td (config/profiles/publishing.json) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 635.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 635.78 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 619.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 619.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 603.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 603.78 Td (Audit finding: declaration and presence checks only; audits never change the exit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 589.78 Td (code.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 573.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 573.78 Td (Review under the audit profile; audits never fail the run.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 546.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 532.39 m 541.28 532.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 519.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 519.78 Td (report-source.html) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 503.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 503.78 Td (1:1) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 487.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 487.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 471.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 471.78 Td (Add a page title of at most 60 characters.) Tj ET
+q 0.902 0.318 0 rg 54 445.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 450.95 Td ([WARNING] UE-EO002 · publishing · deterministic · line 1:1) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 439.49 m
+62.438 432.74 l
+54.563 432.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 437.015 m
+58.5 435.102 l
+58.5 434.428 m
+58.5 433.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+67.25 439.152 m
+70.287 439.152 l
+72.2 437.24 l
+72.2 432.627 l
+67.25 432.627 l
+h
+S
+0 0 0 RG
+0.844 w
+70.175 439.04 m
+70.175 437.184 l
+72.088 437.184 l
+S
+Q
+q 0.29 0.333 0.376 rg 76 428.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.44 431.39 Td (PB) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 431.39 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 416.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 416.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 400.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 400.78 Td (Add a description of at most 160 characters. — manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 384.78 Td (No meta description found.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 366.78 Td (Audit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 366.78 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 350.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 350.78 Td (audit) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 334.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 334.78 Td (config/profiles/publishing.json) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 318.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 318.78 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 302.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 302.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 286.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 286.78 Td (Audit finding: declaration and presence checks only; audits never change the exit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 272.78 Td (code.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 256.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 256.78 Td (Review under the audit profile; audits never fail the run.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 229.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 215.39 m 541.28 215.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 202.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 202.78 Td (report-source.html) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 186.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 186.78 Td (1:1) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 170.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 170.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 154.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 154.78 Td (Add a description of at most 160 characters.) Tj ET
+q 0.902 0.318 0 rg 54 128.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 133.95 Td ([WARNING] UE-EO003 · publishing · deterministic · line 1:1) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 122.49 m
+62.438 115.74 l
+54.563 115.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 120.015 m
+58.5 118.102 l
+58.5 117.427 m
+58.5 116.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+67.25 122.152 m
+70.287 122.152 l
+72.2 120.24 l
+72.2 115.627 l
+67.25 115.627 l
+h
+S
+0 0 0 RG
+0.844 w
+70.175 122.04 m
+70.175 120.184 l
+72.088 120.184 l
+S
+Q
+q 0.29 0.333 0.376 rg 76 111.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.44 114.39 Td (PB) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 114.39 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 99.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 99.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 83.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 83.78 Td (Add <link rel="canonical"> pointing at the page URL. — manual / agent rewrite; not) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 69.78 Td (--fix-able) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 8 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 23 0 R >>
+endobj
+23 0 obj
+<< /Length 6289 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+0 0 0 rg BT /F1 10.5 Tf 54 733.78 Td (No canonical link found.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 715.78 Td (Audit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 715.78 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 699.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 699.78 Td (audit) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 683.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 683.78 Td (config/profiles/publishing.json) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 667.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 667.78 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 651.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 651.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 635.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 635.78 Td (Audit finding: declaration and presence checks only; audits never change the exit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 621.78 Td (code.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 605.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 605.78 Td (Review under the audit profile; audits never fail the run.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 578.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 564.39 m 541.28 564.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 551.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 551.78 Td (report-source.html) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 535.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 535.78 Td (1:1) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 519.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 519.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 503.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 503.78 Td (Add <link rel="canonical"> pointing at the page URL.) Tj ET
+q 0.902 0.318 0 rg 54 477.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 482.95 Td ([WARNING] UE-AX001 · accessibility · heuristic · line 9:1) Tj ET
+q
+1 J
+1 j
+0 0 0 RG
+0.9 w
+58.5 471.49 m
+62.438 464.74 l
+54.563 464.74 l
+h
+S
+0 0 0 RG
+0.9 w
+58.5 469.015 m
+58.5 467.102 l
+58.5 466.428 m
+58.5 465.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+67.362 468.79 m
+71.638 468.79 l
+69.5 468.79 m
+69.5 466.709 l
+69.5 466.709 m
+68.206 464.627 l
+69.5 466.709 m
+70.794 464.627 l
+S
+0 0 0 RG
+0.844 w
+70.456 470.421 m
+70.456 469.893 70.028 469.465 69.5 469.465 c
+68.972 469.465 68.544 469.893 68.544 470.421 c
+68.544 470.949 68.972 471.377 69.5 471.377 c
+70.028 471.377 70.456 470.949 70.456 470.421 c
+h
+S
+Q
+q 0.357 0.486 0.125 rg 76 460.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.22 463.39 Td (AC) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 463.39 Td (accessibility) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 448.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 448.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 432.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 432.78 Td (Add alt text, or alt="" for decorative images. — manual / agent rewrite; not --fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 416.78 Td (Image has no alt attribute.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 398.78 Td (Audit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 398.78 Td (accessibility) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 382.78 Td (Heuristic finding — routed to review.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 364.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 364.78 Td (audit) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 348.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 348.78 Td (config/profiles/accessibility.json) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 332.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 332.78 Td (accessibility) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 316.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 316.78 Td (heuristic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 300.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 300.78 Td (Audit finding: declaration and presence checks only; audits never change the exit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 286.78 Td (code.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 270.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 270.78 Td (Review under the audit profile; audits never fail the run.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 243.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 229.39 m 541.28 229.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 216.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 216.78 Td (report-source.html) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 200.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 200.78 Td (9:1) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 184.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 184.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 168.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 168.78 Td (Add alt text, or alt="" for decorative images.) Tj ET
+q 0.082 0.396 0.753 rg 54 142.39 487.28 19 re f Q
+1 1 1 rg BT /F2 11 Tf 60 147.95 Td ([NOTE] UE-EO005 · publishing · deterministic · line 1:1) Tj ET
+q
+1 J
+1 j
+0 0 0 rg
+62.1 132.89 m
+62.1 130.902 60.488 129.29 58.5 129.29 c
+56.512 129.29 54.9 130.902 54.9 132.89 c
+54.9 134.878 56.512 136.49 58.5 136.49 c
+60.488 136.49 62.1 134.878 62.1 132.89 c
+h
+f
+1 1 1 RG
+0.9 w
+58.5 134.915 m
+58.5 132.44 l
+58.5 131.427 m
+58.5 130.809 l
+S
+Q
+q
+1 J
+1 j
+0 0 0 RG
+0.844 w
+67.25 136.152 m
+70.287 136.152 l
+72.2 134.24 l
+72.2 129.627 l
+67.25 129.627 l
+h
+S
+0 0 0 RG
+0.844 w
+70.175 136.04 m
+70.175 134.184 l
+72.088 134.184 l
+S
+Q
+q 0.29 0.333 0.376 rg 76 125.79 26 11 re f Q
+1 1 1 rg BT /F2 8 Tf 83.44 128.39 Td (PB) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 108 128.39 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 113.78 Td (Current) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 113.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 97.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 97.78 Td (Add og:* and twitter:* meta tags for shared links. — manual / agent rewrite; not) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 83.78 Td (--fix-able) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 67.78 Td (Page is missing Open Graph and Twitter metadata.) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 9 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /ProcSet [/PDF /Text] /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 25 0 R >>
+endobj
+25 0 obj
+<< /Length 3729 >>
+stream
+0 0 0 rg BT /F2 9 Tf 54 780.51 Td (un-editorial-check 1.5.1) Tj ET
+0 0 0 rg BT /F2 9 Tf 454.77 780.51 Td (EDITORIAL REVIEW) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 54 768.92 Td (Document symbol: UE/2026/1536 · 1 October 2026) Tj ET
+0 0 0 rg BT /F1 8.5 Tf 463.81 768.92 Td (Distribution: General) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 752.39 m 541.28 752.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 733.78 Td (Audit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 733.78 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 717.78 Td (Lane) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 717.78 Td (audit) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 701.78 Td (Source) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 701.78 Td (config/profiles/publishing.json) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 685.78 Td (Profile) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 685.78 Td (publishing) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 669.78 Td (Confidence) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 669.78 Td (deterministic) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 653.78 Td (Limitation) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 653.78 Td (Audit finding: declaration and presence checks only; audits never change the exit) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 639.78 Td (code.) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 623.78 Td (Action) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 623.78 Td (Review under the audit profile; audits never fail the run.) Tj ET
+0 0 0 rg BT /F2 13 Tf 54 596.73 Td (Occurrences) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 582.39 m 541.28 582.39 l S Q
+0 0 0 rg BT /F2 10.5 Tf 54 569.78 Td (File) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 569.78 Td (report-source.html) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 553.78 Td (Location) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 553.78 Td (1:1) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 537.78 Td (Content) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 537.78 Td (\(not applicable\)) Tj ET
+0 0 0 rg BT /F2 10.5 Tf 54 521.78 Td (Should be) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 138 521.78 Td (Add og:* and twitter:* meta tags for shared links.) Tj ET
+0 0 0 rg BT /F2 16 Tf 54 483.27 Td (Priority Recommendations) Tj ET
+0.45 0.45 0.45 rg BT /F1 9 Tf 263.6 483.27 Td (derived from the findings above) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 461.78 Td (• UE-HR002 fires 2 times — Malformed wording "could of" — non-standard English form.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 447.78 Td (• UE-AX001 fires 1 time — Image has no alt attribute.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 433.78 Td (• UE-EO001 fires 1 time — No <title> element found.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 419.78 Td (• UE-EO002 fires 1 time — No meta description found.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 405.78 Td (• UE-EO003 fires 1 time — No canonical link found.) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 391.78 Td (• UE-EO005 fires 1 time — Page is missing Open Graph and Twitter metadata.) Tj ET
+q 0.5 w 0.62 0.62 0.62 RG 54 373.39 m 541.28 373.39 l S Q
+0 0 0 rg BT /F1 10.5 Tf 54 360.78 Td (Note on characters: this report is set in the standard WinAnsi-encoded fonts, which cover the ASCII and) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 346.78 Td (Western European ranges but not every script. A character with no code in that encoding is shown as a) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 332.78 Td (question mark, so a question mark in this report may be a character the font cannot draw rather than) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 318.78 Td (punctuation in the copy, and two names that differ only in such a character will look alike here. The) Tj ET
+0 0 0 rg BT /F1 10.5 Tf 54 304.78 Td (source file is unchanged, and the JSON output from the same run carries the exact name.) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 54 30 Td (Page 10 of 10) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 234.23 30 Td (© 2026 un-editorial-check contributors) Tj ET
+0.45 0.45 0.45 rg BT /F1 7.5 Tf 411.65 30 Td (github.com/ahaomar/un-editorial-check) Tj ET
+endstream
+endobj
+xref
+0 26
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000178 00000 n 
+0000000275 00000 n 
+0000000377 00000 n 
+0000000482 00000 n 
+0000000656 00000 n 
+0000011802 00000 n 
+0000011976 00000 n 
+0000018694 00000 n 
+0000018870 00000 n 
+0000025171 00000 n 
+0000025347 00000 n 
+0000031600 00000 n 
+0000031776 00000 n 
+0000038475 00000 n 
+0000038651 00000 n 
+0000045718 00000 n 
+0000045894 00000 n 
+0000052044 00000 n 
+0000052220 00000 n 
+0000058343 00000 n 
+0000058519 00000 n 
+0000064861 00000 n 
+0000065037 00000 n 
+trailer
+<< /Size 26 /Root 1 0 R >>
+startxref
+68819
+%%EOF

@@ -50,6 +50,7 @@ import path from 'node:path';
 import { run, VERSION } from '../bin/check.mjs';
 import { planFixes, writeSafely } from '../lib/fix.mjs';
 import { renderPdf } from '../lib/pdf.mjs';
+import { severityCounts } from '../lib/output.mjs';
 import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
 import { footerCells, headerRows } from '../lib/furniture.mjs';
 
@@ -228,9 +229,8 @@ const bannerFor = (f, count) =>
   `[${severityTag(f.severity)}] ${f.ruleId} · ${f.category} · ${f.confidence}`
   + (count === 1 ? ` · line ${f.line}:${f.column}` : '');
 
-/** The counts paragraph as the summary would print it. */
-const countsFor = (json) =>
-  `${json.summary.errors} errors · ${json.summary.warnings} warnings · ${json.summary.info} notes`;
+/** The counts paragraph as the summary would print it — same helper as the PDF. */
+const countsFor = (json) => severityCounts(json.summary, ' · ');
 
 /** Parse the same run's JSON output — the source the PDF must agree with. */
 const jsonOf = (file) => {
@@ -452,16 +452,20 @@ function assertFurniture(s, lines, pages, target) {
     'the Should be row prints the proposed copy, folded to WinAnsi');
 
   // The counts paragraph: the JSON summary as printed, and restated straight
-  // from the findings so neither side can drift alone.
+  // from the findings so neither side can drift alone. The restatement below is
+  // written out longhand on purpose — an independent second implementation of
+  // the plural, so the two assertions cannot agree by both calling severityCounts.
   const countRows = lines.filter(l => l.font === 'F1' && l.size === 10.5 && l.x === MARGIN
-    && /^\d+ errors \u00B7 \d+ warnings \u00B7 \d+ notes$/.test(l.text));
+    && /^\d+ errors? · \d+ warnings? · \d+ notes?$/.test(l.text));
   assert.equal(countRows.length, 1, 'exactly one counts paragraph is drawn');
   assert.equal(countRows[0].text, countsFor(json),
     'the counts paragraph is the JSON summary');
   const errors = json.findings.filter(x => x.severity === 'error').length;
   const warnings = json.findings.filter(x => x.severity === 'warning').length;
+  const notes = json.findings.length - errors - warnings;
   assert.equal(countRows[0].text,
-    `${errors} errors \u00B7 ${warnings} warnings \u00B7 ${json.findings.length - errors - warnings} notes`,
+    `${errors} error${errors === 1 ? '' : 's'} · ${warnings} warning${warnings === 1 ? '' : 's'}`
+    + ` · ${notes} note${notes === 1 ? '' : 's'}`,
     'the counts paragraph is also restated from the findings themselves');
 
   // The legend: exactly twelve categories by their text labels, with the

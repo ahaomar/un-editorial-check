@@ -580,7 +580,9 @@ const FRAMING = 'The report never presents itself as verification of facts, lega
 // rule, text, message, severity and lane, so the grouped report must collapse
 // them to exactly one issue while the summary stays at five.
 
-const COUNTS_RE = /(\d+) errors · (\d+) warnings · (\d+) notes/;
+// Both singular and plural forms are correct output: severityCounts drops the
+// trailing "s" at exactly one, so the pattern must accept either.
+const COUNTS_RE = /(\d+) errors? · (\d+) warnings? · (\d+) notes?/;
 
 const parseCounts = (text) => {
   const m = COUNTS_RE.exec(text);

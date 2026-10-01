@@ -458,6 +458,17 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
   assert.match(clean, /<p class="counts">0 errors · 0 warnings · 0 notes<\/p>/,
     'a clean report still states its zero counts');
   assert(!clean.includes('lanes:'), 'a clean report states no lane counts');
+  // The singular, on both shapes of the count line. Both renderers used to write
+  // the plural unconditionally, so a scan with one error printed "1 errors" on
+  // the document while lib/output.mjs printed "1 error" on the console. The
+  // zero case above and the plural case at "3 errors" bracket these, so the
+  // counts are pinned at 0, 1 and 3.
+  assert.match(render(makeInput({ findings: [finding({ severity: 'error' })] })),
+    /<p class="counts">1 error · 0 warnings · 0 notes<\/p>/,
+    'one error is spelled in the singular');
+  assert.match(render(makeInput()),
+    /<p class="counts">0 errors · 1 warning · 0 notes<\/p>/,
+    'one warning is spelled in the singular');
   // The sentence must not appear on any report that carries a finding. This is
   // the CLI's rule from lib/output.mjs, enforced on the document too.
   for (const [label, document] of [['all lanes', allLanes], ['one finding', render(makeInput())],

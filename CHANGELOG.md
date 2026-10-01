@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.5.2 – 1 October 2026
+
+A count that was spelled wrongly in both report formats, a header label that broke across two lines, and a committed sample report so a reader can see the output without running anything. What the tool finds, the counts it reports, the rule catalogue and how it exits are unchanged from 1.5.1.
+
+### Fixed
+
+- **A count of one is spelled in the singular in both report formats.** The console has printed `1 error` since the first release while `--report` printed `1 errors`, because `lib/html.mjs` and `lib/report.mjs` each wrote the plural unconditionally and the console wrote it conditionally. All three surfaces now take their words from one `severityCounts()` helper in `lib/output.mjs`, so the wording cannot drift between them again. Four assertions had pinned the old wording and moved with the change: `tests/report-model.mjs` asserted `1 warnings`, which is the defect itself; `tests/audit-lanes.mjs` widened its counts pattern to accept either form; and `tests/audit-report-fix.mjs` lost two sites, one of them deliberately rewritten longhand so that the two independent checks it makes cannot agree by both calling the same helper. A new assertion pins the singular at a count of one, which leaves the counts locked at 0, 1 and 3 in the HTML and at 0, 1, 2 and 3 in the shared report model both formats read.
+- **The occurrence table's `Location` header no longer breaks across two lines.** `overflow-wrap: anywhere` was declared for `th` and `td` together. It belongs to the cells, which carry copied text that may need breaking anywhere, and not to header labels, which are fixed short words; applied to a header it split `Location` as `Locati on`. The declaration is now scoped to cells, and a header label wraps only at a space.
+
+### Added
+
+- **A committed sample report, together with the two files it was produced from.** `tests/fixtures/demo/sample-report.html` and `tests/fixtures/demo/sample-report.pdf` show a complete review, and `docs/demo/sample-report.png` shows a rendered page so the design is visible in a repository listing without downloading anything. The copy sits beside them as `tests/fixtures/demo/report-source.md` and `tests/fixtures/demo/report-source.html`, and `docs/demo/README.md` gained a section that embeds the image, tabulates the three artifacts and gives the exact command that regenerates them.
+- **The sample copy is written to be safe to publish.** It carries typographical and stylistic defects only: a doubled word, a space before punctuation, a full stop running into the next word, a numeric date, a hyphenated year range, an all-caps word, malformed wording, a verbless fragment, an unsourced figure, a missing page title and an image without alt text. The entities are invented institutional ones — the Office, the Committee, the Board — and a word-boundary sweep against country names, religions, ethnic labels, gender terms, disability terms, animals, conflict vocabulary, governments and named leaders returns nothing. The run reports 17 findings as one error, eleven warnings and five audit findings across eight deterministic, four agent-review and five audit placements, with the harmful or discriminatory, the diplomatic and the quoted lanes present and each stated to be checked with nothing found in it.
+- **The sample artifacts are generated from a neutral directory.** A report states its scan root, so producing one inside a contributor's checkout would publish that contributor's home directory in a tracked file. The regeneration command copies the two sources to `/tmp/un-editorial-check-demo` and runs from there, which is what the committed artifacts record.
+
+### Unchanged
+
+- The rule catalogue, the summary counts, the lane counts, the exit code, JSON and SARIF, the clean-run sentence, and the groupings of `grouped` and `full`.
+- Zero npm dependencies, and byte-identical output for identical input.
+
+### Verified, and how
+
+- `p48-gate.sh` fail=0 across all eight steps and four corpus verifiers; `qa-battery.mjs` 6 passed, 0 failed; the repository self-scan exits 0 with every sample artifact in place.
+- The pluraliser was mutation-tested in both directions. Replacing it with an unconditional plural fails `tests/audit-html-report.mjs` at `one error is spelled in the singular`, fails `tests/report-model.mjs` at the shared counts line and fails `tests/audit-report-fix.mjs` at the restatement. Replacing it with an unconditional singular fails all four of those suites plus `tests/audit-lanes.mjs`. Restoring it turns every one of them green again.
+- The sample copy was swept for sensitive terms before it was committed, and the repository self-scan was re-run afterwards to confirm that placing the report under `tests/fixtures/` keeps the deliberate defects outside the sweep rather than exempting them from it.
+
 ## 1.5.1 – 1 October 2026
 
 One bug that made a generated report unusable in Adobe Acrobat, and the decode-uncertainty work that was open when 1.5.0 shipped. What the tool finds and how it exits are unchanged from 1.5.0.
