@@ -1078,6 +1078,100 @@ assert(!fullS.includes('UNITED NATIONS'),
   assert(!sequence.includes('UNITED NATIONS'), 'the cap block never names the United Nations');
 }
 
+// --- 12: no path is extended before it is started ---------------------------
+//
+// `l` appends a line to the *current point*; with no point established the
+// operation is undefined. Acrobat refuses such a page — "An error exists on
+// this page. Acrobat may not display the page correctly." — while PDFKit,
+// Quick Look and qpdf all guess a starting point and render happily. The
+// header rule shipped exactly that defect as `54 752.39 541.28 752.39 l S`,
+// four operands and no `m`, once per page, so every page of a generated report
+// was rejected by the reader people actually use. A one-line patch test would
+// have missed the class: what is asserted is the rule, that no path-extending
+// operator may appear before `m` or `re` within the current subpath.
+
+{
+  const PATH_START = new Set(['m', 're']);
+  const PATH_PAINT = new Set(['S', 's', 'f', 'F', 'f*', 'B', 'B*', 'b', 'b*', 'n']);
+  const PATH_EXTEND = new Set(['l', 'c', 'v', 'y', 'h']);
+
+  // Tokens with literal strings and comments removed. A drawn line of prose
+  // contains the letter `l` and the digit `5`; reading string contents as
+  // operators would make this check cry wolf on every page of text.
+  function pathTokens(body) {
+    const out = [];
+    let i = 0;
+    while (i < body.length) {
+      const ch = body[i];
+      if (ch === '%') { while (i < body.length && body[i] !== '\n') i++; continue; }
+      if (/\s/.test(ch)) { i += 1; continue; }
+      if (ch === '(') {
+        let j = i + 1;
+        let depth = 1;
+        while (j < body.length && depth > 0) {
+          if (body[j] === '\\') { j += 2; continue; }
+          if (body[j] === '(') depth += 1;
+          else if (body[j] === ')') depth -= 1;
+          j += 1;
+        }
+        i = j; continue;
+      }
+      if (ch === '/') {
+        let j = i + 1;
+        while (j < body.length && !/[\s()<>\[\]{}/%]/.test(body[j])) j += 1;
+        i = j; continue;
+      }
+      if (/[-+0-9.]/.test(ch)) {
+        let j = i;
+        while (j < body.length && /[-+0-9.eE]/.test(body[j])) j += 1;
+        i = j; continue;
+      }
+      if ('[]<>{}'.includes(ch)) { i += 1; continue; }
+      let j = i;
+      while (j < body.length && !/[\s()<>\[\]{}/%]/.test(body[j])) j += 1;
+      out.push(body.slice(i, j));
+      i = j;
+    }
+    return out;
+  }
+
+  /** Path-extending operators applied with no current point, in order. */
+  function orphanPathOps(body) {
+    const bad = [];
+    let current = false;
+    for (const op of pathTokens(body)) {
+      if (PATH_START.has(op)) { current = true; continue; }
+      if (PATH_PAINT.has(op)) { current = false; continue; }
+      if (PATH_EXTEND.has(op) && !current) bad.push(op);
+    }
+    return bad;
+  }
+
+  const targets = [
+    ['report', pdf], ['stress', stress], ['bare', bare],
+    ['issue', issuePdf], ['han', hanPdf], ['full', fullPdf],
+  ];
+
+  // Anti-vacuity: these fixtures all draw rules, so if the tokenizer silently
+  // stopped finding operators the loop below would pass on nothing at all.
+  const extenders = targets.flatMap(([, doc]) => streamBodies(doc)
+    .flatMap((body) => pathTokens(body).filter((op) => PATH_EXTEND.has(op))));
+  assert.ok(extenders.length > 10,
+    `the path check has path operators to inspect (${extenders.length}), so it is `
+    + 'not passing on an empty token stream');
+
+  let inspected = 0;
+  for (const [label, doc] of targets) {
+    streamBodies(doc).forEach((body, index) => {
+      inspected += 1;
+      assert.deepEqual(orphanPathOps(body), [],
+        `${label} page ${index + 1}: a path operator was applied with no current point. `
+        + 'A rule must moveto before it lineto, or Acrobat rejects the whole page.');
+    });
+  }
+  assert.ok(inspected >= 6, `every fixture page was inspected (${inspected})`);
+}
+
 console.log('ok — pdf structure: magic, xref offsets, pages, fonts, extraction, '
   + 'transliteration, escaping, header and footer furniture on every page, '
   + 'stress token, determinism, documented and announced fold for characters '
@@ -1086,4 +1180,5 @@ console.log('ok — pdf structure: magic, xref offsets, pages, fonts, extraction
   + 'counts, each row and legend row wearing the mark its own severity and '
   + 'category ask for, '
   + 'the capped section\'s three-line record with its re-run command, '
-  + 'and the endorsement boundary');
+  + 'the endorsement boundary, '
+  + 'and no path extended before it was started');

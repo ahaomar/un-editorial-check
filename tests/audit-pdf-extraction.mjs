@@ -45,6 +45,10 @@ import {
   CASES, CASE_NAMES, COLUMN_LEFT, COLUMN_RIGHT, ENCRYPTED_PASSWORD, FILTER_COPY, MARGIN,
   PAGE_LINES, POSITION_LINES, PROSE, RIGHT_COLUMN_X, ascii85, asciiHex, build, lzw, md5,
   objectKey, rc4, runLength, standardSecurity, winAnsi, writeCorpus,
+  HANGING_ENTRIES, HANGING_GAP_PT, HANGING_NUM_END_X, HANGING_ROWS, HANGING_SIZE,
+  HANGING_TEXT_X, NON_LATIN_CODES, NON_LATIN_TEXT, NARROW_GLYPH_PT, NARROW_GUTTER_PT,
+  NARROW_LEFT, NARROW_LEFT_CHARS, NARROW_LEFT_END_X, NARROW_RIGHT, NARROW_RIGHT_X,
+  NARROW_SIZE, ROTATE_DEGREES, ROTATED_LINES, LEADING, VERTICAL_GAP_LINES, VERTICAL_GAP_PT,
 } from './lib/make-pdf.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -882,6 +886,120 @@ function readXrefStream(bytes) {
   assert.ok(!text.includes('\x00'), 'the case must not be binary: it is a text file with a bad header');
 }
 
+// The decode register's four fixtures, each proved to exhibit the property it
+// is named for before the engine is allowed near it. The first two are the
+// two sides of one boundary and are worthless apart: `two-column-narrow` puts
+// a 12pt gutter in front of the detector, `hanging-indent` puts a 7.76pt one
+// in front of the same detector, and the constant that decides between them
+// is only held by both assertions standing at once.
+{
+  // two-column-narrow: eight lines, drawn column by column, with a gutter of
+  // exactly twelve points. The width of a glyph is arithmetic rather than a
+  // measurement, because a standard-14 font with no /Widths array is given its
+  // per-font default of 556/1000 em by the engine, which is 5.56pt at 10pt.
+  const runs = contentRuns(decodedStream(contentStream('two-column-narrow')));
+  assert.deepEqual(runs.map((run) => winAnsiRead(run.bytes)),
+    [...NARROW_LEFT, ...NARROW_RIGHT],
+    'the narrow case must draw its four left lines first, then its four right');
+  const longest = Math.max(...NARROW_LEFT.map((text) => text.length));
+  assert.equal(longest, NARROW_LEFT_CHARS,
+    'every left-column line must be as long as the gutter arithmetic claims');
+  const leftEnd = MARGIN + longest * NARROW_GLYPH_PT;
+  assert.ok(Math.abs(leftEnd - NARROW_LEFT_END_X) < 1e-9,
+    `the left column must end at ${NARROW_LEFT_END_X}, not ${leftEnd}`);
+  const gutter = NARROW_RIGHT_X - leftEnd;
+  assert.ok(Math.abs(gutter - NARROW_GUTTER_PT) < 1e-9,
+    `the narrow gutter must be ${NARROW_GUTTER_PT}pt, not ${gutter}pt`);
+  assert.ok(runs.every((run) => run.x === MARGIN || run.x === NARROW_RIGHT_X),
+    'the narrow case must use exactly two column origins');
+  // Where that sits: above the 8.93pt floor the constant now carries, and well
+  // below the 20.83pt one it carried before this pair existed.
+  assert.ok(gutter > 8.93 && gutter < 20.83,
+    `the narrow gutter must sit between the two floors, got ${gutter}pt`);
+  for (const run of runs) {
+    const width = winAnsiRead(run.bytes).length * NARROW_GLYPH_PT;
+    assert.ok(width < 0.68 * 595.28,
+      'no line of the narrow case may span the measure, or it would not vote');
+  }
+}
+
+// hanging-indent: sixteen rows, two runs each, where the widest run in the
+// left group is "[16]" and the entries start at 84 — a gap of 7.76pt, which is
+// below the 8.93pt floor and above the 7.14pt one. Lowering the constant past
+// that band splits every row of this list in two.
+{
+  const runs = contentRuns(decodedStream(contentStream('hanging-indent')));
+  assert.equal(runs.length, HANGING_ROWS * 2, 'each row must draw a number and an entry');
+  const drawn = [];
+  for (let row = 0; row < HANGING_ROWS; row++) drawn.push(`[${row + 1}]`, HANGING_ENTRIES[row]);
+  assert.deepEqual(runs.map((run) => winAnsiRead(run.bytes)), drawn,
+    'the rows must alternate number, entry, number, entry');
+  const widest = Math.max(...Array.from({ length: HANGING_ROWS },
+    (_, i) => `[${i + 1}]`.length));
+  assert.equal(widest, 4, 'the widest number must be four characters, from "[16]"');
+  const numEnd = MARGIN + widest * NARROW_GLYPH_PT;
+  assert.ok(Math.abs(numEnd - HANGING_NUM_END_X) < 1e-9,
+    `the numbers must end at ${HANGING_NUM_END_X}, not ${numEnd}`);
+  const gap = HANGING_TEXT_X - numEnd;
+  assert.ok(Math.abs(gap - HANGING_GAP_PT) < 1e-9,
+    `the hanging gap must be ${HANGING_GAP_PT}pt, not ${gap}pt`);
+  assert.ok(gap > 7.14 && gap < 8.93,
+    `the hanging gap must sit between 7.14pt and 8.93pt, got ${gap}pt`);
+  assert.ok(runs.every((run) => run.x === MARGIN || run.x === HANGING_TEXT_X),
+    'the hanging case must use exactly two x origins, the margin and the indent');
+}
+
+// rotated-page: the page really does carry /Rotate, and the content stream
+// really does draw the copy turned. A fixture that forgot either would still
+// be a PDF and would still extract.
+{
+  const text = asText(read('rotated-page'));
+  assert.ok(text.includes(`/Rotate ${ROTATE_DEGREES}`),
+    'the rotated case must carry /Rotate on its page');
+  const stream = asText(decodedStream(contentStream('rotated-page')));
+  assert.ok(stream.includes('0 1 -1 0'),
+    'the rotated case must draw its copy through a quarter-turn matrix');
+  const shown = (stream.match(/ Tj/g) || []).length;
+  assert.equal(shown, ROTATED_LINES.length,
+    `the rotated case must show ${ROTATED_LINES.length} strings, got ${shown}`);
+  const turns = (stream.match(/0 1 -1 0/g) || []).length;
+  assert.equal(turns, ROTATED_LINES.length,
+    `every drawn line must pass through the quarter-turn, got ${turns}`);
+  assert.ok(stream.includes('1 0 0 1 0 0 Tm'),
+    'each turned line must set its own text matrix at the origin');
+}
+
+// non-latin: every code is a plain single byte, and the copy it stands for is
+// not expressible in those bytes. That gap is the whole fixture — a reader
+// that ignored the /ToUnicode CMap would return ordinary Latin letters.
+{
+  const codes = [...NON_LATIN_CODES];
+  assert.ok(codes.every((code) => code >= 0x21 && code <= 0x7E),
+    'every code must be a printable single byte');
+  assert.ok(new Set(codes).size === codes.length, 'each code must map to one character');
+  const points = [...NON_LATIN_TEXT].map((ch) => ch.codePointAt(0));
+  assert.ok(points.some((point) => point > 0xFF),
+    'the expected copy must contain a character no single byte can stand for');
+  assert.equal([...NON_LATIN_TEXT].filter((ch) => ch === ' ').length, 2,
+    'the expected copy must contain the two spaces the codes map to');
+}
+
+// vertical-gap: the two lines really are drawn 96pt of whitespace apart, so
+// the assertion below is about the extractor and not about a fixture that
+// happened to place its lines close together.
+{
+  const runs = contentRuns(decodedStream(contentStream('vertical-gap')));
+  assert.deepEqual(runs.map((run) => winAnsiRead(run.bytes)), VERTICAL_GAP_LINES,
+    'the vertical-gap case must draw exactly its two lines');
+  assert.deepEqual(runs.map((run) => run.y), [700, 700 - LEADING - VERTICAL_GAP_PT],
+    'the vertical-gap case must place its lines at the baselines it claims');
+  assert.equal(runs[0].y - runs[1].y - LEADING, VERTICAL_GAP_PT,
+    `the two lines must be ${VERTICAL_GAP_PT}pt apart beyond one leading`);
+  assert.ok(VERTICAL_GAP_PT > 4 * LEADING,
+    'the gap must be far larger than any plausible paragraph threshold, or the '
+    + 'case would prove nothing about it');
+}
+
 // --- A3. the copy itself, checked through the real rule layer ---------------
 //
 // The integration claim is that a PDF unit is ordinary copy. Its first half is
@@ -1099,6 +1217,7 @@ for (const entry of accepted) {
     ['multi-page', PAGE_LINES],
     ['rules-invisibility', [PROSE.combined]],
     ['split-word', ['The delegation reviewed the', 'the draft of the resolution.']],
+    ['non-latin', [NON_LATIN_TEXT]],
   ];
   for (const [name, expected] of cases) {
     const { units } = attempt(name);
@@ -1140,6 +1259,77 @@ for (const entry of accepted) {
     'a run indented further must report a larger column still');
   assert.equal(columns[3], columns[0],
     'a run back at the margin must report the margin column again');
+}
+
+// --- B2b. the two-column threshold, held from both sides --------------------
+//
+// One constant decides this, and it is a fraction of the page width. The pair
+// below exists because a threshold with one fixture has one direction of
+// drift: a case that must be split, and a case that must not be, are the only
+// way to make raising it and lowering it both visible.
+//
+// Raising the floor above 12pt of this 595.28pt page stops the narrow case
+// splitting, and its assertion fails on the column order. Lowering it below
+// 7.76pt splits the hanging list, and its assertion fails on the row count.
+{
+  const { units } = attempt('two-column-narrow');
+  assert.equal(units.length, NARROW_LEFT.length + NARROW_RIGHT.length,
+    `a ${NARROW_GUTTER_PT}pt gutter must still produce one line per drawn line, `
+    + `got ${units.length}`);
+  assert.deepEqual(linesOf(units), [...NARROW_LEFT, ...NARROW_RIGHT],
+    'a twelve-point gutter must be read column by column, not row by row');
+  const left = units.slice(0, NARROW_LEFT.length).map((unit) => unit.column);
+  const right = units.slice(NARROW_LEFT.length).map((unit) => unit.column);
+  assert.ok(Math.max(...left) < Math.min(...right),
+    'the narrow right column must still start to the right of every left line');
+
+  const hanging = attempt('hanging-indent');
+  assert(!hanging.error, `the hanging case must extract, got ${hanging.error && hanging.message}`);
+  assert.equal(hanging.units.length, HANGING_ROWS,
+    `a ${HANGING_GAP_PT}pt indent gap is not a column gutter: the list must come back as `
+    + `${HANGING_ROWS} rows, not ${hanging.units.length} halves of rows`);
+  hanging.units.forEach((unit, index) => {
+    assert.ok(unit.text.startsWith(`[${index + 1}] `),
+      `row ${index + 1} must keep its number and its entry on one line, got `
+      + JSON.stringify(unit.text));
+  });
+}
+
+// The rotated page. What must hold is the copy and its order, and both do:
+// three displayed lines come back in the order they were drawn. What does not
+// hold is the line structure — in content space the three share a baseline, so
+// they arrive as one reconstructed line.
+//
+// The assertion below is a tripwire rather than an endorsement. It pins the
+// limitation so that a change which applies /Rotate to run coordinates before
+// lines are grouped fails here and forces this comment, and the limitation in
+// the documentation, to be updated with it. A limitation nobody can prove has
+// stopped being a limitation is how one survives a refactor unnoticed.
+{
+  const { units } = attempt('rotated-page');
+  const copy = linesOf(units).join(' ');
+  assert.equal(copy, ROTATED_LINES.join(' '),
+    'the copy of a rotated page must survive whole and in drawing order, got ' + JSON.stringify(copy));
+  assert.equal(units.length, 1,
+    'KNOWN LIMITATION: the three displayed lines of a /Rotate page arrive as one '
+    + `reconstructed line, and the fixture asserts that so it cannot pass unnoticed. `
+    + `When the page rotation is applied to run coordinates before grouping, this `
+    + `becomes ${ROTATED_LINES.length} and the comment above must change with it; got ${units.length}`);
+}
+
+// The vertical gap, which is the lock on how lib/pdf-text.mjs describes its
+// own unit boundary. The extractor never measures a vertical gap, so no size
+// of one may ever merge two lines — a paragraph break and an ordinary line
+// break are deliberately the same thing here. A change that starts joining
+// lines across whitespace fails this, and the module header would then have
+// to describe the new behaviour rather than the old one.
+{
+  const { units } = attempt('vertical-gap');
+  assert.equal(units.length, VERTICAL_GAP_LINES.length,
+    `a ${VERTICAL_GAP_PT}pt vertical gap must leave ${VERTICAL_GAP_LINES.length} units, `
+    + `got ${units.length} — no vertical gap may merge two visual lines`);
+  assert.deepEqual(linesOf(units), VERTICAL_GAP_LINES,
+    'both paragraphs must come back whole and in order');
 }
 
 // --- B3. the page number ----------------------------------------------------
@@ -1351,8 +1541,19 @@ for (const entry of CASES) {
 // A decoding can go wrong in three directions: it can invent characters, drop
 // them, or repeat them. The exact expected text is already asserted per case,
 // so what is added here is a bound that holds for every case whatever the
-// engine's decoding: one unit per drawn run, and no unit longer in characters
-// than the run it came from had codes.
+// engine's decoding: no unit without a drawn run behind it, and no more
+// characters out than the document put codes in.
+//
+// The count was originally an equality — one unit per drawn run — because
+// every fixture then on the list drew exactly one run per visual line, so the
+// two counts were the same number arrived at differently. Two cases added by
+// the decode register draw several runs on one line on purpose: the hanging
+// list draws a number and then its entry at a second x, and the rotated page
+// draws one block per quarter turn. For those the equality would be wrong
+// about the engine rather than strict with it — a line drawn in three pieces
+// is one line — so they are bounded instead of equated, and the character
+// bound below is asserted across the whole case rather than index by index,
+// where a unit built from two runs could not be measured against one.
 //
 // The "no character the document never draws" bound is deliberately *not*
 // asserted across every case. It is only sound where the font is a plain
@@ -1363,6 +1564,14 @@ for (const entry of CASES) {
 
 const WINANSI_FAMILY = ['plain-untagged', 'flate', 'lzw', 'ascii85', 'asciihex', 'runlength'];
 
+// Cases whose fixture draws more than one run on a visual line. Each is named
+// with the reason, so the list cannot quietly become a place where assertions
+// go to be skipped.
+const MULTI_RUN_PER_LINE = new Map([
+  ['hanging-indent', 'a number in the margin and its entry at the indent'],
+  ['rotated-page', 'one text block per quarter turn, all on one content baseline'],
+]);
+
 for (const entry of accepted) {
   const { units } = attempt(entry.name);
   const runs = readObjects(read(entry.name))
@@ -1371,12 +1580,26 @@ for (const entry of accepted) {
       try { return contentRuns(decodedStream(object)); } catch { return []; }
     });
   assert.ok(runs.length > 0, `the ${entry.name} case must draw at least one text run`);
+  const marks = (text) => text.replace(/\s/g, '').length;
+
+  if (MULTI_RUN_PER_LINE.has(entry.name)) {
+    const codes = runs.reduce((total, run) => total + run.bytes.length, 0);
+    const produced = units.reduce((total, unit) => total + marks(unit.text), 0);
+    assert.ok(units.length <= runs.length,
+      `the ${entry.name} case (${MULTI_RUN_PER_LINE.get(entry.name)}) must not return more `
+      + `units than it drew runs: ${runs.length} drawn, ${units.length} returned`);
+    assert.ok(produced <= codes,
+      `the ${entry.name} case: decoding produced ${produced} characters from ${codes} codes `
+      + '— nothing may be invented, so the total may only fall');
+    continue;
+  }
+
   assert.equal(units.length, runs.length,
     `the ${entry.name} case must return one unit per drawn run: ${runs.length} drawn, `
     + `${units.length} returned (${JSON.stringify(units.map((unit) => unit.text))})`);
   for (const [index, unit] of units.entries()) {
-    assert.ok(unit.text.replace(/\s/g, '').length <= runs[index].bytes.length,
-      `the ${entry.name} case: unit ${index} returned ${unit.text.replace(/\s/g, '').length} `
+    assert.ok(marks(unit.text) <= runs[index].bytes.length,
+      `the ${entry.name} case: unit ${index} returned ${marks(unit.text)} `
       + `characters from a run of ${runs[index].bytes.length} codes — `
       + 'decoding cannot produce more characters than it consumed codes');
   }

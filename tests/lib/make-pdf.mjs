@@ -653,6 +653,145 @@ export const POSITION_LINES = [
 // past the midpoint, so a reader of the bytes can tell the columns apart.
 export const RIGHT_COLUMN_X = 320;
 
+// ---------------------------------------------------------------------------
+// The four fixtures that close out the decode register.
+//
+// `two-column-narrow` and `hanging-indent` are a PAIR, and neither means
+// anything without the other. They are the boundary of
+// `GUTTER_MIN_FRACTION` in lib/pdf-text.mjs, which is a fraction of the page
+// width: one fixture sits just above the floor and must be split, the other
+// sits just below it and must not be. Raising the floor breaks the first and
+// lowering it breaks the second, so the number cannot drift in either
+// direction without a test saying so. (The pair exists because the original
+// threshold of 0.035 — 20.83pt on this page — left every real two-column
+// layout with a gutter of 8 to 20pt unsplit, which is where the copy of a
+// journal or a magazine is actually written.)
+//
+// Widths below are exact, not measured: lib/pdf-text.mjs gives a standard-14
+// font with no /Widths array its per-font default, which is 556/1000 em for
+// Helvetica, so a glyph at 10pt is 5.56pt wide whatever it is. Every length
+// here is a character count times that.
+// ---------------------------------------------------------------------------
+
+export const NARROW_SIZE = 10;
+export const NARROW_GLYPH_PT = 5.56;
+// Four left-column lines, each exactly 29 characters, so the union of the
+// left column ends at one known x rather than at whatever the ragged edge
+// happens to reach.
+export const NARROW_LEFT = [
+  // ue:ignore all  (deliberate fixture copy)
+  'The narrow column opens here.',
+  // ue:ignore all
+  'Its second line sets text.',
+  // ue:ignore all
+  'A third line runs down now.',
+  // ue:ignore all
+  'Fourth line of the left ends.',
+];
+export const NARROW_LEFT_CHARS = 29;
+export const NARROW_LEFT_END_X = 215.24;  // 54 + 29 * 5.56
+export const NARROW_GUTTER_PT = 12;       // 0.0202 of the page width
+export const NARROW_RIGHT_X = 227.24;     // 12pt past the left column's edge
+export const NARROW_RIGHT = [
+  // ue:ignore all  (deliberate fixture copy)
+  'The right column begins its own subject here.',
+  // ue:ignore all
+  'Its second line sits beside the left one.',
+  // ue:ignore all
+  'A third line completes the right hand part.',
+  // ue:ignore all
+  'The fourth line of the right column ends it.',
+];
+
+// `hanging-indent`: a numbered list, the number in the margin and the entry
+// beside it. The numbers run "[1]" to "[16]", so the widest is four
+// characters and the union of the left group stops at 76.24 — leaving a gap
+// of 7.76pt, which is below the 8.93pt floor and above the 7.14pt one. This
+// is a single column and must read as one line per row.
+export const HANGING_SIZE = 10;
+export const HANGING_ROWS = 16;
+export const HANGING_TEXT_X = 84;
+export const HANGING_NUM_END_X = 76.24;   // 54 + 4 * 5.56, from "[16]"
+export const HANGING_GAP_PT = 7.76;
+export const HANGING_ENTRIES = [
+  // ue:ignore all  (deliberate fixture copy)
+  'A reference entry of ordinary length for the list.',
+  // ue:ignore all
+  'A second entry that stands beside its own number.',
+  // ue:ignore all
+  'A third entry written to the same hanging indent.',
+  // ue:ignore all
+  'A fourth entry, and the rest repeat the pattern.',
+  // ue:ignore all
+  'A fifth entry carrying on with the same shape here.',
+  // ue:ignore all
+  'A sixth entry set at the same offset as the rest.',
+  // ue:ignore all
+  'A seventh entry with no unusual spacing at all.',
+  // ue:ignore all
+  'An eighth entry of the sort a bibliography holds.',
+  // ue:ignore all
+  'A ninth entry written to fill the sixteenth row.',
+  // ue:ignore all
+  'A tenth entry with the same indent as the others.',
+  // ue:ignore all
+  'An eleventh entry continuing the list of items.',
+  // ue:ignore all
+  'A twelfth entry of the same measured kind here.',
+  // ue:ignore all
+  'A thirteenth entry standing in for the rest.',
+  // ue:ignore all
+  'A fourteenth entry written in the same manner.',
+  // ue:ignore all
+  'A fifteenth entry near the end of this fixture.',
+  // ue:ignore all
+  'A sixteenth and last entry closing the list off.',
+];
+
+// `rotated-page`: `/Rotate 90` on the page, with the copy drawn turned in the
+// content stream to compensate — which is how a landscape export actually
+// reaches an extractor. On a page displayed a quarter turn clockwise, content
+// +y runs right and content +x runs down, so the text advances along +y and
+// each displayed line steps along +x.
+export const ROTATE_DEGREES = 90;
+export const ROTATED_LINES = [
+  // ue:ignore all  (deliberate fixture copy)
+  'First displayed line of the column.',
+  // ue:ignore all
+  'Second displayed line of the column.',
+  // ue:ignore all
+  'Third displayed line of the column.',
+];
+
+// `non-latin`: eighteen byte codes whose Unicode is only in the /ToUnicode
+// CMap — nine Cyrillic, six Greek including a precomposed accent, two spaces
+// and one accented Latin letter. A byte-wise reading would produce letters
+// from WinAnsi instead, and the space would survive by luck while nothing
+// else did.
+export const NON_LATIN_TEXT = 'Делегация Ελλάδα é';
+export const NON_LATIN_MAP = [
+  [0x41, 'Д'], [0x42, 'е'], [0x43, 'л'], [0x44, 'е'], [0x45, 'г'],
+  [0x46, 'а'], [0x47, 'ц'], [0x48, 'и'], [0x49, 'я'],
+  [0x4A, ' '],
+  [0x4B, 'Ε'], [0x4C, 'λ'], [0x4D, 'λ'], [0x4E, 'ά'], [0x4F, 'δ'], [0x50, 'α'],
+  [0x51, ' '],
+  [0x52, 'é'],
+];
+export const NON_LATIN_CODES = Buffer.from(NON_LATIN_MAP.map(([code]) => code));
+
+// `vertical-gap`: two lines six leadings apart — 96pt, a whole paragraph's
+// worth of whitespace — which must still come back as two units. This is the
+// lock on the module header's account of itself in lib/pdf-text.mjs: the
+// extractor never measures a vertical gap, so no size of gap may ever merge
+// two lines, and a comment claiming otherwise would fail here.
+export const VERTICAL_GAP_PT = 96;
+export const VERTICAL_GAP_LINES = [
+  // ue:ignore all  (deliberate fixture copy)
+  'The first paragraph of this fixture stands alone.',
+  // ue:ignore all
+  'The second paragraph follows a very large gap.',
+];
+
 const SIMPLE_LINES = (texts, y = 700) => texts.map((text, i) => ({
   bytes: winAnsi(text), x: MARGIN, y: y - i * LEADING,
 }));
@@ -682,6 +821,11 @@ export function build(name) {
     case 'object-streams': return buildObjectStreams();
     case 'multi-page': return buildMultiPage();
     case 'two-column': return buildTwoColumn();
+    case 'two-column-narrow': return buildTwoColumnNarrow();
+    case 'hanging-indent': return buildHangingIndent();
+    case 'rotated-page': return buildRotatedPage();
+    case 'non-latin': return buildNonLatin();
+    case 'vertical-gap': return buildVerticalGap();
     case 'positions': return buildPositions();
     case 'quoted-paragraph': return buildQuotedParagraph();
     case 'rules-invisibility': return buildRulesInvisibility();
@@ -711,7 +855,7 @@ export const FILTER_NAMES = {
   runlength: 'RunLengthDecode',
 };
 
-function simpleDocument(content, { filter = null, font = null } = {}) {
+function simpleDocument(content, { filter = null, font = null, rotate = null } = {}) {
   const doc = new Doc();
   // `font` may be a dictionary body or a builder, so a case that needs a
   // sibling object (a ToUnicode CMap, say) can allocate one first and refer
@@ -725,6 +869,7 @@ function simpleDocument(content, { filter = null, font = null } = {}) {
   const pageNum = doc.alloc();
   doc.set(pageNum, `<< /Type /Page /Parent ${pagesNum} 0 R`
     + ` /MediaBox [0 0 ${PAGE_W} ${PAGE_H}]`
+    + (rotate === null ? '' : ` /Rotate ${rotate}`)
     + ` /Resources << /ProcSet [/PDF /Text] /Font << /F1 ${fontNum} 0 R >> >>`
     + ` /Contents ${contentNum} 0 R >>`);
   doc.set(pagesNum, `<< /Type /Pages /Kids [${pageNum} 0 R] /Count 1 >>`);
@@ -949,6 +1094,105 @@ function buildSplitWord() {
 }
 
 /**
+ * The narrow-gutter half of the `GUTTER_MIN_FRACTION` boundary pair: twelve
+ * points of gutter, which is 0.0202 of this page's width. It sits below the
+ * 0.035 floor the constant used to carry and above the 0.015 floor it now
+ * carries, so it reads column by column only while the number stays where the
+ * measurement put it. The content stream is written column by column as an
+ * engine would have to reconstruct it, so a page that comes back row by row
+ * fails loudly rather than quietly.
+ */
+function buildTwoColumnNarrow() {
+  const left = NARROW_LEFT.map((text, i) => ({
+    bytes: winAnsi(text), x: MARGIN, y: 700 - i * LEADING, size: NARROW_SIZE,
+  }));
+  const right = NARROW_RIGHT.map((text, i) => ({
+    bytes: winAnsi(text), x: NARROW_RIGHT_X, y: 700 - i * LEADING, size: NARROW_SIZE,
+  }));
+  const content = textContent([...left, ...right]);
+  const { doc, root } = simpleDocument(content);
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * The other half of that pair: a numbered list, one visual line per row, whose
+ * widest uncovered band of x is 7.76pt — below the floor. Splitting this page
+ * would break every row of the list in two and put a line number on half an
+ * entry, so it is the fixture that stops the floor being lowered past the
+ * point where an indent and a column stop being distinguishable.
+ */
+function buildHangingIndent() {
+  const lines = [];
+  for (let i = 0; i < HANGING_ROWS; i++) {
+    lines.push({
+      bytes: winAnsi(`[${i + 1}]`), x: MARGIN, y: 700 - i * LEADING, size: HANGING_SIZE,
+    });
+    lines.push({
+      bytes: winAnsi(HANGING_ENTRIES[i]), x: HANGING_TEXT_X,
+      y: 700 - i * LEADING, size: HANGING_SIZE,
+    });
+  }
+  const { doc, root } = simpleDocument(textContent(lines));
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * A page that says `/Rotate 90` and draws its copy turned to compensate, which
+ * is how a landscape export reaches an extractor: the screen shows the columns
+ * upright, the content stream has them running up the page.
+ *
+ * The copy and its order are what this case locks. The line structure is not:
+ * in content space all three displayed lines share one baseline, so they come
+ * back as a single reconstructed line. That is a real limitation, it is
+ * asserted below rather than left to be discovered, and fixing it means
+ * applying the page rotation to every run before lines are grouped.
+ */
+function buildRotatedPage() {
+  const content = Buffer.from(ROTATED_LINES.map((text, i) => {
+    const drawn = textContent([{ bytes: winAnsi(text), x: 0, y: 0, size: 10 }]);
+    // content +y runs right on screen, content +x runs down it.
+    return `q 0 1 -1 0 ${MARGIN + i * 14} 120 cm\n${drawn.toString('latin1')}Q\n`;
+  }).join(''), 'latin1');
+  const { doc, root } = simpleDocument(content, { rotate: ROTATE_DEGREES });
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * Two lines with a very large vertical gap between them. The extractor never
+ * measures a vertical gap, so both must survive as their own unit: a paragraph
+ * break and an ordinary line break are the same thing here, by design rather
+ * than by omission.
+ */
+function buildVerticalGap() {
+  const content = textContent(VERTICAL_GAP_LINES.map((text, i) => ({
+    bytes: winAnsi(text),
+    x: MARGIN,
+    y: i === 0 ? 700 : 700 - LEADING - VERTICAL_GAP_PT,
+  })));
+  const { doc, root } = simpleDocument(content);
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * Cyrillic, Greek and an accented Latin letter, all of it carried only by the
+ * /ToUnicode CMap. The byte codes are ordinary WinAnsi codes, so a reader that
+ * ignored the CMap would confidently return Latin letters — the same failure
+ * shape as a spelling mistake, in a document that had none.
+ */
+function buildNonLatin() {
+  const cmap = toUnicodeCMap({ chars: NON_LATIN_MAP });
+  const content = textContent([{ bytes: NON_LATIN_CODES, x: MARGIN, y: 700 }]);
+  const { doc, root } = simpleDocument(content, {
+    font: (builder) => {
+      const cmapNum = builder.add(`<< /Length ${cmap.length} >>`, cmap);
+      return '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica'
+        + ` /Encoding /WinAnsiEncoding /ToUnicode ${cmapNum} 0 R >>`;
+    },
+  });
+  return serialise(doc, { root, id: ID });
+}
+
+/**
  * Page 1 is perfectly readable and page 2 carries a font with no recoverable
  * encoding. The whole document must be refused: returning page 1 would report
  * findings at positions that silently omit half the file.
@@ -1096,6 +1340,11 @@ export const CASES = [
   { name: 'object-streams', must: 'accept', note: 'cross-reference stream and /ObjStm' },
   { name: 'multi-page', must: 'accept', note: 'three pages, distinguishable text' },
   { name: 'two-column', must: 'accept', note: 'two text columns per page' },
+  { name: 'two-column-narrow', must: 'accept', note: 'a 12pt gutter, below the old threshold' },
+  { name: 'hanging-indent', must: 'accept', note: 'a numbered list with a 7.76pt indent gap' },
+  { name: 'rotated-page', must: 'accept', note: '/Rotate 90 with the copy drawn turned' },
+  { name: 'non-latin', must: 'accept', note: 'Cyrillic, Greek and accented Latin from ToUnicode' },
+  { name: 'vertical-gap', must: 'accept', note: 'two lines 96pt apart that must not merge' },
   { name: 'positions', must: 'accept', note: 'varied x and y on every line' },
   { name: 'quoted-paragraph', must: 'accept', note: 'a visually indented quotation' },
   { name: 'rules-invisibility', must: 'accept', note: 'four rule defects on one line' },

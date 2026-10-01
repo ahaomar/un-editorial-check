@@ -1,0 +1,36 @@
+# Socket exclusions — https://docs.socket.dev/docs/socketignore
+#
+# The same single exclusion as `socket.yml`'s `projectIgnorePaths`, repeated
+# here because the two formats are read by different paths and it was not
+# known which one the skills.sh upload pipeline uses.
+#
+# Evidence for adding it, and honest status of the claim it makes:
+#
+#   * 30 Sep 2026, 12:10 UTC — a fresh re-audit pinned the current commit
+#     (pkg purl `31da9fee…`, v1.5.0) and dropped the first of the two alerts
+#     outright, but still reported `tests/fixtures/audits/security.mjs`.
+#     `socket.yml` had carried this exclusion since `819fc6e`, so the
+#     pipeline evidently does not consult `socket.yml`.
+#   * A second install run minutes later did not re-audit at all —
+#     `auditedAt` stayed at `2026-09-30T12:10:48.409Z`. So **this file is
+#     untested**: it is the other documented format for the same request, not
+#     a verified fix.
+#
+# Re-check: when `auditedAt` advances past 12:10 UTC on 30 Sep 2026, read
+# https://skills.sh/ahaomar/un-editorial-check/un-editorial-check/security/socket.
+# If the fixture alert is gone, this format is the one the pipeline reads and
+# the note should say so plainly. If it is still there, neither format is
+# honoured and the remaining moves are upstream: a Socket false-positive
+# review, or an issue on vercel-labs/skills. Do not restructure the fixture to
+# satisfy a scanner — it is never executed, and its literal sinks are the
+# subject of the test.
+#
+# Patterns work like .gitignore patterns; Socket's defaults (.git,
+# node_modules, coverage and the rest) apply alongside them.
+#
+# `tests/fixtures/audits/security.mjs` is a deliberate test fixture that is
+# never executed. It contains literal `el.innerHTML = …` and `eval(code)` so
+# the suite can prove that a scanner reading it flags them. A scanner reading
+# it as source reports the fixture's own contents as though this repository
+# had written them — which is the alert this file exists to remove.
+tests/fixtures/audits/security.mjs
