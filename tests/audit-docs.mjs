@@ -203,7 +203,7 @@ console.log('ok — package manifest: no dependencies, no devDependencies');
 
   // README's exit-2 row: an unsupported named file and an empty scan are
   // still refusals.
-  const unsupported = path.join(tmp, 'doc.docx');
+  const unsupported = path.join(tmp, 'doc.docx.bak');
   fs.writeFileSync(unsupported, 'copy that must never be read');
   const badExt = capture([unsupported]);
   assert.equal(badExt.code, 2, `an unsupported named file must exit 2:\n${badExt.stderr}`);

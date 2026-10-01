@@ -342,10 +342,11 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
 
 {
   // The supported set stays exactly this list. `.pdf` joined it in 1.3.0, when
-  // PDF text extraction landed; every other member is unchanged.
+  // PDF text extraction landed; `.docx` and `.odt` joined it when document
+  // containers did. Every other member is unchanged.
   assert.deepEqual([...EXTRACTABLE_EXTENSIONS].sort(),
-    ['.md', '.markdown', '.txt', '.html', '.htm', '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.pdf'].sort(),
-    'the extractable extension set must not change');
+    ['.md', '.markdown', '.txt', '.html', '.htm', '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.pdf', '.docx', '.odt'].sort(),
+    'the extractable extension set must be the documented one');
   assert.deepEqual([...SUPPORTED_EXTENSIONS].sort(), [...EXTRACTABLE_EXTENSIONS].sort(),
     'the announced list must match the extractable set');
 
@@ -946,7 +947,7 @@ const scan = (file, ...extra) => capture([file, '--format', 'json', ...extra]);
       `README must document the supported extension ${ext}`);
   }
   assert.ok(readme.includes(
-    '`.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx` or `.pdf`'),
+    '`.md`, `.markdown`, `.txt`, `.html`, `.htm`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx`, `.pdf`, `.docx` or `.odt`'),
     'README must list the supported extensions exactly');
   // Exit codes: exit 2 for an unsupported named file and for a zero-file scan.
   assert.match(readme, /\| `2` \|[^|\n]*unsupported/,
