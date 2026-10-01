@@ -1,36 +1,60 @@
 # Socket exclusions — https://docs.socket.dev/docs/socketignore
 #
 # The same single exclusion as `socket.yml`'s `projectIgnorePaths`, repeated
-# here because the two formats are read by different paths and it was not
-# known which one the skills.sh upload pipeline uses.
+# here because the two formats are read by different paths.
 #
-# Evidence for adding it, and honest status of the claim it makes:
+# ## Why this file is excluded at all
 #
-#   * 30 Sep 2026, 12:10 UTC — a fresh re-audit pinned the current commit
-#     (pkg purl `31da9fee…`, v1.5.0) and dropped the first of the two alerts
-#     outright, but still reported `tests/fixtures/audits/security.mjs`.
-#     `socket.yml` had carried this exclusion since `819fc6e`, so the
-#     pipeline evidently does not consult `socket.yml`.
-#   * A second install run minutes later did not re-audit at all —
-#     `auditedAt` stayed at `2026-09-30T12:10:48.409Z`. So **this file is
-#     untested**: it is the other documented format for the same request, not
-#     a verified fix.
+# `tests/fixtures/audits/security.mjs` is a test fixture. It is never
+# executed, and `package.json` `files` omits `tests`, so it is not shipped in
+# the npm package. It exists because the security audit profile needs two
+# sinks to find in order to prove that the profile finds them. A scanner
+# reading it as product source reports the fixture's own contents as though
+# this repository had written them.
 #
-# Re-check: when `auditedAt` advances past 12:10 UTC on 30 Sep 2026, read
-# https://skills.sh/ahaomar/un-editorial-check/un-editorial-check/security/socket.
-# If the fixture alert is gone, this format is the one the pipeline reads and
-# the note should say so plainly. If it is still there, neither format is
-# honoured and the remaining moves are upstream: a Socket false-positive
-# review, or an issue on vercel-labs/skills. Do not restructure the fixture to
-# satisfy a scanner — it is never executed, and its literal sinks are the
-# subject of the test.
+# ## What changed on 1 Oct 2026
+#
+# The fixture was restructured so that it no longer contains an executable
+# sink. Its two sinks are now quoted data rather than statements:
+#
+#     export const SINKS = [
+#       'el.innerHTML = response.data;',
+#       'eval(code);',
+#     ];
+#
+# That is not obfuscation and it costs the profile nothing. lib/audits.mjs
+# matches raw text — a DOM sink assignment and a dynamic-execution call — after
+# masking comments out, so it never looks at syntax: the quoted forms still
+# report both ids, and tests/run.mjs still requires exactly UE-SE001 and
+# UE-SE004 and nothing else. What changes is what a reader parsing the file as
+# code sees: no HTML assignment and no dynamic execution anywhere outside a
+# string. The shape is locked in tests/run.mjs in both directions — restoring
+# the live statements fails the lock, and moving the sinks into comments, which
+# the masker blanks, fails the audit assertion with an empty id list.
+#
+# The exclusion is kept regardless. A fixture is not product code, and the
+# correct answer to a scanner reading test data as source is to say so, not to
+# delete the test data.
+#
+# ## Honest status of this exclusion
+#
+# **It has never been shown to be honoured.** Evidence:
+#
+#   * 30 Sep 2026, 12:10 UTC — a re-audit pinned commit `31da9fee` (v1.5.0)
+#     and dropped the first of the two alerts, but still reported the fixture.
+#     `socket.yml` had carried this same exclusion since `819fc6e`, so that
+#     pipeline does not read `socket.yml`.
+#   * 1 Oct 2026 — re-audited again after this file existed and the fixture had
+#     been restructured. `auditedAt` did not move off
+#     `2026-09-30T12:10:48.409Z`. Neither `skills add -l` nor a full
+#     `skills add` triggered a re-audit, and there is no owner-triggered
+#     re-index upstream.
+#
+# So the badge on skills.sh reflects a scan of the tree as it stood before this
+# file existed, and it will not move until Socket re-audits on its own schedule
+# — most likely on the next npm publish. Re-check then:
+# https://skills.sh/ahaomar/un-editorial-check/un-editorial-check
 #
 # Patterns work like .gitignore patterns; Socket's defaults (.git,
 # node_modules, coverage and the rest) apply alongside them.
-#
-# `tests/fixtures/audits/security.mjs` is a deliberate test fixture that is
-# never executed. It contains literal `el.innerHTML = …` and `eval(code)` so
-# the suite can prove that a scanner reading it flags them. A scanner reading
-# it as source reports the fixture's own contents as though this repository
-# had written them — which is the alert this file exists to remove.
 tests/fixtures/audits/security.mjs

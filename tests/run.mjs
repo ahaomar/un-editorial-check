@@ -416,6 +416,30 @@ for (const name of ['page.html', 'script.js']) {
   assert.match(capture([fixture('audits', 'security.mjs'), '--profile', 'security']).stdout,
     /OPTIONAL AUDIT — security/);
 }
+// The shape of that fixture is a lock, not a style preference. It holds its
+// two sinks as quoted data so that it contains no executable sink at all — a
+// reader parsing it as code finds no HTML assignment and no dynamic execution,
+// which is what a scanner reporting on this repository is entitled to see. The
+// block above proves the profile is not weakened by that: matching happens on
+// masked text, so the quoted sinks still fire both ids. Both halves are
+// asserted, because either one alone would let the fixture drift into being
+// either unscannable or live.
+{
+  const source = fs.readFileSync(
+    path.join(root, 'tests', 'fixtures', 'audits', 'security.mjs'), 'utf8');
+  // Strings first, then line comments: what remains is the code a parser sees.
+  const live = source
+    .replace(/'(?:\\[\s\S]|[^'\\])*'/g, "''")
+    .replace(/\/\/[^\n]*/g, '');
+  assert.doesNotMatch(live, /\.(innerHTML|outerHTML)\s*=/,
+    'the security fixture must carry no live HTML sink outside a string literal');
+  assert.doesNotMatch(live, /\beval\s*\(|new\s+Function\s*\(/,
+    'the security fixture must carry no live dynamic-execution sink outside a string literal');
+  assert.match(source, /\.(innerHTML|outerHTML)\s*=/,
+    'the fixture still carries the HTML sink text the profile must find');
+  assert.match(source, /\beval\s*\(/,
+    'the fixture still carries the dynamic-execution sink text the profile must find');
+}
 {
   const result = scan(fixture('audits', 'accessibility.html'), '--profile', 'accessibility');
   assert.deepEqual(ids(result), ['UE-AX001', 'UE-AX002']);
