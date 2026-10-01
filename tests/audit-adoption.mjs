@@ -701,8 +701,11 @@ const sortMarks = list => [...list].sort((a, b) =>
 
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const suites = pkg.scripts.test.split('&&').map(part => part.trim());
-  assert.equal(suites[suites.length - 1], 'node tests/audit-adoption.mjs',
-    'this suite must be appended at the END of scripts.test');
+  // The PDF-extraction suite joined the gate after this lock was written; the
+  // two final suites keep their relative order: adoption, then the PDF locks.
+  assert.deepEqual(suites.slice(-2),
+    ['node tests/audit-adoption.mjs', 'node tests/audit-pdf-extraction.mjs'],
+    'the final gate suites must keep their order: adoption, then PDF extraction');
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });

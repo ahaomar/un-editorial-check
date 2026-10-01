@@ -88,7 +88,9 @@ for (const name of positives) {
 // UE-TE003 is covered by its own limitation: the rule is silent in every
 // context (rules/terminology.md, "UE-TE003"), so no positive fixture can
 // exist — its contract lives in tests/audit-terminology.mjs instead.
-const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003', 'UE-GL001', 'UE-GL002']);
+// UE-GR004 is configuration-gated (spacingReview) and covered in the block
+// below, which scans with the review switched on.
+const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003', 'UE-GL001', 'UE-GL002', 'UE-GR004']);
 const covered = new Set([...Object.values(manifest).flat(), ...OPT_IN_COVERAGE]);
 const uncovered = CATALOGUE.rules
   .filter(rule => rule.profile === null)
@@ -227,6 +229,66 @@ suppressions.forEach(([body, expected], index) => {
 
 assert.deepEqual(ids(scan(write('quote.txt', '> The organization reports.\n'))), []);
 assert.deepEqual(ids(scan(write('cite.md', 'See <cite>Organization of African Unity</cite> here.\n'))), []);
+
+// --- the doubled-space review (UE-GR004) is configuration-gated --------------
+
+{
+  const spaced = 'The delegation met   twice in the quarter.\n';
+  // Off by default: the aligned plain-text annex stays a formatting choice.
+  assert.deepEqual(ids(scan(write('gr004-off.txt', spaced))), [],
+    'UE-GR004 must be silent while spacingReview is off');
+  // On: interior runs fire, the replacement is a single space, and the
+  // position points at the run.
+  const on = write('gr004-on.json', JSON.stringify({ spacingReview: true }));
+  const found = json(scan(write('gr004-on.txt', spaced), '--config', on))
+    .findings.filter(f => f.ruleId === 'UE-GR004');
+  assert.equal(found.length, 1, `one doubled-space finding expected: ${found.length}`);
+  assert.equal(found[0].line, 1);
+  assert.equal(found[0].current, '   ');
+  // A run a line break closes is a Markdown hard-break marker, not a defect;
+  // the interior run on the last line still fires.
+  const breaks = fs.readFileSync(fixture('negative', 'gr004-md-hard-break.md'), 'utf8');
+  const hardBreak = write('gr004-hardbreak.md', `${breaks}The trailing run  here is interior.\n`);
+  const mixed = json(scan(hardBreak, '--config', on)).findings.filter(f => f.ruleId === 'UE-GR004');
+  assert.equal(mixed.length, 1, 'only the interior run may fire');
+  assert.equal(mixed[0].line, 4, 'the hard-break lines must stay silent');
+  // The fixer collapses the whole run through the raw span, not just one space.
+  const fixResult = capture([write('gr004-fix.txt', 'Met   twice  this quarter.\n'), '--fix', '--apply', '--config', on]);
+  assert.equal(fixResult.code, 0, fixResult.stderr);
+  assert.equal(fs.readFileSync(path.join(tmp, 'gr004-fix.txt'), 'utf8'),
+    'Met twice this quarter.\n', 'both runs collapse to a single space');
+}
+
+// --- the padded doubled word (UE-GR001) is proved against the raw span -------
+
+{
+  const found = json(scan(write('gr001-padded.txt', 'The  the report was delayed.\n')))
+    .findings.filter(f => f.ruleId === 'UE-GR001');
+  assert.equal(found.length, 1, 'a doubled word padded with extra spaces is still a doubled word');
+  assert.equal(found[0].current, 'The the');
+  // The fix deletes one copy and the whole padded span: the re-scan is clean.
+  const fixResult = capture([write('gr001-padded-fix.txt', 'The  the report was delayed.\n'), '--fix', '--apply']);
+  assert.equal(fixResult.code, 0, fixResult.stderr);
+  assert.equal(fs.readFileSync(path.join(tmp, 'gr001-padded-fix.txt'), 'utf8'),
+    'The report was delayed.\n', 'the fix removes both the word and the extra spaces');
+  // A hard-wrapped join produces the same collapsed text and must stay silent:
+  // the space the rules see is a line join, not a defect.
+  assert.deepEqual(ids(scan(write('gr001-join.txt', 'The\nthe report was delayed.\n'))), [],
+    'a hard-wrapped join must never read as a doubled word');
+}
+
+// --- the written month-first date (UE-NU001) --------------------------------
+
+{
+  const found = json(scan(write('nu001-written.txt', 'The committee met on March 5, 2026.\n')))
+    .findings.filter(f => f.ruleId === 'UE-NU001');
+  assert.equal(found.length, 1);
+  assert.equal(found[0].current, 'March 5, 2026');
+  assert.equal(found[0].proposed, '5 March 2026');
+  // The correct order, a month-year reference and an abbreviated month stay
+  // silent; the negative corpus fixture carries the same guarantees.
+  assert.deepEqual(ids(scan(fixture('negative', 'nu001-day-first.txt'))), []);
+}
 
 // --- fenced blocks in plain text are out of reach ----------------------------
 

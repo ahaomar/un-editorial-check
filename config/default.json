@@ -4,6 +4,7 @@
   "severities": {},
   "rules": {},
   "spellingReview": false,
+  "spacingReview": false,
   "baseOrigin": null,
   "renderTargets": ["inlineNote", "statusMessage", "tooltipContent"]
 }

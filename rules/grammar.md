@@ -1,12 +1,13 @@
 # Grammar
 
-A deliberately narrow family. Subject–verb agreement, verb forms and tense are out of scope — the CLI never guesses between grammatical readings, because every guess costs false positives. What remains is mechanical and fixable: a doubled word, a space before punctuation, a full stop running straight into the next sentence. Five additional review heuristics — report-only warnings that are never rewritten — live under `Review heuristics` below.
+A deliberately narrow family. Subject–verb agreement, verb forms and tense are out of scope — the CLI never guesses between grammatical readings, because every guess costs false positives. What remains is mechanical and fixable: a doubled word, a space before punctuation, a full stop running straight into the next sentence and, under a configuration gate, a run of doubled spaces. Five additional review heuristics — report-only warnings that are never rewritten — live under `Review heuristics` below.
 
 ## Editorial rules
 
-- **UE-GR001** *(warning, fixable)* — The same word twice in a row, separated by exactly one space: `the the`, not `the, the`. Matching is case-insensitive (`The the` counts) and the fix keeps the first word's case. The legitimate doubles `had had`, `that that` and `very very` are exempt; every other repetition — including deliberate emphasis such as `long long ago` — is reported and can be silenced with `<!-- ue:ignore UE-GR001 -->`. A pair padded with extra spaces or split across hard-wrapped lines never matches.
+- **UE-GR001** *(warning, fixable)* — The same word twice in a row: `the the`, not `the, the`. Matching is case-insensitive (`The the` counts) and the fix keeps the first word's case. One space or a run of spaces between the words matches — a pair padded with extra spaces is proved against the unit's own source slice through the offset map, so the fix covers the real bytes and the report marks the true position. The legitimate doubles `had had`, `that that` and `very very` are exempt; every other repetition — including deliberate emphasis such as `long long ago` — is reported and can be silenced with `<!-- ue:ignore UE-GR001 -->`. A pair with punctuation between the words or split across hard-wrapped lines never matches.
 - **UE-GR002** *(warning, fixable)* — One space between a word and one of the six covered marks: `,` `.` `;` `:` `?` `!`. Only the space is the defect; the mark itself is never reported here (an exclamation mark on its own belongs to UE-RE005). Several spaces before the mark, a mark that begins a hard-wrapped line, and an ellipsis after the space (`word ...`) are not matched, and URLs, quotations, code and comments never reach the rule.
 - **UE-GR003** *(warning, fixable)* — A full stop running straight into the next sentence: `finalised.Next` is missing a space, `finalised. Next` never matches. Excluded: an ellipsis (`...Next`, `…Next`), a period after a digit (`1.5`, `v1.2.Beta`, `3.B`), single-letter initials and dotted initial chains (`U.S.A.`, `U.K.`, `e.g.`, `i.e.`, `J.P.`), the abbreviations `U.S.` `U.K.` `U.N.` `e.g.` `i.e.` `etc.` `Dr.` `Mr.` `Mrs.` `Prof.` `vs.` `a.m.` `p.m.` `St.` written directly against the next word, and any period followed by a lower-case letter (`index.js`). The list is a conservative exemption: any other period abutting a capital — `Dept.Finance`, say — is reported, because a space is required after it, and a single-letter word ending a sentence (`Annex A.The`) is skipped together with the initials.
+- **UE-GR004** *(warning, fixable, configuration-gated)* — A run of two or more spaces between words in prose, collapsed to one. Silent unless `config.spacingReview` is `true`, because deliberately aligned plain-text columns are a formatting choice the rule must not call a defect. When the review runs: a run whose first character is a tab or a newline (indentation, a hard-wrapped line join) never matches, a run the line break closes is a Markdown hard-line-break marker and never matches, and navigation, compact and every non-authored context are out of scope.
 
 ## Review heuristics
 
@@ -20,11 +21,11 @@ Five narrow wording heuristics sit beside the grammar rules because each is a de
 
 ## Guard notes
 
-These are the exact strings carried in the rule catalogue; each one is locked by an assertion in `.feedbacks/verify-grammar.mjs`.
+These are the exact strings carried in the rule catalogue; keep this file and `rules/catalogue.json` in step when either changes.
 
 - **UE-GR001**
 
-> Case-insensitive match on two identical words separated by exactly one space in the source; the legitimate doubles had had, that that and very very are exempt (fixture gr-doubles-ok.txt). Anything else between the words — a line break, extra spaces or punctuation — never matches, so intentional repetition outside the exemption list (for example long long ago) is still reported and may need ue:ignore.
+> Case-insensitive match on two identical words in a row; the legitimate doubles had had, that that and very very are exempt (fixture gr-doubles-ok.txt). One space or a run of spaces between the words matches: a padded pair reaches the rule through the collapsed copy span and is proved against the unit's own source slice through the offset map, so the fix covers the real bytes and hard-wrapped joins never match. Punctuation between the words never matches, so intentional repetition outside the exemption list (for example long long ago) is still reported and may need ue:ignore.
 
 - **UE-GR002**
 
@@ -33,5 +34,9 @@ These are the exact strings carried in the rule catalogue; each one is locked by
 - **UE-GR003**
 
 > Excludes a period preceded by another period or the ellipsis character, a period preceded by a digit (decimals such as 1.5, version numbers such as v1.2, outline numbering), single-letter initials and dotted initial chains (U.S.A., U.K., e.g., i.e., J.P.), and the abbreviations U.S., U.K., U.N., e.g., i.e., etc., Dr., Mr., Mrs., Prof., vs., a.m., p.m. and St. written directly against the next word; a period followed by a lower-case letter (index.js) never matches. The list is a conservative exemption: any other period abutting a capital — an abbreviation outside the list included — is reported, since a space is required after it, and a single-letter word ending a sentence before a capital (Annex A.The) is skipped with the initials.
+
+- **UE-GR004**
+
+> Silent unless config.spacingReview is true. Detection reads the unit's own source slice through the offset map, because the copy span collapses whitespace runs: two or more literal spaces between words inside authored copy are reported, and the replacement is a single space. A run whose first character is a tab or a newline (indentation or a hard-wrapped line join) never matches, and a run the line break closes is a Markdown hard-line-break marker and never matches. Navigation, compact and every non-authored context are out of scope; deliberately aligned plain-text columns will report when the review is switched on, so silence a span with ue:ignore or leave the review off.
 
 The checker does not judge agreement, verb forms or tense; it never reads quotations, code, comments or links, which are masked out of the copy span before any rule runs, and it never rewrites a span that a `ue:ignore` comment exempts.

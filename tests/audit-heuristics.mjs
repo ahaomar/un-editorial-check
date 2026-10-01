@@ -98,8 +98,13 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005'];
   const ids = CATALOGUE.rules.map(rule => rule.id);
   const gr3 = ids.indexOf('UE-GR003');
   assert.notEqual(gr3, -1, 'UE-GR003 must exist to anchor the append point');
-  assert.deepEqual(ids.slice(gr3 + 1, gr3 + 1 + HR_IDS.length), HR_IDS,
-    'the five heuristic entries must append directly after UE-GR003');
+  // UE-GR004 extends the grammar block immediately after its siblings; the
+  // five heuristic entries follow the whole grammar family, in order.
+  const afterGrammar = ids.indexOf('UE-HR001');
+  assert.deepEqual(ids.slice(gr3 + 1, afterGrammar), ['UE-GR004'],
+    'UE-GR004 must complete the grammar block before the heuristics begin');
+  assert.deepEqual(ids.slice(afterGrammar, afterGrammar + HR_IDS.length), HR_IDS,
+    'the five heuristic entries must append in order after the grammar block');
 
   for (const id of HR_IDS) {
     const entry = CATALOGUE.rules.find(rule => rule.id === id);

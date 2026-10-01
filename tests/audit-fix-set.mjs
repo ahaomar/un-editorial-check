@@ -55,7 +55,7 @@ const ids = (file) => {
 // --- 1. the exact allow-list --------------------------------------------------
 
 assert.deepEqual([...FIXABLE_RULE_IDS].sort(),
-  ['UE-GR001', 'UE-GR002', 'UE-GR003', 'UE-NU002', 'UE-SP001'],
+  ['UE-GR001', 'UE-GR002', 'UE-GR003', 'UE-GR004', 'UE-NU002', 'UE-SP001'],
   'the fixable set is exactly spelling, en-dash ranges and clean grammar');
 
 for (const id of FIXABLE_RULE_IDS) {

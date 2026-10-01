@@ -118,11 +118,12 @@ const house = glossary({
   }
   // Appended after the heuristic block so the existing order assertions in
   // tests/audit-heuristics.mjs and tests/release-regressions.mjs keep their
-  // anchor: the five UE-HR entries still sit directly after UE-GR003.
-  const gr3 = idsInOrder.indexOf('UE-GR003');
+  // anchor: the grammar block completes with UE-GR004, then the five UE-HR
+  // entries follow in order.
+  const gr4 = idsInOrder.indexOf('UE-GR004');
   const hr = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005'];
-  assert.deepEqual(idsInOrder.slice(gr3 + 1, gr3 + 1 + hr.length), hr,
-    'the heuristic entries must still sit directly after UE-GR003');
+  assert.deepEqual(idsInOrder.slice(gr4 + 1, gr4 + 1 + hr.length), hr,
+    'the heuristic entries must still sit directly after the grammar block');
   for (const id of GLOSSARY_RULE_IDS) {
     assert.ok(idsInOrder.indexOf(id) > idsInOrder.indexOf('UE-HR005'),
       `${id} must be appended at the end of the catalogue`);
@@ -284,7 +285,7 @@ console.log('ok — glossary provenance: own section, own lane, no United Nation
 {
   // The allow-list lock is untouched, and the new rules are outside it.
   assert.deepEqual([...FIXABLE_RULE_IDS].sort(),
-    ['UE-GR001', 'UE-GR002', 'UE-GR003', 'UE-NU002', 'UE-SP001'],
+    ['UE-GR001', 'UE-GR002', 'UE-GR003', 'UE-GR004', 'UE-NU002', 'UE-SP001'],
     'the fixable set is unchanged: adding a glossary must not widen it');
   for (const id of GLOSSARY_RULE_IDS) {
     assert(!FIXABLE_RULE_IDS.has(id), `${id} must never be fixable`);
