@@ -189,7 +189,7 @@ console.log('ok — heading and list-item flags on HTML and Markdown units');
     '<ul><li>List surface marker</li></ul>',
     '<table><caption>Caption surface marker</caption><tr><th>Header cell marker</th></tr><tr><td>Body cell marker</td></tr></table>',
     '<figure><img src="x.png" alt="Image alt marker"><figcaption>Figure caption marker</figcaption></figure>',
-    '<dialog><p>Dialog content marker</p></dialog>',
+    '<dialog><p>Panel content marker</p></dialog>',
     '<button aria-label="Accessible button marker">OK</button>',
     '<title>Title surface marker</title>',
     '<meta name="description" content="Meta surface marker">',
@@ -200,7 +200,7 @@ console.log('ok — heading and list-item flags on HTML and Markdown units');
   for (const marker of [
     'Heading surface marker', 'List surface marker', 'Caption surface marker',
     'Header cell marker', 'Body cell marker', 'Image alt marker',
-    'Figure caption marker', 'Dialog content marker', 'Accessible button marker',
+    'Figure caption marker', 'Panel content marker', 'Accessible button marker',
     'Title surface marker', 'Meta surface marker', 'Blockquote surface marker',
     'Cited surface marker',
   ]) {

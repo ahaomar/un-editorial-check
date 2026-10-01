@@ -1,6 +1,6 @@
 {
   "registryVersion": 1,
-  "retrieved": "2026-09-28",
+  "retrieved": "2026-10-01",
   "sources": [
     {
       "id": "un-editorial-manual-spelling",
@@ -333,6 +333,45 @@
       ],
       "evidence": "",
       "note": "HONEST NEGATIVE (retrieval only): no live fetch was performed for this entry on 2026-09-28 — verify that the URL resolves before release. The CRPD was adopted by General Assembly resolution A/RES/61/106 on 13 December 2006."
+    },
+    {
+      "id": "un-member-states",
+      "title": "United Nations Member States — official list of current member-country designations",
+      "publisher": "United Nations",
+      "url": "https://www.un.org/en/about-us/member-states",
+      "retrieved": "2026-10-01",
+      "scope": "The United Nations forms of member-country names used by the country-name terminology pairs (UE-TE005). Growth of the pair set beyond the nine recorded in the profile requires a re-check of this page or of UNTERM records.",
+      "appliesTo": [
+        "UE-TE005"
+      ],
+      "evidence": "Page fetched 2026-10-01; the list entries for the relevant members read exactly: \"Myanmar\", \"Türkiye\", \"Eswatini\", \"Cabo Verde\", \"North Macedonia\", \"Netherlands (Kingdom of the)\", \"Côte D'Ivoire\", \"Timor-Leste\", \"Democratic Republic of the Congo\".  ||  The page title reads \"Member States\" under un.org/en/about-us.",
+      "note": "The profile pairs map the superseded forms (Burma, Turkey, Swaziland, Cape Verde, Macedonia, Holland, Ivory Coast, East Timor, Zaire) to these current designations. Historical and common-name contexts remain legitimate in prose outside United Nations editorial stance; the rule asks for the current form in UN copy and the pair is allowlistable per project."
+    },
+    {
+      "id": "un-migration-terminology-irregular",
+      "title": "Global Migration Group Statement on the Human Rights of Migrants in Irregular Situation and OHCHR guidance on the economic, social and cultural rights of migrants in an irregular situation",
+      "publisher": "Global Migration Group / OHCHR",
+      "url": "https://www.ohchr.org/en/publications/policy-and-methodological-publications/economic-social-and-cultural-rights-migrants",
+      "retrieved": "2026-10-01",
+      "scope": "Basis for the migration terminology pairs under UE-TE002: the United Nations frames migration status as an administrative condition, and the established form is \"migrants in an irregular situation\".",
+      "appliesTo": [
+        "UE-TE002"
+      ],
+      "evidence": "",
+      "note": "HONEST NEGATIVE (retrieval only): OHCHR returned HTTP 403 to automated fetch on 2026-10-01, as it did for the Rabat Plan entry above. The phrase \"migrants in an irregular situation\" is used throughout the OHCHR publication named in the title, the 2010 Global Migration Group statement of the same subject, and Global Compact for Migration materials (A/RES/73/195); verify a quotable line before relying on this entry in an institutional audit."
+    },
+    {
+      "id": "un-developing-countries-usage",
+      "title": "United Nations development usage — \"developing countries\" and \"developing economies\" as the standard designations",
+      "publisher": "United Nations (DESA, per current development statistics usage)",
+      "url": "https://www.un.org/development/desa/en/",
+      "retrieved": "2026-10-01",
+      "scope": "Basis for the \"Third World\" pair under UE-TE002: current United Nations development writing designates \"developing countries\" or \"developing economies\", not the Cold-War-era \"Third World\".",
+      "appliesTo": [
+        "UE-TE002"
+      ],
+      "evidence": "",
+      "note": "HONEST NEGATIVE (retrieval only): no single UN style rule banning \"Third World\" was retrieved on 2026-10-01. The pair rests on standing UN development-statistics usage (UN DESA designations) rather than on a quoted prohibition — verify against the current Editorial Manual before an institutional audit relies on it."
     }
   ]
 }

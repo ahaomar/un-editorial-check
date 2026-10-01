@@ -120,11 +120,18 @@ section('1. conflict family derivation and persistence', () => {
   assert.ok(!FAMILY.includes('organizational'));
   assert.ok(rawBaseline.spelling.organizational, 'organizational must stay a baseline key');
 
-  // The UN-verified exception: on real baseline data it is vacuous because the
-  // map never contains those keys, and the rule itself must honour it.
-  for (const word of ['analyze', 'catalyse', 'paralyse', 'catalyze', 'paralyze']) {
-    assert.ok(!(word in rawBaseline.spelling),
-      `${word} is printed in -ise form by the United Nations list and must not be a baseline key`);
+  // The UN-verified exception, as data since the -yse release: the United
+  // Nations list itself prints analyse, catalyse and paralyse in -ise form,
+  // so the -yse keys are ordinary errors and ship in the baseline map. The
+  // invariant that matters is unchanged — they must never reach the conflict
+  // family, because their stance is definitive rather than a profile choice.
+  for (const word of ['analyze', 'catalyze', 'paralyze']) {
+    assert.ok(word in rawBaseline.spelling,
+      `${word} must be a baseline key corrected to the -ise/-yse form the United Nations list prints`);
+    assert.ok(UN_VERIFIED.has(word),
+      `${word} must stay in the UN-verified exception set, outside the conflict family`);
+    assert.match(rawBaseline.spelling[word], /yse$/,
+      `${word} must correct to the -yse form printed by the United Nations list`);
   }
   const synthetic = { organize: 'organise', analyze: 'analyse', color: 'colour', organizational: 'organisational' };
   assert.deepEqual(deriveFamily(synthetic), ['organize'],

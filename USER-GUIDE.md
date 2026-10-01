@@ -20,7 +20,7 @@ It then writes a PDF report named `un-editorial-review.pdf`. The report shows yo
 ## What you need (one-time setup)
 
 - **An AI assistant that can run tools on your computer.** This guide uses Claude Code as the example. Other assistants work too.
-- **Node.js version 18 or newer.** It is a free tool that lets your computer run programs like this one. If your computer does not have it, ask your IT colleague to install it — it takes a few minutes.
+- **Node.js version 18 or newer.** It is a free tool that lets your computer run programmes like this one. If your computer does not have it, ask your IT colleague to install it — it takes a few minutes.
 - **Your document as a text file.** The tool reads Markdown (`.md`, `.markdown`), plain text (`.txt`), web pages (`.html`, `.htm`), script files (`.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx`) and PDF documents (`.pdf`). For a Word document, copy the text into a `.txt` file first. If the file uses any other format the tool reports exit code 2 and changes nothing.
 
 **If your document is a PDF, read this before you rely on the result.** A PDF is a finished, printed page, not an editable text file. The tool can pull the words out of it and check them, but it cannot tell a quotation from a paragraph of your own writing, so it checks everything as if you had written all of it. You may therefore get a warning about wording that appears inside quotation marks. That is expected, and it is the format, not a mistake in your document. If a warning matters to you, check the quoted part by hand.
