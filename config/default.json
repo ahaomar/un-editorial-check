@@ -1,10 +1,27 @@
 {
-  "ignoredPaths": ["node_modules/**", ".git/**", "dist/**", "build/**", "coverage/**", "tests/fixtures/**", "fixtures/**"],
-  "allowlist": { "spellings": [], "terminology": [], "register": [] },
+  "ignoredPaths": [
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "tests/fixtures/**",
+    "fixtures/**"
+  ],
+  "allowlist": {
+    "spellings": [],
+    "terminology": [],
+    "register": []
+  },
   "severities": {},
   "rules": {},
   "spellingReview": false,
   "spacingReview": false,
   "baseOrigin": null,
-  "renderTargets": ["inlineNote", "statusMessage", "tooltipContent"]
+  "renderTargets": [
+    "inlineNote",
+    "statusMessage",
+    "tooltipContent"
+  ],
+  "extraExtensions": {}
 }

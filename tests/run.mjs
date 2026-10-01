@@ -98,6 +98,71 @@ const uncovered = CATALOGUE.rules
   .filter(id => !covered.has(id));
 assert.deepEqual(uncovered, [], `editorial rules with no positive fixture: ${uncovered.join(', ')}`);
 
+
+// --- --stdin: one document from standard input -------------------------------
+
+{
+  // fd 0 cannot be piped in-process, so the stdin contract runs through a real
+  // subprocess with the document on its standard input.
+  const result = spawnSync(process.execPath, [cli, '--stdin', '--format', 'json',
+    '--config', config], { input: 'The organization met on March 5, 2026 in Geneva.\n',
+    encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.files, 1);
+  const names = [...new Set(parsed.findings.map(f => f.file))];
+  assert.deepEqual(names, ['<stdin>.txt'], 'stdin findings must carry the synthetic name');
+  const byRule = new Set(parsed.findings.map(f => f.ruleId));
+  for (const id of ['UE-SP001', 'UE-NU001']) {
+    assert(byRule.has(id), `stdin must run the editorial rules, missing ${id}`);
+  }
+  // Error-severity findings keep their meaning on stdin: the country rule
+  // fails the run exactly as it does for a named file.
+  const errors = spawnSync(process.execPath, [cli, '--stdin', '--format', 'json',
+    '--config', config], { input: 'The delegation from Burma arrived.\n', encoding: 'utf8' });
+  assert.equal(errors.status, 1, 'an error-severity stdin finding must fail the run');
+  assert(JSON.parse(errors.stdout).findings.some(f => f.ruleId === 'UE-TE005'));
+  // NUL bytes refuse: the bytes are not the text they claim to be.
+  const bad = spawnSync(process.execPath, [cli, '--stdin', '--config', config],
+    { input: 'a\u0000b', encoding: 'utf8' });
+  assert.equal(bad.status, 2, 'NUL bytes in stdin must refuse with exit 2');
+  // Path plus stdin is a usage refusal.
+  const both = spawnSync(process.execPath, [cli, '--stdin', 'somewhere.md', '--config', config],
+    { input: 'x\n', encoding: 'utf8' });
+  assert.equal(both.status, 2, '--stdin with paths must refuse');
+}
+
+// --- repeatable --report ------------------------------------------------------
+
+{
+  const pdf = write('two-report.pdf', '');
+  const html = write('two-report.html', '');
+  const result = capture([write('report-src.txt', 'The delegation met on 5 March 2026 in Geneva.\n'),
+    '--report', pdf, '--report', html]);
+  assert.equal(result.code, 0, result.stderr);
+  assert.ok(fs.statSync(pdf).size > 1000, 'the PDF report must be written');
+  assert.ok(fs.statSync(html).size > 1000, 'the HTML report must be written');
+  const both = result.stdout.match(/Report written/g) || [];
+  assert.equal(both.length, 2, 'each report path must be announced once');
+}
+
+// --- extraExtensions: project-configured formats ------------------------------
+
+{
+  const mdx = write('page.mdx', 'The organization reported results.\n');
+  const map = write('ext.json', JSON.stringify({ extraExtensions: { '.mdx': 'markdown' } }));
+  // Without the mapping the extension is not collected.
+  assert.equal(capture([mdx, '--format', 'json']).code, 2,
+    'an unmapped extra extension must stay unsupported');
+  const found = json(scan(mdx, '--config', map));
+  assert.deepEqual([...new Set(found.findings.map(f => f.ruleId))], ['UE-SP001'],
+    'a mapped .mdx must be extracted as Markdown');
+  // A bad kind fails closed.
+  const bad = write('ext-bad.json', JSON.stringify({ extraExtensions: { '.mdx': 'js' } }));
+  assert.equal(capture([mdx, '--config', bad]).code, 2,
+    'mapping an extension to script must be refused');
+}
+
 // --- exit codes --------------------------------------------------------------
 
 assert.equal(scan(write('clean.txt', 'The organisation reports the figure.\n')).code, 0);
