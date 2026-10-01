@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.5.1 – 1 October 2026
+
+One bug that made a generated report unusable in Adobe Acrobat, and the decode-uncertainty work that was open when 1.5.0 shipped. What the tool finds and how it exits are unchanged from 1.5.0.
+
+### Fixed
+
+- **A generated `--report` PDF opens in Adobe Acrobat.** Adobe rejected every page of the report with `An error exists on this page` while PDFKit, Quick Look, `qpdf` and pypdf all opened it happily, which is why the defect survived seven validators. `drawHeader()` wrote the header rule as four coordinates followed by `l` with no `m` to establish a current point first, and `l` appends to a point that does not exist. The sibling `drawRule()` emitted the `m`, so only the header rule was wrong, and it was wrong exactly once per page — which matched the symptom. The fix adds the `m`, and a guard comment beside it states why the operator is load-bearing rather than incidental.
+- **Two-column PDF input is split at the gutter for the templates people actually use.** The gutter floor was a fraction of the page width, `0.035`, which blocked gutters up to 20.83pt while IEEEtran's 18pt, `revtex` and `acmart`'s 10pt and Springer's roughly 11pt all sit beneath it. The floor is now `0.015`. It was never what protected single-column pages — the hanging indent, the definition list and the centred heading passed at the old floor anyway, because the real protection is the straddle-and-balance test — and `0.012` was measured out as too eager, splitting a 7.76pt hanging indent and an 8.64pt definition list that are indistinguishable from a gutter at that scale. Held by a pair of fixtures in both directions: `two-column-narrow` at 12pt must split, `hanging-indent` at 7.76pt must not. The corpus is byte-identical under either floor.
+- **A header comment that described a paragraph break that the module does not make.** The module header claimed a large vertical gap between two runs becomes a paragraph break. It does not: sweeps of 8, 16, 32, 64 and 96pt all return two units, because no vertical gap is ever measured. The behaviour is kept and the comment now says what the module declines to do — no paragraph structure is recovered — with a `vertical-gap` fixture 96pt apart that locks the statement.
+
+### Added
+
+- **Five fixtures for the decode questions that were open, taking the extraction suite from 22 cases to 27.** `two-column-narrow`, `hanging-indent`, `rotated-page`, `non-latin` and `vertical-gap`. Each carries a precondition proving it exhibits the property it is meant to exhibit before the behaviour behind it is asserted, so a fixture cannot pass by being inert. The non-latin case reconstructs eighteen single-byte codes whose Unicode exists only in the document's `/ToUnicode` CMap — Greek, Cyrillic and Latin-1 — exactly. `/Rotate` does not change content-space reading order: copy and drawing order survive and three displayed lines arrive as one unit, so that is recorded as a tripwire rather than applied to the coordinates, which would have changed reading order in the highest-risk module against no real corpus to validate against.
+- **A path-state assertion over every rendered report.** A tokenizer walks each page and fails if any path-extending operator — `l`, `c`, `v`, `y`, `h` — is applied before `m` or `re` has established a current point in the subpath, with a guard asserting the tokenizer actually finds path operators to inspect. It runs over six fixtures inside `npm test`, so the gate enforces it rather than a one-off check.
+
+### Changed
+
+- **The deliberate security fixture holds its two sinks as quoted data rather than as two statements.** The fixture gives the security profile the patterns it detects, and it is never executed and never shipped in the npm package, but a scanner reading it as product source cannot tell that from the bytes. Its sinks are now inside an exported array of strings, so a reader parsing the file as code finds no HTML assignment and no dynamic execution outside a string literal — which is what the finding describes. The profile under test loses nothing from this: `lib/audits.mjs` runs two raw-text regexes after masking comments, so quoting is invisible to it and `tests/run.mjs` still requires exactly `UE-SE001` and `UE-SE004`. The lock runs in both directions, since either half alone would let the fixture drift into being unscannable or live: stripping strings and comments must leave no sink behind, and the raw source must still carry both patterns.
+- **`.socketignore` is added and mirrors `socket.yml`'s `projectIgnorePaths`.** Neither format has been shown to be honoured by the pipeline that produces the skills.sh badge, and both files say so rather than implying an exclusion that has never taken effect.
+
+### Unchanged
+
+- The rule catalogue, the summary counts, the lane counts, the exit code, JSON and SARIF, the clean-run sentence, and the groupings of `grouped` and `full`.
+- Zero npm dependencies, and byte-identical output for identical input.
+
+### Verified, and how
+
+- `npm test` exit 0, `tests/audit-pdf-extraction.mjs` exit 0 across 27 cases.
+- `p48-gate.sh` fail=0 across all eight steps and four corpus verifiers; `qa-battery.mjs` 6 passed, 0 failed.
+- The regenerated report went from 104 path-state problems to 0, `qpdf --check` is clean, PDFKit renders every page, and the fixed report opens without complaint in Adobe Acrobat.
+- Every new lock was mutation-tested in both directions: removing the `m` fails with `a path operator was applied with no current point`, restoring the live statements in the fixture fails with `the security fixture must carry no live HTML sink outside a string literal`, and moving the sinks into comments fails the audit assertion with an empty id list.
+
 ## 1.5.0 – 30 September 2026
 
 The remainder of the report redesign that 1.4.0 opened: what order the sections appear in, how much of the body they print, what every row carries and how a path is named. 1.4.0 shipped the frame — the document title, the repeating header and the footer; this release ships what the frame surrounds. What the tool finds, the counts it reports, the rule catalogue and how it exits are as they were in 1.4.0, and were as they were in 1.3.1 before it.

@@ -29,6 +29,6 @@ HTML and JavaScript analysis is intentionally conservative and regex-based. `UE-
 
 ## Release gate
 
-Keep `package.json`, `VERSION` and the newest `CHANGELOG.md` heading identical, and keep `MAINTAINING.md` and `SKILL.md` in step with them; the current version is `1.5.0`. A version moves only when the documented release process calls for it. The package has no dependencies, so no lockfile is required.
+Keep `package.json`, `VERSION` and the newest `CHANGELOG.md` heading identical, and keep `MAINTAINING.md` and `SKILL.md` in step with them; the current version is `1.5.1`. A version moves only when the documented release process calls for it. The package has no dependencies, so no lockfile is required.
 
 Run `npm run check:syntax` (every file under `bin/`, `lib/`, `tests/` and `scripts/`), `npm test`, `npm run check:portability`, parse every tracked JSON file, `npm pack --dry-run`, `node bin/check.mjs . --self-scan --quiet` (it must exit `0`), an installed executable smoke test and `git diff --check`. GitHub Actions are pinned to full verified commit SHAs with version comments. Never commit generated tarballs, local profiles, installed-package directories or agent copies that can drift from the canonical skill.
