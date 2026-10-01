@@ -372,6 +372,7 @@ node bin/check.mjs content --baseline .ue-baseline.json
 node bin/check.mjs content --report review.html
 node bin/check.mjs content --glossary house-glossary.json
 node bin/check.mjs content --watch
+node bin/check.mjs --url https://www.example.org/field-office-update
 ```
 
 `--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links, and hidden directories, `node_modules`, build output and fixtures are skipped unless you name them explicitly.
@@ -401,6 +402,12 @@ The refusal is a refusal in the strict sense: the run exits `2`, names the file 
 A `.docx` (Word) or `.odt` (OpenDocument) file is a ZIP container of XML. The tool recovers the body text — every paragraph, with its heading level — and checks it with the same rules as any prose file, under the same extraction boundary: text boxes, headers, footers, footnotes, endnotes and comments are out of scope for this release and are never read, and a tracked deletion is excluded because struck copy is not user-visible. `line` addresses the recovered paragraph, counted in document order; it is not a source line, because a document container has none.
 
 Three kinds of container refuse with exit code `2`, and a refusal is not a pass: a file that is not a document container at all, an encrypted document (remove the protection or save an unprotected copy), and a container with no recoverable body text — never reported as clean, never partially read. `--fix` refuses a container: take corrections from the report, or export the text.
+
+### Retrieving a page with --url
+
+`--url <url>` retrieves one http(s) page and checks its visible copy, under the URL as the name, with the same rules and the same extraction boundary as a saved file: script bodies, styles, comments and markup never reach a rule. The flag is repeatable, and it can be combined with file paths. Nothing is uploaded, no cookies or credentials are sent, and the User-Agent names this tool; the retrieval is the one asynchronous step in the CLI.
+
+Four kinds of failure refuse with exit code `2`, naming the URL and the reason, and none of them prints the clean sentence: an error status, a response that is neither HTML nor plain text, a body over 4 MiB, and a URL whose scheme is not http or https. Audits stay local — they inspect source files, so a retrieved page carries no audit findings — and `--fix` is refused beside `--url`, because a page is not a file on disk.
 
 ### Exit codes
 

@@ -24,5 +24,11 @@ function invokedDirectly() {
 }
 
 if (invokedDirectly()) {
-  process.exitCode = run(process.argv.slice(2));
+  const result = run(process.argv.slice(2));
+  // --url runs asynchronously: the promise resolves to the same exit code.
+  if (result && typeof result.then === 'function') {
+    result.then((code) => { process.exitCode = code ?? 0; });
+  } else {
+    process.exitCode = result;
+  }
 }
