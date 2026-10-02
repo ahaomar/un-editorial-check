@@ -1021,8 +1021,12 @@ delete globalThis.__ctx;
     extractText(twin, 'twin.txt', { starts: lineStarts(twin) }), ctx);
   const byRule = new Map();
   for (const finding of found) byRule.set(finding.ruleId, (byRule.get(finding.ruleId) || 0) + 1);
-  assert.deepEqual([...byRule.keys()].sort(), ['UE-GR001', 'UE-NU001', 'UE-RE008', 'UE-SP001'],
-    'the twin copy must exercise the spelling, doubled-word, ambiguous-date and shouted-word rules');
+  // UE-HR006 joins since the acronym rule landed: "PRIOR" is a five-letter
+  // capitalised word inside the acronym window, the residual overlap with
+  // shouted words the rule's guard notes document (the register rule reports
+  // the shouting on the same token).
+  assert.deepEqual([...byRule.keys()].sort(), ['UE-GR001', 'UE-HR006', 'UE-NU001', 'UE-RE008', 'UE-SP001'],
+    'the twin copy must exercise the spelling, doubled-word, ambiguous-date, shouted-word and acronym rules');
   globalThis.__twinIds = [...byRule.keys()].sort();
   globalThis.__twinCounts = Object.fromEntries([...byRule.entries()].sort());
   globalThis.__twinFindings = found;

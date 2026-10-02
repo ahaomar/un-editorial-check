@@ -176,10 +176,13 @@ for (const [label, argv] of [
   const p0Run = scan(fixture('lanes', 'web-p0-incoherent-insertion.html'));
   const p0 = json(p0Run);
   assert.equal(p0Run.code, 0, 'every finding on web/04 is a warning: the run exits 0');
+  // Since the acronym rule (UE-HR006) landed, the page also yields one
+  // genuine unexpanded acronym at line 73 — a heuristic-review finding, so
+  // the heuristic lane count rose from two to three.
   assert.deepEqual(p0.lanes, {
-    deterministic: 5, 'heuristic-review': 2, 'harmful-discriminatory': 0,
+    deterministic: 5, 'heuristic-review': 3, 'harmful-discriminatory': 0,
     diplomacy: 0, audit: 0, quoted: 0,
-  }, 'web/04 currently yields five deterministic and two heuristic findings, and nothing else');
+  }, 'web/04 currently yields five deterministic and three heuristic findings, and nothing else');
 
   const sp001 = p0.findings.filter(f => f.ruleId === 'UE-SP001');
   const re002 = p0.findings.filter(f => f.ruleId === 'UE-RE002');
