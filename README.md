@@ -393,7 +393,7 @@ A PDF is a *rendered page*, not a source, and that shapes everything below. The 
 
 The refusal is a refusal in the strict sense: the run exits `2`, names the file and the reason on standard error, writes nothing to standard output, and never prints the clean-run sentence for a document it did not read. This is a narrowing of what a PDF can be checked for, not a completion of it.
 
-`--fix` refuses a PDF, a DOCX and an ODT, like every other non-prose format. A PDF is a rendered page, and rewriting one in place is not a text edit. Take the corrections from the report instead.
+`--fix` refuses a PDF, a DOCX and an ODT, like every other non-prose format. A PDF is a rendered page, and rewriting one in place is not a text edit. Take the corrections from the report, or run `--emit-corrected <file>` to write the recovered copy of one PDF — with the deterministic corrections applied — as a new working text file, headed by a notice that says exactly what it is. `--emit-corrected` is refused beside `--fix`, and a scan must contain exactly one PDF for it to run.
 
 `--profile` is repeatable: a value that names a bundled audit (`publishing`, `accessibility`, `security`) runs that audit; a value that names a bundled organisation profile (`un-secretariat-document`, `un-v1`, `un-geneva-web`, `generic-british-english`) resolves to that bundled profile; any other value is an organisation profile file merged over the bundled United Nations baseline (an existing file of that name wins over the bundled name). A missing or invalid profile is a usage failure (exit `2`), not a silent fallback, and an unknown bare name is refused while listing the bundled profile names.
 
