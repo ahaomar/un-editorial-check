@@ -7,10 +7,12 @@
 // font objects, text extraction from the uncompressed `Tj` operands,
 // transliteration, literal-string escaping, a footer on every page, an
 // unbroken 600-character token, and byte-identical determinism. Line widths
-// are re-measured against an independent AFM table so the wrap logic cannot
-// drift. Only node:assert and the module under test are used.
+// are re-measured against the embedded faces' own advances, pinned here, so
+// the wrap logic cannot drift. Only node:assert and the module under test are
+// used.
 
 import assert from 'node:assert/strict';
+import { inflateSync } from 'node:zlib';
 import { renderPdf } from '../lib/pdf.mjs';
 import { CATEGORY_LEGEND, legendRows } from '../lib/legend.mjs';
 import { categoryIcon, pdfIcon, severityIcon } from '../lib/icons.mjs';
@@ -24,98 +26,130 @@ const MARGIN = 54;
 const CONTENT_W = PAGE_W - 2 * MARGIN;
 const LABEL_COL = 84;
 
-// --- independent AFM width tables (units per 1000 em) ----------------------
-// Helvetica and Helvetica-Bold, ASCII 32..126 with the standard Adobe values,
-// Latin-1 160..255; anything else falls back to 0.5 em, as the contract sets.
+// --- independent width tables (units per 1000 em) ---------------------------
+// The advances of the two embedded faces, byte-indexed like `/Widths`: index 0
+// is byte 0x20 (space) for ASCII, byte 0x80 for the upper half, and byte 127
+// plus Adobe's five undefined C1 positions measure 0 because no folded string
+// can hold them. These are pinned here rather than read through lib/ttf.mjs,
+// so a drift in the font layer shows up as a line that no longer fits its
+// column instead of as two copies of the same mistake agreeing.
 
 const REG_ASCII = [
-  278, 278, 355, 556, 556, 889, 667, 191, // 32..39 space ! " # $ % & '
-  333, 333, 389, 584, 278, 333, 278, 278, // 40..47 ( ) * + , - . /
-  556, 556, 556, 556, 556, 556, 556, 556, // 48..55 0 1 2 3 4 5 6 7
-  556, 556, 278, 278, 584, 584, 584, 556, // 56..63 8 9 : ; < = > ?
-  1015, 667, 667, 722, 722, 667, 611, 778, // 64..71 @ A B C D E F G
-  722, 278, 500, 667, 556, 833, 722, 778, // 72..79 H I J K L M N O
-  667, 778, 722, 667, 611, 722, 667, 944, // 80..87 P Q R S T U V W
-  667, 667, 611, 278, 278, 278, 469, 556, // 88..95 X Y Z [ \ ] ^ _
-  333, 556, 556, 500, 556, 556, 278, 556, // 96..103 ` a b c d e f g
-  556, 222, 222, 500, 222, 833, 556, 556, // 104..111 h i j k l m n o
-  556, 556, 333, 500, 278, 556, 500, 722, // 112..119 p q r s t u v w
-  500, 500, 500, 334, 260, 334, 584, // 120..126 x y z { | } ~
+  229, 246, 320, 548, 494, 633, 544, 175, // 0x20..0x27 space ! " # $ % & '
+  314, 319, 431, 497, 197, 248, 264, 371, // 0x28..0x2F ( ) * + , - . /
+  494, 494, 494, 494, 494, 494, 494, 494, // 0x30..0x37 0 1 2 3 4 5 6 7
+  494, 494, 233, 203, 446, 479, 460, 422, // 0x38..0x3F 8 9 : ; < = > ?
+  769, 577, 546, 567, 571, 497, 481, 591, // 0x40..0x47 @ A B C D E F G
+  620, 250, 483, 545, 476, 755, 620, 601, // 0x48..0x4F H I J K L M N O
+  554, 601, 531, 519, 521, 562, 561, 762, // 0x50..0x57 P Q R S T U V W
+  551, 525, 523, 250, 370, 250, 371, 405, // 0x58..0x5F X Y Z [ \ ] ^ _
+  309, 479, 493, 462, 496, 469, 316, 493, // 0x60..0x67 ` a b c d e f g
+  483, 229, 224, 451, 229, 753, 484, 502, // 0x68..0x6F h i j k l m n o
+  493, 500, 305, 456, 296, 483, 428, 650, // 0x70..0x77 p q r s t u v w
+  439, 417, 439, 307, 244, 307, 589, // 0x78..0x7E x y z { | } ~
 ];
 
 const BOLD_ASCII = [
-  278, 333, 474, 556, 556, 889, 722, 238, // 32..39
-  333, 333, 389, 584, 278, 333, 278, 278, // 40..47
-  556, 556, 556, 556, 556, 556, 556, 556, // 48..55
-  556, 556, 333, 333, 584, 584, 584, 611, // 56..63
-  975, 722, 722, 722, 722, 667, 611, 778, // 64..71
-  722, 278, 556, 722, 611, 833, 722, 778, // 72..79
-  667, 778, 722, 667, 611, 722, 667, 944, // 80..87
-  667, 667, 611, 333, 278, 333, 584, 556, // 88..95
-  333, 556, 611, 556, 611, 556, 333, 611, // 96..103
-  611, 278, 278, 556, 278, 889, 611, 611, // 104..111
-  611, 611, 389, 556, 333, 611, 556, 778, // 112..119
-  556, 556, 500, 389, 280, 389, 584, // 120..126
+  230, 261, 321, 528, 505, 638, 579, 162, // 0x20..0x27
+  323, 324, 454, 476, 245, 361, 291, 332, // 0x28..0x2F
+  505, 505, 505, 505, 505, 505, 505, 505, // 0x30..0x37
+  505, 505, 273, 253, 447, 503, 454, 447, // 0x38..0x3F
+  766, 597, 561, 570, 565, 491, 476, 585, // 0x40..0x47
+  614, 270, 490, 553, 479, 758, 612, 604, // 0x48..0x4F
+  568, 604, 553, 540, 542, 571, 578, 750, // 0x50..0x57
+  560, 542, 530, 264, 381, 264, 391, 400, // 0x58..0x5F
+  331, 471, 495, 460, 496, 479, 328, 503, // 0x60..0x67
+  492, 252, 245, 478, 252, 742, 492, 498, // 0x68..0x6F
+  495, 497, 331, 454, 307, 492, 449, 633, // 0x70..0x77
+  452, 445, 452, 298, 253, 298, 558, // 0x78..0x7E
 ];
 
-const REG_LATIN1 = [
-  278, 333, 556, 556, 556, 556, 260, 556, // 160..167 nbsp ¡ ¢ £ ¤ ¥ ¦ §
-  333, 737, 370, 556, 584, 333, 737, 333, // 168..175 ¨ © ª « ¬ (soft) ® ¯
-  400, 584, 333, 333, 333, 556, 537, 278, // 176..183 ° ± ² ³ ´ µ ¶ ·
-  333, 333, 365, 556, 834, 834, 834, 611, // 184..191 ¸ ¹ º » ¼ ½ ¾ ¿
-  667, 667, 667, 667, 667, 667, 1000, 722, // 192..199 À Á Â Ã Ä Å Æ Ç
-  667, 667, 667, 667, 278, 278, 278, 278, // 200..207 È É Ê Ë Ì Í Î Ï
-  722, 722, 778, 778, 778, 778, 584, 778, // 208..215 Ð Ñ Ò Ó Ô Õ Ö ×
-  722, 722, 722, 722, 667, 667, 611, 556, // 216..223 Ø Ù Ú Û Ü Ý Þ ß
-  556, 556, 556, 556, 556, 556, 889, 500, // 224..231 à á â ã ä å æ ç
-  556, 556, 556, 556, 278, 278, 278, 278, // 232..239 è é ê ë ì í î ï
-  556, 556, 556, 556, 556, 556, 556, 584, // 240..247 ð ñ ò ó ô õ ö ÷
-  611, 556, 556, 556, 556, 500, 556, 500, // 248..255 ø ù ú û ü ý þ ÿ
+const REG_UPPER = [
+  494, 0, 195, 310, 327, 590, 483, 500, // 0x80..0x87 € ‚ ƒ „ … † ‡ ˆ
+  428, 819, 519, 272, 827, 0, 523, 0, // 0x88..0x8F ‰ Š ‹ Œ Ž ˜ ­ ®¯ (0x8D and 0x8F undefined)
+  0, 195, 195, 334, 337, 337, 572, 678, // 0x90..0x97 (0x90 undefined) ' ' " " • – —
+  428, 548, 456, 272, 777, 0, 439, 525, // 0x98..0x9F ˜ ™ š › Œ ž Ÿ (0x9D undefined)
+  229, 232, 480, 511, 713, 464, 240, 538, // 0xA0..0xA7
+  418, 786, 396, 418, 487, 248, 786, 415, // 0xA8..0xAF
+  374, 470, 330, 330, 313, 499, 435, 244, // 0xB0..0xB7
+  229, 330, 403, 418, 638, 678, 673, 422, // 0xB8..0xBF
+  577, 577, 577, 577, 577, 577, 813, 567, // 0xC0..0xC7
+  497, 497, 497, 497, 250, 250, 250, 250, // 0xC8..0xCF
+  585, 620, 601, 601, 601, 601, 601, 471, // 0xD0..0xD7
+  601, 562, 562, 562, 562, 525, 515, 522, // 0xD8..0xDF
+  479, 479, 479, 479, 479, 479, 729, 462, // 0xE0..0xE7
+  469, 469, 469, 469, 235, 235, 235, 235, // 0xE8..0xEF
+  514, 484, 502, 502, 502, 502, 502, 500, // 0xF0..0xF7
+  499, 483, 483, 483, 483, 417, 508, 417, // 0xF8..0xFF
 ];
 
-const BOLD_LATIN1 = [
-  278, 333, 556, 556, 556, 556, 260, 556, // 160..167
-  333, 737, 370, 556, 584, 333, 737, 333, // 168..175
-  400, 584, 333, 333, 333, 556, 537, 278, // 176..183
-  333, 333, 365, 556, 834, 834, 834, 611, // 184..191
-  722, 722, 722, 722, 722, 722, 1000, 722, // 192..199
-  667, 667, 667, 667, 278, 278, 278, 278, // 200..207
-  722, 722, 778, 778, 778, 778, 584, 778, // 208..215
-  722, 722, 722, 722, 667, 667, 611, 611, // 216..223
-  556, 556, 556, 556, 556, 556, 889, 556, // 224..231
-  556, 556, 556, 556, 278, 278, 278, 278, // 232..239
-  611, 611, 611, 611, 611, 611, 611, 584, // 240..247
-  611, 611, 611, 611, 611, 556, 611, 556, // 248..255
+const BOLD_UPPER = [
+  505, 0, 244, 330, 385, 661, 470, 509, // 0x80..0x87
+  453, 821, 540, 284, 841, 0, 531, 0, // 0x88..0x8F
+  0, 229, 225, 386, 389, 360, 548, 661, // 0x90..0x97
+  437, 554, 454, 274, 771, 0, 452, 542, // 0x98..0x9F
+  230, 271, 508, 524, 692, 475, 252, 552, // 0xA0..0xA7
+  467, 785, 394, 449, 485, 361, 785, 457, // 0xA8..0xAF
+  389, 472, 335, 335, 332, 548, 436, 284, // 0xB0..0xB7
+  249, 335, 406, 449, 623, 663, 704, 446, // 0xB8..0xBF
+  597, 597, 597, 597, 597, 597, 818, 570, // 0xC0..0xC7
+  491, 491, 491, 491, 271, 271, 271, 271, // 0xC8..0xCF
+  580, 612, 604, 604, 604, 604, 604, 469, // 0xD0..0xD7
+  602, 571, 571, 571, 571, 542, 533, 558, // 0xD8..0xDF
+  471, 471, 471, 471, 471, 471, 729, 459, // 0xE0..0xE7
+  479, 479, 479, 479, 262, 262, 262, 262, // 0xE8..0xEF
+  502, 493, 498, 498, 498, 498, 498, 500, // 0xF0..0xF7
+  497, 492, 492, 492, 492, 445, 500, 445, // 0xF8..0xFF
 ];
 
-function afmWidth(codePoint, bold) {
-  if (codePoint >= 32 && codePoint <= 126) {
-    return (bold ? BOLD_ASCII : REG_ASCII)[codePoint - 32];
-  }
-  if (codePoint >= 160 && codePoint <= 255) {
-    return (bold ? BOLD_LATIN1 : REG_LATIN1)[codePoint - 160];
-  }
-  return 500;
+/** The advance of one WinAnsi byte in the face `bold` selects. */
+function byteWidth(byte, bold) {
+  const table = bold
+    ? (byte >= 0x80 ? BOLD_UPPER : BOLD_ASCII)
+    : (byte >= 0x80 ? REG_UPPER : REG_ASCII);
+  if (byte >= 0x20 && byte <= 0x7E) return table[byte - 0x20];
+  if (byte >= 0x80 && byte <= 0xFF) return table[byte - 0x80];
+  return 0; // byte 127 and the five undefined C1 positions
 }
 
-// Spot locks: the ASCII widths must be the real AFM values, not a guess.
-assert.equal(afmWidth(0x20, false), 278, 'space is 278 in Helvetica');
-assert.equal(afmWidth(0x69, false), 222, 'i is 222 in Helvetica');
-assert.equal(afmWidth(0x57, false), 944, 'W is 944 in Helvetica');
-assert.equal(afmWidth(0x69, true), 278, 'i is 278 in Helvetica-Bold');
-assert.equal(afmWidth(0x57, true), 944, 'W is 944 in Helvetica-Bold');
+// Spot locks: the table must be the real advances, not a plausible guess.
+// The seven pairs are the facts PHASE-10-PLAN pins for these faces and
+// tests/ttf.mjs locks independently from the font files, so a table
+// regenerated to agree with a broken font layer still fails here.
+assert.equal(byteWidth(0x20, false), 229, 'space is 229 in Roboto Condensed');
+assert.equal(byteWidth(0x41, false), 577, 'A is 577 in Roboto Condensed');
+assert.equal(byteWidth(0x57, false), 762, 'W is 762 in Roboto Condensed');
+assert.equal(byteWidth(0x69, false), 229, 'i is 229 in Roboto Condensed');
+assert.equal(byteWidth(0x96, false), 572, 'the en dash keeps its WinAnsi byte and its width');
+assert.equal(byteWidth(0x80, false), 494, 'the euro sign is 494 in Roboto Condensed');
+assert.equal(byteWidth(0xE9, false), 469, 'e-acute is 469 in Roboto Condensed');
+assert.equal(byteWidth(0x20, true), 230, 'space is 230 in Roboto Condensed Bold');
+assert.equal(byteWidth(0x41, true), 597, 'A is 597 in Roboto Condensed Bold');
+assert.equal(byteWidth(0x57, true), 750, 'W is 750 in Roboto Condensed Bold');
+assert.equal(byteWidth(0x69, true), 252, 'i is 252 in Roboto Condensed Bold');
+// The unreachable positions measure nothing, so no line break can be owed to a
+// byte no string can carry.
+for (const byte of [0x7F, 0x81, 0x8D, 0x8F, 0x90, 0x9D]) {
+  assert.equal(byteWidth(byte, false), 0, `byte 0x${byte.toString(16)} has no advance`);
+}
 
+// Measured over the bytes the writer actually emits: an extracted line is one
+// JS char per WinAnsi byte, so indexing by char code is indexing by byte.
 function lineWidth(text, font, size) {
+  const bold = font === 'F2';
   let width = 0;
-  for (const ch of text) {
-    width += (afmWidth(ch.codePointAt(0), font === 'F2') * size) / 1000;
+  for (let i = 0; i < text.length; i++) {
+    width += (byteWidth(text.charCodeAt(i), bold) * size) / 1000;
   }
   return width;
 }
 
 // --- extraction from the uncompressed content streams ------------------------
 
-const LINE_RE = /\/(F[123]) ([0-9.]+) Tf ([0-9.-]+) ([0-9.-]+) Td \(((?:\\[\s\S]|[^\\()])*)\) Tj/g;
+// Only F1 and F2 exist since Stage D dropped the italic resource: a resource
+// name outside that pair is a renderer that started drawing something no code
+// path asks for, so the extractor must not quietly read it.
+const LINE_RE = /\/(F[12]) ([0-9.]+) Tf ([0-9.-]+) ([0-9.-]+) Td \(((?:\\[\s\S]|[^\\()])*)\) Tj/g;
 
 function unpdf(operand) {
   return operand.replace(/\\([()\\])/g, '$1');
@@ -135,8 +169,34 @@ function extractLinesFrom(body) {
   return out;
 }
 
+/**
+ * The page content streams, in file order. Each dictionary is read for its
+ * `/Length` and the body taken at that exact byte count: since Stage D
+ * embedded `/FontFile2` and `/ToUnicode` as compressed binary, a sweep that
+ * regexed `stream…endstream` would hand font-program bytes to the extractor
+ * as if they were drawn copy. A dictionary carrying `/Filter` is skipped —
+ * no page content stream has one, and the binary behind it is not text.
+ *
+ * @param {Buffer} pdf
+ * @returns {string[]} one entry per page content stream
+ */
 function streamBodies(pdf) {
-  return [...pdf.toString('latin1').matchAll(/stream\n([\s\S]*?)\nendstream/g)].map((m) => m[1]);
+  const text = pdf.toString('latin1');
+  const out = [];
+  for (const m of text.matchAll(/<<(.*?)>>\nstream\n/gs)) {
+    // The match may open at a `<<` belonging to an earlier object and run on
+    // to the `>>` that closes this stream's own dictionary (the page object
+    // precedes its content object and neither is itself a stream). Only the
+    // last dictionary in the span belongs to the stream, so only it is read —
+    // otherwise an earlier object's numbers could be taken for this one's.
+    const open = m[1].lastIndexOf('<<');
+    const dict = open === -1 ? m[1] : m[1].slice(open + 2);
+    if (dict.includes('/Filter')) continue;
+    const length = /\/Length (\d+)/.exec(dict);
+    assert(length, `a content stream without a /Length: ${JSON.stringify(dict.slice(0, 80))}`);
+    out.push(text.slice(m.index + m[0].length, m.index + m[0].length + Number(length[1])));
+  }
+  return out;
 }
 
 /** Every drawn line of the whole document, in stream (page) order. */
@@ -173,6 +233,146 @@ function kvValueAll(lines, label, from = 0) {
 }
 
 // --- structural validation ---------------------------------------------------
+
+/**
+ * The two embedded faces, read back out of the bytes: the font dictionaries
+ * and their descriptor values, the subset program behind each `/FontFile2`
+ * inflated and checked against the `/Length1` it claims and the sfnt magic it
+ * must start with, the `/Widths` row compared entry by entry against the
+ * pinned table above, and the `/ToUnicode` CMap inflated and read for the
+ * byte-to-character mapping copy-paste depends on. Stage D replaced three
+ * base-14 Helvetica resources with these two, so every assertion that used to
+ * name Helvetica now names the face that took its place, and the `/F3` lock
+ * below is a *negative* one: nothing may re-add an italic resource no code
+ * path draws.
+ *
+ * @param {string} s the whole file, latin1
+ * @param {string} label the fixture name, for assertion messages
+ */
+function assertEmbeddedFaces(s, label) {
+  // No base-14 face survives anywhere — including inside a stream.
+  assert(!s.includes('Helvetica'), `${label}: no base-14 Helvetica reference remains`);
+
+  const fonts = [...s.matchAll(/<< \/Type \/Font [^>]*\/BaseFont (\/[^ /]+)[^>]*>>/g)]
+    .map(m => m[1]);
+  assert.deepEqual(fonts, ['/ROBREG+RobotoCondensed-Regular', '/ROBBOL+RobotoCondensed-Bold'],
+    `${label}: exactly two embedded faces, Regular as F1 and Bold as F2, each under a `
+    + 'deterministic subset tag');
+
+  assert.equal((s.match(/\/Subtype \/TrueType/g) || []).length, 2,
+    `${label}: both fonts are simple TrueType, not a composite CID font`);
+  assert.equal((s.match(/\/Encoding \/WinAnsiEncoding/g) || []).length, 2,
+    `${label}: both embedded faces use WinAnsi encoding`);
+  // The italic resource is gone (R5): it was never drawn by any code path.
+  assert(!/\/F3\b/.test(s), `${label}: no /F3 resource, an italic nothing draws`);
+  assert(s.includes('/F1 3 0 R') && s.includes('/F2 4 0 R'),
+    `${label}: page resources reference the two embedded faces`);
+
+  // --- /Widths, entry by entry -----------------------------------------------
+  const widthRows = [...s.matchAll(/\/Widths \[([^\]]*)\]/g)].map(m =>
+    m[1].trim().split(/\s+/).map(Number));
+  assert.equal(widthRows.length, 2, `${label}: one /Widths row per face`);
+  for (let f = 0; f < 2; f++) {
+    const row = widthRows[f];
+    // FirstChar 32, LastChar 255: 224 entries, indexed by the byte a viewer
+    // reads — not 256, and not one entry per Unicode code point.
+    assert.equal(row.length, 224, `${label}: /Widths for face ${f} has 224 entries (32..255)`);
+    const bad = [];
+    for (let i = 0; i < row.length; i++) {
+      const expected = byteWidth(32 + i, f === 1);
+      if (row[i] !== expected) bad.push(`0x${(32 + i).toString(16)}: ${row[i]} != ${expected}`);
+    }
+    assert.deepEqual(bad, [],
+      `${label}: /Widths for face ${f} is the pinned advance of every byte `
+      + `(${row.length - bad.length}/${row.length} match)`);
+  }
+
+  // --- the font descriptors ---------------------------------------------------
+  const descriptors = [...s.matchAll(/<< \/Type \/FontDescriptor [^>]*>>/g)].map(m => m[0]);
+  assert.equal(descriptors.length, 2, `${label}: one FontDescriptor per face`);
+  // The outline metrics, scaled from the face's 2048-unit em to 1000: the
+  // plan's own facts (ascent 1900, descent -500, cap height 1456, unitsPerEm
+  // 2048), so a descriptor read from the wrong table fails here.
+  const EXPECTED = [
+    { box: '[-737 -271 998 1056]', ascent: 928, descent: -244, cap: 711, stem: 80 },
+    { box: '[-727 -271 1040 1056]', ascent: 928, descent: -244, cap: 711, stem: 140 },
+  ];
+  descriptors.forEach((d, i) => {
+    assert(d.includes('/Flags 32'), `${label}: descriptor ${i} declares symbolic-free flags 32`);
+    assert(d.includes(`/FontBBox ${EXPECTED[i].box}`),
+      `${label}: descriptor ${i} FontBBox is the face's own, scaled to 1000 em`);
+    assert(d.includes('/ItalicAngle 0'), `${label}: descriptor ${i} is upright`);
+    assert(d.includes(` /Ascent ${EXPECTED[i].ascent}`), `${label}: descriptor ${i} Ascent`);
+    assert(d.includes(` /Descent ${EXPECTED[i].descent}`), `${label}: descriptor ${i} Descent`);
+    assert(d.includes(` /CapHeight ${EXPECTED[i].cap}`), `${label}: descriptor ${i} CapHeight`);
+    assert(d.includes(` /StemV ${EXPECTED[i].stem}`), `${label}: descriptor ${i} StemV`);
+    assert(d.includes('/FontFile2 '), `${label}: descriptor ${i} points at its FontFile2`);
+  });
+
+  // --- the two compressed streams, inflated ----------------------------------
+  const streams = [...s.matchAll(/<<(.*?)>>\nstream\n/gs)].map((m) => {
+    const open = m[1].lastIndexOf('<<');
+    const dict = open === -1 ? m[1] : m[1].slice(open + 2);
+    const start = m.index + m[0].length;
+    return { dict, body: s.slice(start, start + Number(/\/Length (\d+)/.exec(dict)[1])) };
+  });
+  const fontFiles = streams.filter(x => x.dict.includes('/Length1'));
+  assert.equal(fontFiles.length, 2, `${label}: two FontFile2 streams`);
+  for (const [i, { dict, body }] of fontFiles.entries()) {
+    assert(dict.includes('/Filter /FlateDecode'), `${label}: FontFile2 ${i} is FlateDecode`);
+    const raw = inflateSync(Buffer.from(body, 'latin1'));
+    // /Length1 is the *uncompressed* length the viewer checks against.
+    const length1 = Number(/\/Length1 (\d+)/.exec(dict)[1]);
+    assert.equal(raw.length, length1,
+      `${label}: FontFile2 ${i} inflates to the /Length1 it declares`);
+    // A real sfnt program: version 1.0 as a uint32, not a stub.
+    assert.equal(raw.readUInt32BE(0), 0x00010000,
+      `${label}: FontFile2 ${i} is a TrueType sfnt (version 1.0)`);
+    // The subset really is a subset: its table directory is checked out of the
+    // inflated bytes themselves, not asserted to be merely "small enough". The
+    // four shaping tables are dropped by the subsetter (nobody shapes a PDF's
+    // single-byte runs) and the core layout tables must all survive, because
+    // `/Widths` was measured from `hmtx` and the descriptor from head, hhea,
+    // OS/2 and post — a subset that lost one of those would disagree with the
+    // numbers already checked above.
+    const tags = [];
+    const numTables = raw.readUInt16BE(4);
+    for (let t = 0; t < numTables; t++) tags.push(raw.toString('latin1', 12 + t * 16, 16 + t * 16));
+    assert.equal(numTables, 14,
+      `${label}: FontFile2 ${i} carries the 14 tables the subset keeps, found ${tags.join(' ')}`);
+    for (const dropped of ['GPOS', 'GSUB', 'GDEF', 'STAT']) {
+      assert(!tags.includes(dropped),
+        `${label}: FontFile2 ${i} dropped the shaping table ${dropped}`);
+    }
+    for (const kept of ['cmap', 'glyf', 'head', 'hhea', 'hmtx', 'loca', 'maxp',
+      'OS/2', 'post']) {
+      assert(tags.includes(kept),
+        `${label}: FontFile2 ${i} still carries ${kept}, which the metrics above were read from`);
+    }
+  }
+
+  const cMaps = streams.filter(x => x.dict.includes('/Filter') && !x.dict.includes('/Length1'));
+  assert.equal(cMaps.length, 2, `${label}: two ToUnicode streams`);
+  for (const [i, { dict, body }] of cMaps.entries()) {
+    assert(dict.includes('/Filter /FlateDecode'), `${label}: ToUnicode ${i} is FlateDecode`);
+    const cmap = inflateSync(Buffer.from(body, 'latin1')).toString('latin1');
+    assert(cmap.includes('begincmap'), `${label}: ToUnicode ${i} is a CMap`);
+    assert(cmap.includes('beginbfchar'), `${label}: ToUnicode ${i} uses bfchar entries`);
+    // The mapping copy-paste depends on: byte 0x96 is the en dash, and the
+    // undefined positions Adobe leaves blank must not be invented as entries.
+    assert(cmap.includes('<96> <2013>'),
+      `${label}: ToUnicode ${i} maps byte 0x96 to U+2013, the en dash`);
+    assert(!cmap.includes('<81>'), `${label}: ToUnicode ${i} leaves 0x81 undefined`);
+    const entries = [...cmap.matchAll(/^<([0-9A-F]{2})> <([0-9A-F]{4})>$/gm)];
+    assert.equal(entries.length, 218,
+      `${label}: ToUnicode ${i} covers the 218 WinAnsi bytes, found ${entries.length}`);
+  }
+
+  // Exactly four compressed streams: two programs, two CMaps. Nothing else in
+  // the file may hide behind a filter.
+  assert.equal(streams.filter(x => x.dict.includes('/Filter')).length, 4,
+    `${label}: four compressed streams, all of them font data`);
+}
 
 function validateStructure(pdf, label, minPages) {
   assert(Buffer.isBuffer(pdf), `${label}: renderPdf returns a Buffer`);
@@ -218,15 +418,7 @@ function validateStructure(pdf, label, minPages) {
   assert.equal(streamBodies(pdf).length, pages,
     `${label}: one uncompressed content stream per page`);
 
-  for (const baseFont of ['/BaseFont /Helvetica', '/BaseFont /Helvetica-Bold',
-    '/BaseFont /Helvetica-Oblique']) {
-    assert(s.includes(baseFont), `${label}: declares ${baseFont.slice(11)}`);
-  }
-  assert.equal((s.match(/\/Encoding \/WinAnsiEncoding/g) || []).length, 3,
-    `${label}: all three fonts use WinAnsi encoding`);
-  for (const ref of ['/F1 3 0 R', '/F2 4 0 R', '/F3 5 0 R']) {
-    assert(s.includes(ref), `${label}: page resources reference ${ref.slice(0, 3)}`);
-  }
+  assertEmbeddedFaces(s, label);
 
   for (const body of streamBodies(pdf)) {
     for (let i = 0; i < body.length; i++) {
@@ -293,8 +485,19 @@ const pdf = renderPdf(elements, opts);
 const s = validateStructure(pdf, 'report', 2);
 
 // Severity and banner colours exactly as the contract fixes them.
-for (const colour of ['0.216 0.278 0.31 rg', '0.776 0.157 0.157 rg',
-  '0.902 0.318 0 rg', '0.082 0.396 0.753 rg', '1 1 1 rg', '0 0 0 rg']) {
+// Three of the six moved when the chrome went navy; each with its reason.
+//   '0.216 0.278 0.31 rg' -> masthead: R7 makes the cover title banner the
+//     same navy as every running page head, so the old slate is no longer
+//     painted anywhere. The assertion that this exact slate appears was the
+//     assertion that the old banner still existed.
+//   '0.902 0.318 0 rg' -> R12 unified the warning hue with HTML's #e07b00;
+//     the two renderers disagreed about the same severity mark, and severity
+//     is a signal a reader has to recognise across formats.
+//   '0 0 0 rg' -> R6 body text is #171b26, a very dark navy-tinted near-black
+//     (17.20:1 on white) rather than pure black.
+// Error, note and white are untouched and must still appear.
+for (const colour of ['0.141 0.208 0.42 rg', '0.776 0.157 0.157 rg',
+  '0.878 0.482 0 rg', '0.082 0.396 0.753 rg', '1 1 1 rg', '0.09 0.106 0.149 rg']) {
   assert(s.includes(colour), `fill colour "${colour}" appears in the streams`);
 }
 assert(s.includes('/F1 10.5 Tf'), 'body text renders at 10.5 pt');
@@ -448,10 +651,10 @@ validateStructure(bare, 'bare', 1);
 // --- 9: characters WinAnsi cannot encode -------------------------------------
 //
 // WinAnsi is single-byte: a Cyrillic, Arabic or Han character has no code in
-// it and the writer holds no font that could draw one — embedding a font would
-// mean shipping a font program in the package, which is out of scope. Those
-// characters are therefore replaced by "?". That is a real, lossy fold, and
-// these locks pin it exactly and make the loss visible rather than silent:
+// it, and neither does the embedded subset — it keeps only the glyphs those
+// 218 reachable bytes name. Those characters are therefore replaced by "?".
+// That is a real, lossy fold, and these locks pin it exactly and make the loss
+// visible rather than silent:
 //
 //   * the fold is per character, deterministic, and idempotent;
 //   * Greek and Cyrillic, which WinAnsi *does* cover, are never folded — the
@@ -580,6 +783,28 @@ validateStructure(bare, 'bare', 1);
   assert(!assertLinesFit(renderPdf(accentedOnly, opts), 'accented').map(l => l.text)
     .join('\n').includes('Note on characters'),
   'accented Western European copy must not trigger the fold note');
+
+  // Moved with Stage D's fold-gate change, and the reason it exists: the gate
+  // no longer asks "does this string hold a character outside WinAnsi?" but
+  // "does any character actually *become* '?' on the page?". The two disagree
+  // exactly on the folds that go somewhere other than "?": the curly quotes
+  // fold to their ASCII forms and the ellipsis to three periods, so under the
+  // old predicate a report containing only them carried a note promising that
+  // some characters had been lost — naming characters that were not. Nothing
+  // here became "?", so nothing here is announced. The en and em dash are in
+  // the same sentence because they keep their WinAnsi bytes and must not be
+  // read as a loss either. All seven code points the gate must forgive —
+  // ‘ ’ “ ” – — … — sit in this one sentence (the
+  // single quotes added with F11, whose lock spec names them beside the
+  // double ones), so a gate that asks the encoding instead of asking what
+  // became of the character trips over every one of them:
+  // lib/winansi.mjs's hasUnrepresentable answers "yes" for all seven while
+  // toWinAnsi maps each to a plain byte.
+  const foldFree = [{ type: 'paragraph', text: 'The range 1990–2025 — set and '
+    + '“quoted”, with ‘single’ quotes — stands. Ellipsis … too.' }];
+  assert(!assertLinesFit(renderPdf(foldFree, opts), 'foldfree').map(l => l.text)
+    .join('\n').includes('Note on characters'),
+  'smart quotes, the ellipsis and dashes fold without a note: none of them became "?"');
 
   // Determinism holds on the folded path too.
   const twice = [
@@ -1172,6 +1397,101 @@ assert(!fullS.includes('UNITED NATIONS'),
   assert.ok(inspected >= 6, `every fixture page was inspected (${inspected})`);
 }
 
+// --- 13: the two full-bleed bands, pinned (E20) ------------------------------
+//
+// The masthead band and the footer band are the report's page chrome: the two
+// fills that make every sheet read as one document. Nothing asserted either
+// one until now, so both could move without a suite noticing — a masthead
+// inset to the margin reads as a box rather than as the top of the page, a
+// footer band of a different height leaves the three footer cells standing
+// off the band they are stamped on. Four properties, each named for the
+// failure it exists to catch:
+//
+//   (a) every page carries exactly one masthead fill at x = 0, width the
+//       full 595.28, its top edge at the page top — genuinely full bleed on
+//       all four sides, not a wide rectangle inset to the margin;
+//   (b) every page carries exactly one footer band, `0 0 595.28 48 re f`;
+//   (c) the divider rule sits at y = 48, the top edge of that band, so the
+//       footer cells read as standing on the band rather than floating;
+//   (d) the masthead's bottom edge sits above its own divider rule — the
+//       band and the rule may never overlap or swap, or the fill covers the
+//       rule that closes it.
+//
+// The fill regex pins x = 0 by matching the `0` that follows `rg` (the fill's
+// first `re` operand) and then reads y, width and height off the operand, so
+// a band that moved off the page edge stops matching entirely and fails the
+// count instead of passing as "a band".
+
+function assertBandGeometry(doc, label) {
+  let inspected = 0;
+  streamBodies(doc).forEach((body, index) => {
+    inspected += 1;
+    const page = `${label} page ${index + 1}`;
+    const bands = [...body.matchAll(/rg 0 ([0-9.]+) ([0-9.]+) ([0-9.]+) re f/g)]
+      .map(m => ({ y: Number(m[1]), w: Number(m[2]), h: Number(m[3]) }));
+
+    // (a) The masthead is the only band above the page corner. `n()` rounds
+    // each operand to two decimals on its own, so the top edge y + h is
+    // compared against PAGE_H within a hundredth rather than for equality.
+    const masthead = bands.filter(b => b.y > 0);
+    assert.equal(masthead.length, 1,
+      `${page}: exactly one masthead band rising from x=0, found ${masthead.length}`);
+    assert.equal(masthead[0].w, PAGE_W,
+      `${page}: the masthead spans the full page width (${masthead[0].w} of ${PAGE_W})`);
+    assert(Math.abs(masthead[0].y + masthead[0].h - PAGE_H) < 0.011,
+      `${page}: the masthead's top edge reaches the page top (`
+      + `${(masthead[0].y + masthead[0].h).toFixed(2)} of ${PAGE_H})`);
+
+    // (b) The footer band, pinned to the page corner at 48 pt high. Section 6
+    // already proved the three cells sit below the content box; this pins
+    // what they sit *on*.
+    const footer = bands.filter(b => b.y === 0);
+    assert.equal(footer.length, 1,
+      `${page}: exactly one footer band at the page corner, found ${footer.length}`);
+    assert.equal(footer[0].w, PAGE_W,
+      `${page}: the footer band spans the full page width (${footer[0].w} of ${PAGE_W})`);
+    assert.equal(footer[0].h, 48,
+      `${page}: the footer band is the 48 pt band "0 0 595.28 48 re f"`);
+
+    // Every horizontal rule the page draws, in stream order: the masthead's
+    // own divider first (drawHeader pushes it before any body content), then
+    // whatever rules the body adds, then the footer's. The right edge is
+    // computed from the suite's own MARGIN and CONTENT_W, rounded as the
+    // renderer rounds it, so a table drifted in either direction disagrees.
+    const rightEdge = String(Math.round((MARGIN + CONTENT_W) * 100) / 100);
+    const rules = [...body.matchAll(
+      new RegExp(`RG ${MARGIN} ([0-9.]+) m ${rightEdge} ([0-9.]+) l S`, 'g'))]
+      .map(m => ({ y1: Number(m[1]), y2: Number(m[2]) }));
+
+    // (c) One divider, horizontal, at y = 48 — exactly the band's own top
+    // edge pinned in (b). A rule anywhere else leaves the cells floating off
+    // the band or drawing a second line across it.
+    const footerRules = rules.filter(r => r.y1 === 48 && r.y2 === 48);
+    assert.equal(footerRules.length, 1,
+      `${page}: exactly one divider rule at y=48, found ${footerRules.length}`);
+
+    // (d) The first rule on the page is the masthead's divider, and the band
+    // painted above it must stop *above* that line: bandBottom is ruleY plus
+    // a gap, so the two touch nothing and can neither overlap nor swap.
+    const headRule = rules[0];
+    assert(headRule, `${page}: the masthead's closing rule is drawn`);
+    assert.equal(headRule.y1, headRule.y2,
+      `${page}: the masthead's closing rule is horizontal`);
+    assert(masthead[0].y > headRule.y1,
+      `${page}: the masthead's bottom edge (${masthead[0].y}) sits above its `
+      + `divider rule (${headRule.y1}) — band and rule never overlap or swap`);
+  });
+  return inspected;
+}
+
+// Every page of every fixture built above, cover and continuations alike.
+const BAND_TARGETS = [['report', pdf], ['stress', stress], ['bare', bare],
+  ['issue', issuePdf], ['han', hanPdf], ['full', fullPdf]];
+const bandPages = BAND_TARGETS.reduce((total, [label, doc]) =>
+  total + assertBandGeometry(doc, label), 0);
+assert(bandPages >= 6,
+  `band geometry inspected on at least six pages, found ${bandPages}`);
+
 console.log('ok — pdf structure: magic, xref offsets, pages, fonts, extraction, '
   + 'transliteration, escaping, header and footer furniture on every page, '
   + 'stress token, determinism, documented and announced fold for characters '
@@ -1181,4 +1501,5 @@ console.log('ok — pdf structure: magic, xref offsets, pages, fonts, extraction
   + 'category ask for, '
   + 'the capped section\'s three-line record with its re-run command, '
   + 'the endorsement boundary, '
+  + 'the full-bleed masthead and footer bands with their divider rules on every page, '
   + 'and no path extended before it was started');

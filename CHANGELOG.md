@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.7.0 – 2 October 2026
+
+The typeface and palette release. The report no longer depends on a base-14 font that the reader's own system has to supply: Roboto Condensed Regular and Bold travel with the package under `fonts/` and are embedded in every PDF, subset to the glyphs the report actually paints. The two renderers break their lines from the same measured advances, the text stays searchable and copyable, and a reader sees the intended typography without installing a font. The chrome — masthead, headings, rules, fills, borders, body ink and footer — moves to a navy palette read from a single shared module, `lib/palette.mjs`, which both renderers import, so a colour cannot drift between the formats again.
+
+### Added
+
+- **An embedded typeface, both faces.** `lib/ttf.mjs` reads a TrueType file, maps its `cmap`, takes advances from `hmtx`, subsets to the glyphs needed and recomputes each table checksum; `lib/winansi.mjs` holds the encoding tables the two formats share. The PDF declares each face as a simple TrueType font with `WinAnsiEncoding`, a 224-entry `/Widths` array measured from the subset, a `/FontDescriptor` carrying scaled metrics, and a `/ToUnicode` CMap so copy and search return real characters. `RobotoCondensed-Regular.ttf` and `RobotoCondensed-Bold.ttf` ship beside `LICENSE-APACHE.txt` and `NOTICE.txt`, are listed in `package.json` `files`, are required by the portability validator, and are named in `ignoredPaths` so the licence text is never read as report copy. The Italic face was dropped rather than carried, which keeps the package at two font files.
+- **Locks on the two bands.** The masthead and the footer band had no assertions at all. `tests/pdf-structural.mjs` now pins the masthead to `x=0` at the full page width with its top edge at the top of the page, the footer band to `0 0 595.28 48`, the divider rule to `y=48`, and the band to sit above its rule, on every page of six fixtures.
+
+### Changed
+
+- **The report chrome is navy.** Every page of both formats carries a full-bleed masthead band of `#24356B` with reversed white type and a `#1B2852` divider beneath it. Headings are `#1F3A7A`, light fills `#EEF1F8`, borders `#C5CEDF`, body text `#171b26`, and the footer sits on an `#EEF1F8` band under a `#1B2852` rule with its ink darkened to `#616161`. The thirteen category hues, the severities and the marker codes are unchanged, except that the warning hue now agrees across the formats at `#e07b00`.
+- **Presentation only.** The rules, the summary and lane counts, the exit codes, JSON and SARIF, the clean-run sentence, and the groupings of `grouped` and `full` are untouched. The header and footer wording is unchanged; only the band behind it and the ink on it are new.
+
+### Fixed
+
+- **The fold note no longer reports a replacement that did not occur.** An en dash, an em dash, curly single and double quotes and the ellipsis all encode correctly to WinAnsi, but the predicate that decided whether to warn treated them as unrepresentable, so ordinary punctuation produced a note saying characters had fallen back to `?` when none had. The note is now gated on a character that genuinely becomes `?`, and the suite asserts both directions: a sentence containing all seven code points produces no note, while a character that truly cannot be represented still produces one.
+- **Every written claim that the PDF used base-14 Helvetica is corrected.** The README, the claim register, the icon and legend notes and the workspace rules now describe the embedded face; the base-14 tables that remain are the ones used when reading other people's PDFs.
+
+### Unchanged
+
+- Zero npm dependencies, byte-identical output for identical input, the rule catalogue, the refusal behaviour, and the exit codes.
+
 ## 1.6.1 – 2 October 2026
 
 No runtime change. The security-audit test fixture that the skills.sh Socket scanner flagged as a dangerous sink has left the repository: it is generated at test runtime into a temporary directory by `tests/lib/make-security-fixture.mjs`, whose fragments mean no contiguous sink sequence exists anywhere in the tracked tree, while the suites still prove the security profile detects both sinks in the generated file (shape locked in both directions). `socket.yml` and `.socketignore` record the retirement.

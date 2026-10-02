@@ -6,7 +6,8 @@
     "build/**",
     "coverage/**",
     "tests/fixtures/**",
-    "fixtures/**"
+    "fixtures/**",
+    "LICENSE*"
   ],
   "allowlist": {
     "spellings": [],

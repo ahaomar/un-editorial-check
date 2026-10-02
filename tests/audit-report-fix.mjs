@@ -82,8 +82,10 @@ const scanIds = (file) => {
 };
 
 // Text extraction from the uncompressed Tj operands — the same latin1-read
-// technique the audit used, mirroring tests/pdf-structural.mjs.
-const LINE_RE = /\/(F[123]) ([0-9.]+) Tf ([0-9.-]+) ([0-9.-]+) Td \(((?:\\[\s\S]|[^\\()])*)\) Tj/g;
+// technique the audit used, mirroring tests/pdf-structural.mjs. Only F1 and F2
+// exist since Stage D dropped the italic resource, so an /F3 operand here would
+// be a renderer drawing a face no code path asks for.
+const LINE_RE = /\/(F[12]) ([0-9.]+) Tf ([0-9.-]+) ([0-9.-]+) Td \(((?:\\[\s\S]|[^\\()])*)\) Tj/g;
 
 // Page geometry, restated from the contract rather than imported from the
 // renderer the assertions check.
@@ -126,8 +128,30 @@ function extractLinesFrom(body) {
   return out;
 }
 
+// The page content streams, in file order, read by the dictionary's `/Length`
+// rather than by sweeping `stream…endstream`: Stage D embeds `/FontFile2` and
+// `/ToUnicode` as compressed binary, and a sweep would hand font-program bytes
+// to the extractor as drawn copy. A dictionary carrying `/Filter` is skipped —
+// no page content stream has one — which is also what keeps the binary out of
+// the control-byte and furniture checks below.
+// Mirrors tests/pdf-structural.mjs deliberately: both must read the same file
+// the same way, or a disagreement between them would be invisible.
 function streamBodies(pdf) {
-  return [...pdf.toString('latin1').matchAll(/stream\n([\s\S]*?)\nendstream/g)].map(m => m[1]);
+  const text = pdf.toString('latin1');
+  const out = [];
+  for (const m of text.matchAll(/<<(.*?)>>\nstream\n/gs)) {
+    // The match may open at an earlier object's `<<` and run on to the `>>`
+    // closing this stream's own dictionary (a page object precedes its content
+    // object and neither is a stream), so only the last dictionary in the span
+    // belongs to this stream.
+    const open = m[1].lastIndexOf('<<');
+    const dict = open === -1 ? m[1] : m[1].slice(open + 2);
+    if (dict.includes('/Filter')) continue;
+    const length = /\/Length (\d+)/.exec(dict);
+    assert(length, `a content stream without a /Length: ${JSON.stringify(dict.slice(0, 80))}`);
+    out.push(text.slice(m.index + m[0].length, m.index + m[0].length + Number(length[1])));
+  }
+  return out;
 }
 
 /** Every drawn line of the whole document, in stream (page) order. */

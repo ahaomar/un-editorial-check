@@ -161,7 +161,7 @@ function main() {
   findDuplicateSkills('.');
   for (const duplicate of duplicateSkills) fail(`committed duplicate skill definition may drift: ${duplicate}`);
 
-  const requiredFiles = ['bin/check.mjs', 'lib/cli.mjs', 'rules/catalogue.json', 'config/default.json', 'config/profiles/un-v1.json', 'config/profiles/security.json', 'agents/openai.yaml', 'README.md', 'USER-GUIDE.md', 'COMPATIBILITY.md', 'LICENSE'];
+  const requiredFiles = ['bin/check.mjs', 'lib/cli.mjs', 'rules/catalogue.json', 'config/default.json', 'config/profiles/un-v1.json', 'config/profiles/security.json', 'agents/openai.yaml', 'fonts/RobotoCondensed-Regular.ttf', 'fonts/RobotoCondensed-Bold.ttf', 'fonts/LICENSE-APACHE.txt', 'fonts/NOTICE.txt', 'README.md', 'USER-GUIDE.md', 'COMPATIBILITY.md', 'LICENSE'];
   for (const file of requiredFiles) if (!exists(file)) fail(`required repository file is missing: ${file}`);
   for (const file of requiredFiles) if (!packageJson.files?.some(entry => entry === file || file.startsWith(`${entry}/`))) fail(`package files allowlist omits: ${file}`);
 

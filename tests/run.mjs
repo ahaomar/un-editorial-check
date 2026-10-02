@@ -1182,6 +1182,16 @@ for (const format of ['json', 'sarif']) {
   for (const required of ['lib/cli.mjs', 'lib/units.mjs', 'config/default.json',
     'config/profiles/un-v1.json', 'rules/catalogue.json', 'bin/check.mjs', 'SKILL.md', 'VERSION',
     'USER-GUIDE.md',
+    // Phase 10 §10.4: the embedded faces have to *ship*, not merely be
+    // required on disk. A `files` entry dropped from package.json, or a
+    // leading slash added to one of these paths, leaves the report rendering
+    // against a font the installed package never had — and the runtime would
+    // only find out when a reader saw Helvetica instead. `fonts/` is one
+    // `files` string, so the four of them are named individually rather than
+    // asserted as a group: a wildcard would pass on any stray file landing in
+    // the directory.
+    'fonts/RobotoCondensed-Regular.ttf', 'fonts/RobotoCondensed-Bold.ttf',
+    'fonts/LICENSE-APACHE.txt', 'fonts/NOTICE.txt',
     'commands/un-diplomatic-agent.md']) {
     assert(files.includes(required), `npm pack must include ${required}`);
   }
