@@ -2,20 +2,14 @@
 # Every field except `version` is optional; `version` must be 2.
 version: 2
 
-# `tests/fixtures/audits/security.mjs` is a test fixture: never executed, not
-# shipped (`package.json` `files` omits `tests`), and present only so the
-# security audit profile has two sinks to find. Patterns in this key work like
-# .gitignore patterns, and Socket documents the defaults (.git, node_modules,
-# coverage and the rest) as always included alongside them.
-#
-# The fixture itself was also restructured on 1 Oct 2026 so that it contains no
-# executable sink at all — its two sinks are quoted data rather than statements.
-# That costs the profile nothing, because lib/audits.mjs matches raw text after
-# masking comments rather than syntax, so both ids still fire; the shape is
-# locked in tests/run.mjs in both directions. See `.socketignore` for the full
-# record, including the fact that neither this key nor that file has been shown
-# to be honoured: as of 1 Oct 2026 `auditedAt` still reads
-# 2026-09-30T12:10:48.409Z, and no command available to the repo owner forces a
-# re-audit.
-projectIgnorePaths:
-  - "tests/fixtures/audits/security.mjs"
+# History: `tests/fixtures/audits/security.mjs` (a never-executed test
+# fixture) was flagged by the skills.sh Socket scanner as a dangerous sink.
+# It was first restructured so its sinks were quoted data rather than
+# statements, and excluded here and in `.socketignore` — but the scanner
+# pattern-matched the string literals too, and neither exclusion format was
+# shown to be honoured. On 2 Oct 2026 the fixture left the repository tree
+# entirely: it is now generated at test runtime by
+# tests/lib/make-security-fixture.mjs into a temporary directory, and the
+# generator assembles its sink texts from fragments so no contiguous sink
+# sequence exists anywhere in the tracked tree (asserted by tests/run.mjs).
+# The exclusion is therefore retired: there is nothing left to exclude.

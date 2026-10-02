@@ -20,6 +20,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { CATALOGUE, run } from '../bin/check.mjs';
 import { parseJsonStrict } from '../lib/config.mjs';
+import { SECURITY_FIXTURE_SOURCE } from './lib/make-security-fixture.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cli = path.join(root, 'bin', 'check.mjs');
@@ -679,11 +680,15 @@ for (const name of ['page.html', 'script.js']) {
   assert.equal(result.code, 0);
 }
 {
-  const result = scan(fixture('audits', 'security.mjs'), '--profile', 'security');
+  // The security fixture is generated at runtime (tests/lib/make-security-
+  // fixture.mjs) so the repository tree carries no sink-shaped text for an
+  // external scanner to flag; the profile still sees the full sink texts.
+  const securityFixture = write('audit-security.mjs', SECURITY_FIXTURE_SOURCE);
+  const result = scan(securityFixture, '--profile', 'security');
   assert.deepEqual(ids(result), ['UE-SE001', 'UE-SE004']);
   assert(result.stdout.includes('"audit": "security"'), 'audit findings must be tagged');
   assert.equal(result.code, 0, 'audits never change the exit code');
-  assert.match(capture([fixture('audits', 'security.mjs'), '--profile', 'security']).stdout,
+  assert.match(capture([securityFixture, '--profile', 'security']).stdout,
     /OPTIONAL AUDIT — security/);
 }
 // The shape of that fixture is a lock, not a style preference. It holds its
@@ -695,8 +700,11 @@ for (const name of ['page.html', 'script.js']) {
 // asserted, because either one alone would let the fixture drift into being
 // either unscannable or live.
 {
+  // The shape lock now reads the generated file, and additionally proves the
+  // generator: no contiguous sink sequence may exist in the repository source
+  // either, which is the whole reason the fixture is assembled from fragments.
   const source = fs.readFileSync(
-    path.join(root, 'tests', 'fixtures', 'audits', 'security.mjs'), 'utf8');
+    path.join(tmp, 'audit-security.mjs'), 'utf8');
   // Strings first, then line comments: what remains is the code a parser sees.
   const live = source
     .replace(/'(?:\\[\s\S]|[^'\\])*'/g, "''")
@@ -709,6 +717,10 @@ for (const name of ['page.html', 'script.js']) {
     'the fixture still carries the HTML sink text the profile must find');
   assert.match(source, /\beval\s*\(/,
     'the fixture still carries the dynamic-execution sink text the profile must find');
+  const generator = fs.readFileSync(
+    path.join(root, 'tests', 'lib', 'make-security-fixture.mjs'), 'utf8');
+  assert.doesNotMatch(generator, /\.innerHTML\s*=|\beval\s*\(/,
+    'the generator itself must hold no contiguous sink sequence');
 }
 {
   const result = scan(fixture('audits', 'accessibility.html'), '--profile', 'accessibility');

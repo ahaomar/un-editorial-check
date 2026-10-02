@@ -36,6 +36,7 @@ import { run } from '../bin/check.mjs';
 import { ProfileError, loadCatalogue, loadBaselineProfile, applyProfile } from '../lib/config.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+import { SECURITY_FIXTURE_SOURCE } from './lib/make-security-fixture.mjs';
 const cli = path.join(root, 'bin', 'check.mjs');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'un-editorial-profiles-'));
 
@@ -357,9 +358,9 @@ section('6. name resolution: bundled names, alias, audits, paths, unknown', () =
   // An existing file inside the repository (the scanner refuses the skill root
   // without --self-scan), so the audit fixture is copied out like run.mjs
   // copies its fixtures.
-  const auditSource = fs.readFileSync(
-    path.join(root, 'tests', 'fixtures', 'audits', 'security.mjs'), 'utf8');
-  const auditFixture = write('audit-security.mjs', auditSource);
+  // The security fixture is generated at runtime; the repository tree holds
+  // no sink-shaped text (tests/lib/make-security-fixture.mjs).
+  const auditFixture = write('audit-security.mjs', SECURITY_FIXTURE_SOURCE);
   const audit = scan(auditFixture, '--profile', 'security');
   assert.ok(ids(audit).includes('UE-SE001'), `the security audit must run: ${audit.stdout}`);
   assert.equal(audit.code, 0, 'audits never change the exit code');
