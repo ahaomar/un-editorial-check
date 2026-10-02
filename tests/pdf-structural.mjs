@@ -597,7 +597,7 @@ validateStructure(bare, 'bare', 1);
 // the header draws from furniture.mjs (opts.input verbatim), every issue
 // carries all six provenance rows in order, a count is shown only above one,
 // the structured Occurrences list wraps inside the value column, the legend
-// lists exactly twelve categories with the category name as the text label
+// lists exactly thirteen categories with the category name as the text label
 // beside its marker, and the report never prints UNITED NATIONS.
 
 // The legend's four columns, read positionally from the slice between the
@@ -899,7 +899,7 @@ assert.equal(kvValueAll(issueLines, 'Content', longContentStart),
   squash(issue7.occurrences[6].content),
   'the wrapped excerpt rejoins to exactly the copy it was drawn from');
 
-// The legend: exactly twelve categories, each with its name as the text
+// The legend: exactly thirteen categories, each with its name as the text
 // label beside its marker, its code, its intent and its count.
 const issueLegend = legendFields(issueLines);
 assert.equal(issueTexts.filter(t => t === 'Categories').length, 1,
@@ -911,7 +911,7 @@ assert(issuesHeadingAt > issueLines.findIndex(l => l.text === 'Categories'
   'the legend is drawn before the findings section');
 assert.deepEqual(issueLegend.names, CATEGORY_LEGEND.map(e => e.category),
   'the legend lists exactly the twelve categories by name, in catalogue order');
-assert.equal(issueLegend.names.length, 12, 'twelve category names');
+assert.equal(issueLegend.names.length, 13, 'thirteen category names (twelve catalogue categories plus organisation)');
 assert.deepEqual(issueLegend.codes, CATEGORY_LEGEND.map(e => e.code),
   'each legend row prints its short code');
 assert(issueLegend.codes.every(code => /^[A-Z]{2}$/.test(code)),
@@ -924,7 +924,7 @@ const expectedLegendCounts = legendRows(
 ).map(r => r.count);
 assert.deepEqual(issueLegend.counts, expectedLegendCounts,
   'legend counts are the findings per category, zero rows included');
-assert.equal(issueLegend.counts.length, 12, 'twelve count cells');
+assert.equal(issueLegend.counts.length, 13, 'thirteen count cells');
 assert.equal(issueLegend.counts.reduce((a, b) => a + b, 0),
   issue7.occurrences.length + issue1.occurrences.length,
   'the legend rows sum to the findings behind them — never to issue.count');
@@ -944,7 +944,7 @@ const legendSwatches = [...issueS.matchAll(
 const issueSwatches = [...issueS.matchAll(
   new RegExp(`q ([0-9.]+ [0-9.]+ [0-9.]+) rg ${ISSUE_SWATCH_X} [0-9.]+ 26 11 re f Q`, 'g'))]
   .map(m => m[1]);
-assert.equal(legendSwatches.length, 12, 'twelve legend swatches, each beside its icon');
+assert.equal(legendSwatches.length, 13, 'thirteen legend swatches, each beside its icon');
 assert.equal(issueSwatches.length, 2, 'one marker swatch per issue, each beside its icon');
 assert.deepEqual(legendSwatches, CATEGORY_LEGEND.map(e => hexToRgb(e.colour)),
   'each legend swatch carries its category colour, computed independently');

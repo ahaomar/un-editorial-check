@@ -579,6 +579,30 @@ A profile adds organisation-specific data without forking the skill:
 
 Profile v1 requires `profileVersion`, `name` and `source`. Optional sections are `spelling` (a word-to-word map; each key must already exist in the baseline vocabulary so a typo cannot disable a rule), `spellingConflicts` (the `-ize`-`ise` conflict-family keys the profile accepts; each entry must exist in the baseline vocabulary, and a profile that states the list replaces the baseline family rather than extending it), `terminology.forbidden` (a list of pairs, or `{ "rule", "from", "to" }` objects to target one rule), `register` (an object with `forbidden` and `approved` lists), `diplomacy` (an object whose `claims` array adds or replaces contested-claim knowledge-base entries, merged by `id`), `severities`, `rules` and `pageUrl`. Unknown keys, unknown rule IDs, malformed mappings, empty or self-equivalent terminology pairs, incomplete claim entries and non-HTTP(S) page URLs fail closed with exit code `2`. Profiles contain data only and cannot execute JavaScript.
 
+### Custom rules in an organisation profile
+
+A profile may carry its own bounded pattern checks, data only:
+
+```json
+{
+  "profileVersion": 1,
+  "name": "House profile",
+  "source": "House drafting guide, checked 1 October 2026",
+  "customRules": [
+    {
+      "id": "ORG-001",
+      "pattern": "memorandum",
+      "message": "House style prefers note verbale for diplomatic correspondence.",
+      "severity": "warning",
+      "suggestion": "Consider note verbale.",
+      "source": "House drafting guide, section 4"
+    }
+  ]
+}
+```
+
+Each rule requires an `id` (uppercase prefix, dash, three to six characters; the `UE-` prefix is reserved and a collision with a catalogue rule is refused), a `pattern` (a regular expression of at most 500 characters that must compile), and a `message` (at most 300 characters); `severity` (default `warning`), `suggestion` and `source` are optional. Validation fails closed with exit code `2`. Findings carry the `organisation` category and their own source wording, run in the deterministic lane at the severity the rule declares — so a rule graded `error` fails the run, which is the organisation's deliberate choice — honour `ue:ignore` suppressions like any other rule, and never carry a replacement, so `--fix` cannot reach them by construction. Patterns are data, not code: a profile still cannot execute JavaScript.
+
 A profile's `severities` and `rules` are applied to the run; where a configuration file sets the same key, the configuration file wins.
 
 Whether the `-ize`-`ise` conflict family (`organization`, `organizations`, `organize`, `organized`, `organizes`, `organizing`) stands is a profile choice, not a rule verdict: with no `--profile` each occurrence is a warning that names the choice and is never rewritten; `--profile un-secretariat-document` (alias `un-v1`) and `--profile un-geneva-web` accept the `-ize` form silently; `--profile generic-british-english` enforces the `-ise` spelling as a fixable error. Words outside the family are ordinary fixable errors in every stance.

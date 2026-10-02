@@ -7,7 +7,7 @@
 //            and footer furniture are re-locked here for the real --report
 //            output, not just synthetic elements. Phase 9 adds the JSON-vs-PDF
 //            locks: the banner, the six provenance rows, the Occurrences list,
-//            the counts paragraph and the twelve-row legend are all compared
+//            the counts paragraph and the thirteen-row legend are all compared
 //            against the same run's `--format json` output.
 //   Item 1c — the grouped layout: two findings that render identically become
 //            one issue — one banner without a location, exactly one count
@@ -468,14 +468,14 @@ function assertFurniture(s, lines, pages, target) {
     + ` · ${notes} note${notes === 1 ? '' : 's'}`,
     'the counts paragraph is also restated from the findings themselves');
 
-  // The legend: exactly twelve categories by their text labels, with the
+  // The legend: exactly thirteen categories by their text labels, with the
   // counts taken from the findings of this run.
   const legend = legendFields(lines);
   assert.deepEqual(legend.names, CATEGORY_LEGEND.map(e => e.category),
-    'the legend lists exactly the twelve categories by name, in catalogue order');
+    'the legend lists exactly the thirteen categories by name, in catalogue order');
   assert.deepEqual(legend.codes, CATEGORY_LEGEND.map(e => e.code),
     'each legend row prints its short code');
-  assert.equal(legend.counts.length, 12, 'twelve count cells');
+  assert.equal(legend.counts.length, 13, 'thirteen count cells');
   assert.deepEqual(legend.counts, legendRows(json.findings).map(r => r.count),
     'the legend counts are the findings per category of this run');
 }
@@ -645,7 +645,7 @@ function assertFurniture(s, lines, pages, target) {
   // not from an issue element — the counts must still be the findings'.
   const legend = legendFields(lines);
   assert.deepEqual(legend.names, CATEGORY_LEGEND.map(e => e.category),
-    'full detail lists all twelve categories by name');
+    'full detail lists all thirteen categories by name');
   assert.deepEqual(legend.counts, legendRows(json.findings).map(r => r.count),
     'full-detail legend counts are parsed from the findings');
 
@@ -828,6 +828,6 @@ const applyFix = (name, body) => {
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log('ok — audit report/fix: PDF en/em dash bytes, determinism, header and '
   + 'three-cell footer furniture on every page, issue banner and six provenance rows '
-  + 'from JSON, count only above one, occurrence list, counts paragraph, twelve-row '
+  + 'from JSON, count only above one, occurrence list, counts paragraph, thirteen-row '
   + 'legend, endorsement boundary, grouped vs full detail, '
   + 'sentence-start capitalisation, terminology never rewritten, offset-mismatch skip');

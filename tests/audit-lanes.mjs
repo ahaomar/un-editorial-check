@@ -233,7 +233,7 @@ for (const [label, argv] of [
 // --- 4b: the category marker and legend on the terminal ----------------------
 //
 // PHASE-9-PLAN §5 and DoD 5: the text report draws a legend of exactly the
-// catalogue's twelve categories, and every finding line carries the short
+// catalogue's thirteen categories (organisation is the custom-rule category),
 // marker code together with the category's text label, so the code is never
 // the only thing naming the category. Both are read from the findings in hand
 // — nothing on the terminal is transcribed from a report of the same run — and
@@ -241,7 +241,7 @@ for (const [label, argv] of [
 // clean sentence and nothing else.
 
 {
-  const CATEGORIES = ['SP', 'GR', 'NU', 'TM', 'RG', 'AR', 'HS', 'DS', 'DP', 'PB', 'AC', 'SC'];
+  const CATEGORIES = ['SP', 'GR', 'NU', 'TM', 'RG', 'AR', 'HS', 'DS', 'DP', 'PB', 'AC', 'SC', 'OR'];
   const target = fixture('fix', 'protected.md');
 
   const truth = json(capture([target, '--format', 'json']));
@@ -251,7 +251,7 @@ for (const [label, argv] of [
   assert(legend, 'the terminal states the category legend');
   const shown = legend[1].split(' · ').map(entry => entry.split(' '));
   assert.deepEqual(shown.map(entry => entry[0]), CATEGORIES,
-    'the legend covers exactly the twelve categories, in catalogue order');
+    'the legend covers exactly the thirteen categories');
   assert.match(legend[1], /SP spelling \d+/, 'a legend row carries the code, the label and a count');
 
   const counted = shown.reduce((sum, entry) => sum + Number(entry[2]), 0);

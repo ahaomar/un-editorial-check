@@ -211,7 +211,7 @@ assert(allLanes.includes('<p class="empty">No findings under this lane in this s
   'an empty lane states that it was checked rather than being omitted (D10)');
 assert.match(allLanes, /<span class="sec-t">Summary<\/span><span class="sec-c">6 findings<\/span><\/h2>/,
   'Summary opens the report and states the finding count');
-assert.match(allLanes, /<span class="sec-t">Categories<\/span><span class="sec-d">twelve checked categories<\/span>/,
+assert.match(allLanes, /<span class="sec-t">Categories<\/span><span class="sec-d">thirteen checked categories<\/span>/,
   'the legend hangs from the Categories section');
 assert.match(allLanes,
   /<span class="sec-t">Quoted material<\/span><span class="sec-d">context, not a lane<\/span><span class="sec-c">1 finding<\/span>/,
@@ -287,8 +287,8 @@ const severityMarks = (allLanes.match(/class="icon sev"/g) || []).length;
 const categoryMarks = (allLanes.match(/class="icon cat"/g) || []).length;
 assert.equal(severityMarks, cards.length,
   'every row carries a severity mark, and a severity mark appears only in rows');
-assert.equal(categoryMarks, cards.length + 12,
-  'every row and every one of the twelve legend rows carries its category mark, and nothing else does');
+assert.equal(categoryMarks, cards.length + 13,
+  'every row and every one of the thirteen legend rows carries its category mark, and nothing else does');
 for (const [index, card] of cards.entries()) {
   assert(/<svg[^>]*class="icon sev"/.test(card),
     `row ${index + 1} opens with its severity mark`);
@@ -314,7 +314,7 @@ for (const [index, card] of cards.entries()) {
 // category name, so a legend row that borrowed a neighbour's icon would be
 // saying which category it is, and the rows would then disagree with it.
 const legendRowsHtml = [...allLanes.matchAll(/<tr><td><svg[\s\S]*?<\/tr>/g)].map((m) => m[0]);
-assert.equal(legendRowsHtml.length, 12, 'twelve legend rows, each led by a mark');
+assert.equal(legendRowsHtml.length, 13, 'thirteen legend rows, each led by a mark (twelve catalogue categories plus organisation)');
 for (const [index, row] of legendRowsHtml.entries()) {
   const category = /<\/td><td>([^<]*)<\/td>/.exec(row)[1];
   assert(category, `legend row ${index + 1} names its category`);
@@ -632,7 +632,7 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
     'the file is carried by the occurrence table in both layouts, not by a row only one of them had');
 }
 
-// --- 5c: the category legend, twelve rows, text labels always ----------------
+// --- 5c: the category legend, thirteen rows, text labels always ---------------
 
 {
   const legendRowsOf = html => {
@@ -646,7 +646,7 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
   const heads = [...table.matchAll(/<th[^>]*>([^<]*)<\/th>/g)].map(m => m[1]);
   assert.deepEqual(heads, ['Marker', 'Category', 'What it covers', 'Findings'],
     'the legend table names its columns for a screen reader');
-  assert.equal(rows.length, 12, 'the legend lists exactly twelve categories');
+  assert.equal(rows.length, 13, 'the legend lists exactly thirteen categories');
   const expected = legendRows(ALL_LANES);
   for (const [index, entry] of CATEGORY_LEGEND.entries()) {
     const row = rows[index];
@@ -668,7 +668,7 @@ assert.match(cardFields('UE-DP001').Action, /diplomatic review/i,
   // The legend appears in both detail modes.
   const full = render(makeInput({ findings: ALL_LANES, profiles: ['publishing'] }),
     { version: '1.1.0', detail: 'full' });
-  assert.equal(legendRowsOf(full).rows.length, 12, 'the twelve-row legend appears in full detail too');
+  assert.equal(legendRowsOf(full).rows.length, 13, 'the thirteen-row legend appears in full detail too');
 }
 
 // --- 5d: the document header and footer, in both detail modes ----------------
@@ -1109,7 +1109,7 @@ for (const output of rendered) {
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log('ok — html report: five lanes, grouped issues with occurrence tables, twelve-row '
+console.log('ok — html report: five lanes, grouped issues with occurrence tables, thirteen-row '
   + 'legend, two-row header and three-cell footer, six fields, drawn marks in every row and '
   + 'legend row, framing, clean sentence, escaping, '
   + 'determinism, dispatch, fail-closed extension, PDF unchanged, banned phrases');

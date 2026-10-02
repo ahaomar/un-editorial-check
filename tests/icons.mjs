@@ -44,7 +44,7 @@ assert.deepEqual(
   + 'carries info and the report presents it as NOTE',
 );
 
-// The legend is the consumer of record: it re-exports the same twelve entries
+// The legend is the consumer of record: it re-exports the same entries
 // with an icon attached (stage A), so a category that has artwork but no legend
 // row, or a legend row with no artwork, fails here rather than at draw time.
 for (const row of CATEGORY_LEGEND) {
@@ -69,7 +69,7 @@ for (const shapes of Object.values(CATEGORY_ICONS)) {
   }
 }
 
-console.log('ok — icon vocabulary: twelve categories, three severities, every shape painted');
+console.log('ok — icon vocabulary: thirteen categories, three severities, every shape painted');
 
 // ---------------------------------------------------------------------------
 // 2. Every path is real, finite geometry inside the icon box

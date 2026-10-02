@@ -163,6 +163,58 @@ assert.deepEqual(uncovered, [], `editorial rules with no positive fixture: ${unc
     'mapping an extension to script must be refused');
 }
 
+
+// --- organisation profile custom rules ---------------------------------------
+
+{
+  const src = write('custom-src.txt', 'The rapporteur submitted the memorandum yesterday.\n');
+  const profile = write('custom-profile.json', JSON.stringify({
+    profileVersion: 1,
+    name: 'House profile',
+    source: 'house style board, checked 1 October 2026',
+    customRules: [
+      { id: 'ORG-001', pattern: 'memorandum', message: 'House style prefers "note verbale" for diplomatic correspondence.', severity: 'warning' },
+      { id: 'ORG-002', pattern: 'submitted', message: 'Prefer the active form with a named office.', suggestion: 'Consider "lodged with the secretariat".', source: 'House drafting guide, section 4' },
+    ],
+  }));
+  const result = json(scan(src, '--profile', profile));
+  const custom = result.findings.filter(f => f.id && f.id.startsWith('ORG') || f.ruleId.startsWith('ORG-'));
+  const byRule = new Map(result.findings.map(f => [f.ruleId, f]));
+  assert(byRule.has('ORG-001'), `the custom rule must fire: ${JSON.stringify([...byRule.keys()])}`);
+  assert.equal(byRule.get('ORG-001').severity, 'warning');
+  assert(byRule.has('ORG-002'), 'the second custom rule must fire');
+  // Provenance: the finding names the organisation profile, never a UN rule file.
+  assert.match(byRule.get('ORG-002').source, /House drafting guide/);
+  // The JSON finding is annotated: the lane is deterministic (deterministic
+  // confidence, non-safety category) and the limitation names the lane's
+  // honest boundary.
+  assert.equal(byRule.get('ORG-002').lane, 'deterministic');
+  assert.match(byRule.get('ORG-002').limitation, /Deterministic match/);
+  // Suppression: a ue:ignore naming the custom id silences it.
+  const suppressed = json(scan(write('custom-sup.txt',
+    'The memorandum was circulated. <!-- ue:ignore ORG-001 -->\n'), '--profile', profile));
+  assert(!suppressed.findings.some(f => f.ruleId === 'ORG-001'),
+    'the custom rule must honour a span suppression');
+  // The fixer never rewrites a custom rule: no finding carries a replacement.
+  const fixRun = capture([src, '--fix', '--profile', profile]);
+  assert.equal(fixRun.code, 0, fixRun.stderr);
+  assert(!/proposed/.test(fixRun.stdout), 'a custom rule must never produce a fix diff');
+
+  // Fail-closed validation, each a refusal with exit 2.
+  const bad = (name, rule) => {
+    const p = write(name, JSON.stringify({
+      profileVersion: 1, name: 'x', source: 'x', customRules: [rule],
+    }));
+    return capture([src, '--profile', p]).code;
+  };
+  assert.equal(bad('c1.json', { id: 'UE-999', pattern: 'x', message: 'x' }), 2, 'UE- prefix refused');
+  assert.equal(bad('c2.json', { id: 'org-1', pattern: 'x', message: 'x' }), 2, 'lowercase id refused');
+  assert.equal(bad('c3.json', { id: 'UE-SP001', pattern: 'x', message: 'x' }), 2, 'catalogue id refused');
+  assert.equal(bad('c4.json', { id: 'ORG-010', pattern: '(unclosed', message: 'x' }), 2, 'non-compiling pattern refused');
+  assert.equal(bad('c5.json', { id: 'ORG-011', pattern: 'x' }), 2, 'missing message refused');
+  assert.equal(bad('c6.json', { id: 'ORG-012', pattern: 'x', message: 'x', severity: 'fatal' }), 2, 'bad severity refused');
+}
+
 // --- exit codes --------------------------------------------------------------
 
 assert.equal(scan(write('clean.txt', 'The organisation reports the figure.\n')).code, 0);
