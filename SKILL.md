@@ -22,6 +22,8 @@ Resolve `<skill-base>` from the directory containing this `SKILL.md`. All paths 
 4. Work through `AGENT REVIEW REQUIRED` findings: whether claims match evidence, figures are sourced and dated, citations are complete, comparisons use aligned years, and labels say what was counted.
 5. Report deterministic findings separately from editorial judgement, following the five lanes: deterministic violations, heuristic editorial review, harmful or discriminatory review, diplomatic sensitivity, audits. Each finding carries its rule source, profile, confidence, limitation and recommended human action; keep those fields intact in whatever you hand back.
 
+`--stdin` reads one document from standard input as plain-text prose under the synthetic name `<stdin>.txt`; `--fix` is refused beside it. `--claims <file>` verifies a committed claim register and `--claims-out <file>` writes one; the register rules (UE-CL002, UE-CL003) verify that bookkeeping happened, never that a claim is true. `--emit-corrected <file>` writes the recovered copy of exactly one PDF with the deterministic corrections applied, headed by a notice that it is recovered working text — take it from the report of the same run and read it against the source.
+
 Verify an installation with `node <skill-base>/bin/check.mjs --self-test` (bundled corpus, exact expected findings). `--init` writes a starter `.un-editorial.json` with a host and CI snippet, and `--baseline <path>` records an established corpus so only new findings fail.
 
 ## What is checked, and what is not

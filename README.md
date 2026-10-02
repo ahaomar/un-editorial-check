@@ -77,18 +77,20 @@ Quoted material is a context rather than a lane: a finding inside a quotation ke
 
 ## What it checks
 
-Editorial rules (32, always on):
+Editorial rules (42, always on):
 
 - British English spelling, mixed variants within a passage, and opt-in `-ize` review. The `-ize`/`-ise` conflict family is resolved by the selected profile: a profile-selection warning by default, silent under `un-secretariat-document`, an error only under a profile that prefers `-ise`.
-- United Nations terminology: the `maternal mortality rate` versus ratio distinction (review-only, gated to the printed per-100 000-live-births statistic), `percent` written as `per cent`, and the country name `US` written in full.
+- United Nations terminology: the `maternal mortality rate` versus ratio distinction (review-only, gated to the printed per-100 000-live-births statistic), `percent` written as `per cent`, the country name `US` written in full, and the current United Nations country designations (`Burma → Myanmar`, `Turkey → Türkiye`, `Swaziland → Eswatini` and their peers, matched case-sensitively so the lowercase bird never fires).
+- Inclusive phrasing: `handicapped → persons with disabilities`, `illegal immigrants → migrants in an irregular situation`, `Third World → developing countries`, and their peers — every pair backed by a recorded source.
 - Day–month–year dates, en-dash ranges, hedged and sourced figures, counts that say what was counted, comparisons that align reference years.
 - Neutral register and tone: promotional phrasing, rhetorical questions, exclamation marks, unsourced superlatives, direct insults and name-calling, threat or intimidation posture, and all-caps shouting.
 - Contested territorial and sovereignty claims stated as fact: flagged for attribution or neutral United Nations wording, symmetrically for every party to the claim, with a cited source per claim, and reported as requiring diplomatic review rather than as a finding of fact.
 - Hate speech: dehumanising frames, collective blame and calls for exclusion or violence against a group of people. Detection is composed over bounded pattern groups with a cited source each, is symmetric across groups, and exempts attributed statements; quoted material is reported separately as quoted context rather than silently skipped.
 - Discriminatory or demeaning language beyond those frames — protected characteristics including gender, sex, disability, nationality, ethnicity, religion, sexual orientation, gender identity and age — routed to high-severity human review and never auto-rewritten. Quoted or reported material is classified and reported separately instead of being skipped.
-- High-precision grammar: unintentionally doubled words, a space between a word and its following punctuation, and a missing space between two sentences — all deterministic, all repairable with `--fix`.
+- High-precision grammar: unintentionally doubled words (including a pair padded with extra spaces), a space between a word and its following punctuation, a missing space between two sentences, and — under the configuration-gated `spacingReview` — a run of doubled spaces. All deterministic, all repairable with `--fix`.
 - Heuristic editorial review: sentence fragments, malformed wording, duplicated unrelated insertions, incoherent headings and broken quotations — review severity only, with no claim of full grammar checking.
-- Supplied organisation vocabulary through data-only profiles.
+- Document review: an acronym of three to five letters never expanded anywhere in the file; a long paragraph that does not appear to be English (one honesty note — the rules are written for English copy); and, under the configuration-gated `consistencyReview`, mixed quotation styles and mixed thousands separators in one document.
+- Supplied organisation vocabulary through data-only profiles, including the profile's own bounded pattern checks (`customRules`), which run in the deterministic lane under the `organisation` category and are never rewritten by `--fix`.
 
 Audit rules (11, only with `--profile publishing`, `--profile accessibility` or `--profile security`): page title, meta description, canonical link, heading structure and card metadata; image and form-control labelling; four bounded source-code policies. Audits are reported in their own section and never change the exit code.
 
@@ -373,6 +375,9 @@ node bin/check.mjs content --report review.html
 node bin/check.mjs content --glossary house-glossary.json
 node bin/check.mjs content --watch
 node bin/check.mjs --url https://www.example.org/field-office-update
+cat statement.md | node bin/check.mjs --stdin
+node bin/check.mjs statement.md --claims-out claims.json
+node bin/check.mjs report.pdf --emit-corrected report-text.md
 ```
 
 `--format text` is the default. JSON and SARIF results go to standard output; tool and configuration failures go to standard error. Paths may be files or directories. Directory scans do not follow symbolic links, and hidden directories, `node_modules`, build output and fixtures are skipped unless you name them explicitly.
@@ -653,7 +658,7 @@ Important limitations:
 - Allowlists and suppressions are blunt: they silence a rule over a span without proving the copy is correct.
 - Promotional vocabulary and superlatives come from bounded lists in the profile and in `lib/rules.mjs`; an unlisted superlative is not reported. Extend them with a fixture, not by loosening the pattern.
 - Contested-claim detection (`UE-DP001`) is a bounded knowledge base: listed regions, literal status phrases and a cited source per entry. A paraphrase outside the listed patterns is not reported, and the rule never decides which party's claim is correct — it asks for attribution or neutral wording.
-- Grammar beyond the three high-precision patterns — agreement, tense, articles — requires human review, as do source accuracy, neutrality, claim support and year alignment.
+- Grammar beyond the high-precision patterns — agreement, tense, articles — requires human review, as do source accuracy, neutrality, claim support and year alignment. The document review heuristics (acronyms, language, consistency) state their own windows and exemptions in `rules/catalogue.json` and are bounded by them.
 - A skill can direct an agent to read files or run tools. Audit skills and scripts as software, grant only necessary permissions and do not install a skill into a sensitive environment without review.
 
 ## Upgrade and maintenance

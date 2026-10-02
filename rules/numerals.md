@@ -12,5 +12,6 @@ These three are reported as warnings in the `AGENT REVIEW REQUIRED` section. The
 - **UE-RE003** — A prose figure needs a hedge such as “approximately”, “at least” or “an estimated”, and should identify source and date.
 - **UE-DI001** — A count must say what was counted and whether it is reported, estimated or total. The qualifying word must appear in the count's own sentence; a qualifier in the next sentence does not cover it. The counted-noun list is bounded — countries, refugees, children, cases, deaths, households and their peers — and a count of an unlisted noun is not reported.
 - **UE-CL001** — A comparison may be aligning different reference periods. Check that the compared values share a reference year, and say “reported on or before” when values are carried forward.
+- **UE-CL002**, **UE-CL003** *(with `--claims`)* — The claim register's own completeness rules: an entry with no recorded source or reference date, and a detected claim that is not recorded in the register. The check verifies that the bookkeeping happened, never that the claim is true (see the README's claim-evidence register section).
 
 The checker does not calculate ratios, validate years against source rows, or prove that prose matches rendered data. Ordinal ranks are not counts; verify off-by-one boundaries yourself.
