@@ -1,5 +1,7 @@
 # un-editorial-check
 
+![un-editorial-check banner: checks your copy the way a United Nations editor would, covering language and tone, terminology and numerals, diplomacy and inclusiveness, and claims and register](docs/assets/un-editorial-check-banner.jpeg)
+
 [![skills.sh](https://skills.sh/b/ahaomar/un-editorial-check)](https://skills.sh/ahaomar/un-editorial-check/un-editorial-check)
 
 A portable, zero-dependency Node.js CLI and Agent Skill that reads user-visible copy the way a United Nations editor would — language, wording, tone, spelling, terminology, dates, numbers, claims and register — and reports what fails.
@@ -682,6 +684,10 @@ npx skills list
 ```
 
 For a manual installation, replace the complete skill directory, retain the same directory identity and rerun the bundled checker. Re-run project CI after every upgrade. Do not assume that an update changed only instructions: review scripts, profiles, permissions and release notes.
+
+## Demo
+
+![Screen recording of the un-editorial-check skill installed into an agent terminal with npx skills add](docs/assets/demo-video.gif)
 
 ## Development and tests
 
