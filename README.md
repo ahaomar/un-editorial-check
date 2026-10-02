@@ -475,6 +475,25 @@ The first run writes a snapshot of every finding to the named file and exits `0`
 
 `action.yml` runs the CLI on `node20` through `action/main.mjs`, taking `path`, `config` and `baseline` inputs and installing nothing at run time. In this repository, `templates/pre-commit` is a shell script that passes staged files of an extractable type to the checker, and `templates/agent-commands/` holds paste-ready command prompts for Claude Code, Codex, OpenCode and Cursor, each carrying the approval law, the scan, the baseline ratchet and the rule that the copy is never called clean unless the exit code is `0`.
 
+## The claim-evidence register
+
+The checker never judges whether a claim is true. What it can do is turn "review this figure" from a one-off prompt into a tracked checklist:
+
+```sh
+# 1. Write the register: every figure, count, comparison and ranking the scan
+#    detects becomes an entry with empty source and reference-date fields.
+npx -y un-editorial-check statement.md --claims-out claims.json
+
+# 2. The author fills in each entry: source, asOf, verified.
+
+# 3. Later runs verify the bookkeeping.
+npx -y un-editorial-check statement.md --claims claims.json
+```
+
+`--claims-out` is an extraction aid: it writes the register and exits `0` whatever the copy looks like, and refuses to replace an existing register without `--claims-overwrite`. `--claims` verifies a committed register against a fresh scan: an entry with no recorded source is a finding (`UE-CL002`), an entry with a source but no reference date is a finding, a detected claim that is not in the register is a finding (`UE-CL003`), and an entry whose claim text no longer appears in the copy is reported as stale on the status line without failing anything. The findings are warnings by default and escalatable through `config.severities`; none is ever rewritten by `--fix`. The register is validated fail-closed — a wrong version, an unknown field or a corrupt file is a refusal with exit `2`.
+
+The check verifies that the bookkeeping happened. It never verifies the claim.
+
 ## Your own house terminology, and the watch loop
 
 [docs/GLOSSARY-AND-WATCH.md](docs/GLOSSARY-AND-WATCH.md) has the full reference. Both features are opt-in, and a run without either flag behaves exactly as before.

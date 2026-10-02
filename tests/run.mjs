@@ -90,7 +90,7 @@ for (const name of positives) {
 // exist — its contract lives in tests/audit-terminology.mjs instead.
 // UE-GR004 is configuration-gated (spacingReview) and covered in the block
 // below, which scans with the review switched on.
-const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003', 'UE-GL001', 'UE-GL002', 'UE-GR004']);
+const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003', 'UE-GL001', 'UE-GL002', 'UE-GR004', 'UE-CL002', 'UE-CL003']);
 const covered = new Set([...Object.values(manifest).flat(), ...OPT_IN_COVERAGE]);
 const uncovered = CATALOGUE.rules
   .filter(rule => rule.profile === null)
@@ -213,6 +213,60 @@ assert.deepEqual(uncovered, [], `editorial rules with no positive fixture: ${unc
   assert.equal(bad('c4.json', { id: 'ORG-010', pattern: '(unclosed', message: 'x' }), 2, 'non-compiling pattern refused');
   assert.equal(bad('c5.json', { id: 'ORG-011', pattern: 'x' }), 2, 'missing message refused');
   assert.equal(bad('c6.json', { id: 'ORG-012', pattern: 'x', message: 'x', severity: 'fatal' }), 2, 'bad severity refused');
+}
+
+
+// --- the claim-evidence register ---------------------------------------------
+
+{
+  const src = write('claims-src.txt',
+    'The programme reached 12,500 households. Coverage rose from 40 per cent in 2022 to 55 per cent in 2024, up from the baseline.\n');
+  // The register path must not exist beforehand: --claims-out refuses to
+  // replace one without --claims-overwrite, and the extraction below proves
+  // the fresh-write path.
+  const out = path.join(tmp, 'claims-register.json');
+
+  // Extraction: writes the register and exits 0 whatever the copy looks like.
+  const extraction = capture([src, '--claims-out', out]);
+  assert.equal(extraction.code, 0, extraction.stderr);
+  assert.match(extraction.stdout, /Claim register written/, extraction.stdout);
+  const register = JSON.parse(fs.readFileSync(out, 'utf8'));
+  assert.equal(register.registerVersion, 1);
+  assert(register.entries.length >= 3, `claim-shaped findings must be recorded: ${register.entries.length}`);
+  for (const entry of register.entries) {
+    assert.equal(entry.source, null, 'a fresh register entry carries no source yet');
+  }
+  // An existing register is not replaced without --claims-overwrite.
+  assert.equal(capture([src, '--claims-out', out]).code, 2, 'overwriting requires the flag');
+
+  // An unfilled register is incomplete: every entry without a source is a finding.
+  const verify1 = capture([src, '--claims', out, '--format', 'json']);
+  assert.equal(verify1.code, 0, verify1.stderr);
+  const v1 = json(verify1);
+  assert(v1.findings.some(f => f.ruleId === 'UE-CL002'),
+    'an unfilled register must raise UE-CL002');
+  assert(v1.findings.some(f => f.ruleId === 'UE-CL003') === false,
+    'a register freshly written from this scan has no unregistered claims');
+
+  // Filled entries with a source and date go quiet; a detection the register
+  // does not list raises UE-CL003.
+  for (const entry of register.entries) { entry.source = 'Annual report'; entry.asOf = '2025-12-31'; }
+  const filled = write('claims-filled.json', JSON.stringify(register, null, 2));
+  const verify2 = json(capture([src, '--claims', filled, '--format', 'json']));
+  assert(!verify2.findings.some(f => f.ruleId === 'UE-CL002'),
+    'a filled register must not raise UE-CL002');
+  const tampered = write('claims-tampered.json', JSON.stringify({ ...register, entries: [] }));
+  const verify3 = json(capture([src, '--claims', tampered, '--format', 'json']));
+  assert(verify3.findings.some(f => f.ruleId === 'UE-CL003'),
+    'a scan with claims but an empty register must raise UE-CL003');
+
+  // Fail-closed: a wrong version and a corrupt file refuse with exit 2.
+  const badVersion = write('claims-bad.json', JSON.stringify({ registerVersion: 9, entries: [] }));
+  assert.equal(capture([src, '--claims', badVersion]).code, 2, 'a future register version must refuse');
+  assert.equal(capture([src, '--claims', write('claims-not.json', 'not json')]).code, 2,
+    'a corrupt register must refuse');
+  assert.equal(capture([src, '--claims', out, '--claims-out', out]).code, 2,
+    'the two register flags are mutually exclusive');
 }
 
 // --- exit codes --------------------------------------------------------------
