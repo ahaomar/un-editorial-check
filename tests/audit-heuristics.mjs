@@ -90,7 +90,7 @@ const hrOnly = (file) => scan(file).filter(f => f.ruleId.startsWith('UE-HR'));
 const hrIds = (file) => hrOnly(file).map(f => f.ruleId);
 const fixture = (name) => path.join(root, 'tests', 'fixtures', 'positive', name);
 
-const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005', 'UE-HR006', 'UE-HR007'];
+const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005', 'UE-HR006', 'UE-HR007', 'UE-HR008', 'UE-HR009'];
 
 // --- 1. catalogue and registry contract -------------------------------------
 
@@ -113,19 +113,29 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005', 'UE-
       'category', 'confidence', 'extensibility', 'guardNotes', 'id',
       'profile', 'scope', 'severity', 'status', 'summary',
     ], `${id} must carry exactly the ten catalogue keys`);
-    // UE-HR007 is an honesty note and sits at info; the family stays review-only.
+    // HR007 and the gated consistency notes sit at info; the family stays review-only.
     assert.ok(['warning', 'info'].includes(entry.severity), `${id} must be review-only: warning or info`);
     assert.notEqual(entry.severity, 'error', `${id} must never be error severity`);
     assert.equal(entry.category, 'agent-review', `${id} category`);
-    assert.equal(entry.confidence, 'heuristic', `${id} confidence`);
+    // The gated consistency notes prove their own inconsistency match, so
+    // they register as deterministic; the rest of the family is heuristic.
+    const expectedConfidence = ['UE-HR008', 'UE-HR009'].includes(id)
+      ? 'deterministic' : 'heuristic';
+    assert.equal(entry.confidence, expectedConfidence, `${id} confidence`);
     assert.equal(entry.scope, 'user-visible-copy', `${id} scope`);
-    assert.equal(entry.status, 'deterministic', `${id} status`);
+    // The consistency notes are configuration-gated like UE-GR004.
+    const expectedStatus = ['UE-HR008', 'UE-HR009'].includes(id)
+      ? 'configuration-gated' : 'deterministic';
+    assert.equal(entry.status, expectedStatus, `${id} status`);
     assert.equal(entry.profile, null, `${id} must be profile-independent`);
-    // HR006 additionally honours the acronym allowlist; the rest of the
-    // family extends only through severities and rule switches.
+    // HR006 honours the acronym allowlist and the gated consistency notes
+    // their own review switch; the rest of the family extends only through
+    // severities and rule switches.
     const expectedExt = id === 'UE-HR006'
       ? 'config.allowlist.acronyms, config.severities, config.rules'
-      : 'config.severities, config.rules';
+      : ['UE-HR008', 'UE-HR009'].includes(id)
+        ? 'config.consistencyReview, config.severities, config.rules'
+        : 'config.severities, config.rules';
     assert.equal(entry.extensibility, expectedExt, `${id} extensibility`);
     assert.equal(typeof entry.summary, 'string');
     assert.ok(entry.summary.length > 15, `${id} summary must describe the rule`);
@@ -144,10 +154,12 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005', 'UE-
     assert(meta, `${id} must be registered in EDITORIAL_RULES`);
     // HR007 is an honesty note at info severity; every other family member
     // is a review warning.
-    const expectedSeverity = id === 'UE-HR007' ? 'info' : 'warning';
+    const expectedSeverity = ['UE-HR007', 'UE-HR008', 'UE-HR009'].includes(id) ? 'info' : 'warning';
     assert.equal(meta.severity, expectedSeverity, `${id} registry severity`);
     assert.equal(meta.category, 'agent-review', `${id} registry category`);
-    assert.equal(meta.confidence, 'heuristic', `${id} registry confidence`);
+    const expectedMetaConfidence = ['UE-HR008', 'UE-HR009'].includes(id)
+      ? 'deterministic' : 'heuristic';
+    assert.equal(meta.confidence, expectedMetaConfidence, `${id} registry confidence`);
     assert.equal(meta.scope, undefined, `${id} registry entry stays minimal like its neighbours`);
   }
 }
@@ -1095,10 +1107,10 @@ const HR_IDS = ['UE-HR001', 'UE-HR002', 'UE-HR003', 'UE-HR004', 'UE-HR005', 'UE-
     'The field office works with UNDP on the recovery programme.',
   ].join('\n'));
   const comboFindings = scan(combo);
-  // HR006 fires on its own line; HR007 needs non-English copy and is proven in
-  // its own fixture below, so the combo carries the seven minus the language
-  // note, in source order.
-  const comboExpected = HR_IDS.filter(id => id !== 'UE-HR007');
+  // HR006 fires on its own line; HR007 needs non-English copy and is proven
+  // in its own fixture below; HR008/HR009 are configuration-gated and proven
+  // in their own block. The combo carries the ungated family, in source order.
+  const comboExpected = HR_IDS.filter(id => !['UE-HR007', 'UE-HR008', 'UE-HR009'].includes(id));
   assert.deepEqual(comboFindings.map(f => f.ruleId), comboExpected,
     `the heuristics fire together, review-only, in source order: got ${JSON.stringify(comboFindings.map(f => f.ruleId))}`);
   assert.ok(comboFindings.every(f => f.severity === 'warning'),

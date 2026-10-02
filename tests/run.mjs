@@ -90,7 +90,7 @@ for (const name of positives) {
 // exist — its contract lives in tests/audit-terminology.mjs instead.
 // UE-GR004 is configuration-gated (spacingReview) and covered in the block
 // below, which scans with the review switched on.
-const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003', 'UE-GL001', 'UE-GL002', 'UE-GR004', 'UE-CL002', 'UE-CL003']);
+const OPT_IN_COVERAGE = new Set(['UE-SP003', 'UE-TE003', 'UE-GL001', 'UE-GL002', 'UE-GR004', 'UE-CL002', 'UE-CL003', 'UE-HR008', 'UE-HR009']);
 const covered = new Set([...Object.values(manifest).flat(), ...OPT_IN_COVERAGE]);
 const uncovered = CATALOGUE.rules
   .filter(rule => rule.profile === null)
@@ -267,6 +267,43 @@ assert.deepEqual(uncovered, [], `editorial rules with no positive fixture: ${unc
     'a corrupt register must refuse');
   assert.equal(capture([src, '--claims', out, '--claims-out', out]).code, 2,
     'the two register flags are mutually exclusive');
+}
+
+
+// --- the configuration-gated consistency review (UE-HR008, UE-HR009) ---------
+
+{
+  const mixedQuotes = write('consistency-quotes.md',
+    'The report states a "clear" position and a “measured” one in the same document.\n');
+  const mixedNumbers = write('consistency-numbers.txt',
+    'The office reported 1,250 households in the north and 3 500 people in the south.\n');
+  const on = write('consistency.json', JSON.stringify({ consistencyReview: true }));
+
+  // Off by default: a mixed document is the house style's own business. The
+  // assertion is scoped to the consistency rules — the mixed-numbers copy
+  // deliberately trips the sourcing heuristics too.
+  assert(!json(scan(mixedQuotes)).findings.some(f => f.ruleId === 'UE-HR008'),
+    'HR008 must be silent while consistencyReview is off');
+  assert(!json(scan(mixedNumbers)).findings.some(f => f.ruleId === 'UE-HR009'),
+    'HR009 must be silent while consistencyReview is off');
+
+  const quotes = json(scan(mixedQuotes, '--config', on));
+  const quoteFinding = quotes.findings.find(f => f.ruleId === 'UE-HR008');
+  assert(quoteFinding, 'mixed quotation styles must be reported when the review runs');
+  assert.equal(quoteFinding.severity, 'info', 'the consistency note names the inconsistency, never a winner');
+
+  const numbers = json(scan(mixedNumbers, '--config', on));
+  const numberFinding = numbers.findings.find(f => f.ruleId === 'UE-HR009');
+  assert(numberFinding, 'mixed thousands separators must be reported when the review runs');
+  assert.match(numberFinding.message, /1,250/, 'the message quotes the comma-grouped example');
+  assert.match(numberFinding.message, /3 500/, 'the message quotes the space-grouped example');
+
+  // A consistent document stays silent under the review.
+  const consistent = write('consistency-clean.txt',
+    'The office reported 1,250 households in the north and 3,500 people in the south.\n');
+  const clean = json(scan(consistent, '--config', on));
+  assert(!clean.findings.some(f => f.ruleId === 'UE-HR009'),
+    'a consistent document must stay silent');
 }
 
 // --- exit codes --------------------------------------------------------------

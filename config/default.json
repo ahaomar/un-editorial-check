@@ -23,5 +23,6 @@
     "statusMessage",
     "tooltipContent"
   ],
-  "extraExtensions": {}
+  "extraExtensions": {},
+  "consistencyReview": false
 }
