@@ -237,6 +237,27 @@ assert.ok(svgIcon(CATEGORY_ICONS.spelling).includes('stroke-width="1.5"'),
 assert.ok(!svgIcon(CATEGORY_ICONS.spelling).includes('undefined'),
   'no shape may write an unset field into the markup');
 
+// Attribute context is quote-safe: every caller-supplied string is escaped for
+// the double-quoted attribute it lands in, and every number is validated before
+// interpolation — a bad value refuses loudly instead of writing markup garbage.
+{
+  const quoted = svgIcon(CATEGORY_ICONS.spelling, { className: 'a"b' });
+  assert.ok(quoted.includes('class="a&quot;b"'),
+    'a double quote in the class is escaped, not interpolated raw');
+  assert.ok(!quoted.includes('class="a"b"'),
+    'the class attribute must not close early');
+  assert.ok(svgIcon([{ d: 'M1"2', paint: 'stroke' }]).includes('d="M1&quot;2"'),
+    'a quote smuggled into path data cannot break out of the d attribute');
+  assert.throws(() => svgIcon([{ d: 'M0 0', paint: 'stroke', w: '1.5' }], {}),
+    /stroke width must be a positive finite number/,
+    'a non-numeric stroke width refuses loudly in SVG too');
+  assert.throws(() => pdfIcon([{ d: 'M0 0', paint: 'stroke', w: -2 }]),
+    /stroke width must be a positive finite number/,
+    'a negative stroke width refuses loudly in PDF too');
+  assert.throws(() => svgIcon(CATEGORY_ICONS.spelling, { size: '12' }),
+    /bad size/, 'a non-numeric size refuses loudly');
+}
+
 console.log('ok — inline SVG: shapes only, ASCII only, deterministic, hidden unless labelled');
 
 // ---------------------------------------------------------------------------
