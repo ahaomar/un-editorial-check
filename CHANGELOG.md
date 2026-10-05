@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased – 5 October 2026
+
+The last contiguous sink sequences left the tracked tree. `tests/release-regressions.mjs` still proves the security profile detects `.innerHTML`, `eval()` and `new Function()` sinks, but it now assembles those inputs from fragments at test runtime — the same treatment 1.6.1 gave the flagged fixture — because the skills.sh Socket scanner pattern-matches string literals too. `.socketignore` is gone: it is a format Socket never documented, and there has been nothing to exclude since 1.6.1. `socket.yml` remains as a standard, exclusion-free repository configuration; nothing is hidden from the scanner.
+
 ## 1.7.0 – 2 October 2026
 
 The typeface and palette release. The report no longer depends on a base-14 font that the reader's own system has to supply: Roboto Condensed Regular and Bold travel with the package under `fonts/` and are embedded in every PDF, subset to the glyphs the report actually paints. The two renderers break their lines from the same measured advances, the text stays searchable and copyable, and a reader sees the intended typography without installing a font. The chrome — masthead, headings, rules, fills, borders, body ink and footer — moves to a navy palette read from a single shared module, `lib/palette.mjs`, which both renderers import, so a colour cannot drift between the formats again.
