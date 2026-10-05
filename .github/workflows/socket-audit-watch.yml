@@ -1,0 +1,51 @@
+# Watches the skills.sh Socket audit for this skill.
+#
+# The Socket scanner is change-triggered and slow to come back: on 5 Oct 2026
+# it analysed commit ea6c6d0 (the pre-1.7.1 tree) and kept reporting two LOW
+# findings on lib/output.mjs and lib/icons.mjs that 1.7.1 had already fixed.
+# This workflow polls the public audit page every four hours — no secrets, no
+# dependencies on a local machine — and states plainly whether the scan is
+# stale, green, or reporting alerts again. It fails only on a fresh scan that
+# carries alerts, so the Actions list itself answers "is it green yet?".
+name: socket-audit-watch
+
+on:
+  schedule:
+    - cron: '7 */4 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the skills.sh Socket audit
+        run: |
+          set -eu
+          url='https://skills.sh/ahaomar/un-editorial-check/un-editorial-check/security/socket'
+          page=$(curl -fsSL "$url")
+          # The audit pins the tree it analysed through the pkg:socket URL; the
+          # first 40-hex hash on the page is that commit.
+          analyzed=$(printf '%s' "$page" | grep -oE '[0-9a-f]{40}' | head -1 || true)
+          if [ -z "$analyzed" ]; then
+            echo "the page shows no analysed commit — its shape may have changed; inspect $url"
+            exit 1
+          fi
+          echo "audited commit: $analyzed"
+          # The last tree the scanner saw before the 1.7.1 hardening landed.
+          stale=ea6c6d0b9952bd8bcda8cb53645fc0401ea11e38
+          if [ "$analyzed" = "$stale" ]; then
+            echo "STALE — the scan still corresponds to the pre-1.7.1 tree; the crawler has not come back yet."
+            echo "If this persists for more than two days, report the stale index via https://security.vercel.com"
+            exit 0
+          fi
+          alerts=$(printf '%s' "$page" | grep -oiE '[0-9]+[[:space:]]+alerts?' | head -1 || true)
+          count=$(printf '%s' "${alerts:-0 alerts}" | grep -oE '[0-9]+')
+          if [ "$count" -eq 0 ]; then
+            echo "GREEN — the audit re-ran on a newer tree and reports no alerts."
+            exit 0
+          fi
+          echo "ALERTS — the fresh scan reports ${alerts}. Findings, if the page names them:"
+          printf '%s\n' "$page" | grep -iE 'LOW|MEDIUM|HIGH|\.mjs|\.json' | head -20
+          exit 1
