@@ -2,14 +2,8 @@
 # Every field except `version` is optional; `version` must be 2.
 version: 2
 
-# History: `tests/fixtures/audits/security.mjs` (a never-executed test
-# fixture) was flagged by the skills.sh Socket scanner as a dangerous sink.
-# It was first restructured so its sinks were quoted data rather than
-# statements, and excluded here and in `.socketignore` — but the scanner
-# pattern-matched the string literals too, and neither exclusion format was
-# shown to be honoured. On 2 Oct 2026 the fixture left the repository tree
-# entirely: it is now generated at test runtime by
-# tests/lib/make-security-fixture.mjs into a temporary directory, and the
-# generator assembles its sink texts from fragments so no contiguous sink
-# sequence exists anywhere in the tracked tree (asserted by tests/run.mjs).
-# The exclusion is therefore retired: there is nothing left to exclude.
+# Standard, exclusion-free: nothing in this repository is hidden from the
+# Socket scanner. The test fixture it once flagged as a dangerous sink
+# (reported 30 Sep 2026) left the tree in 1.6.1, and the security suites now
+# assemble their sink texts from fragments at test runtime, so no contiguous
+# sink sequence exists anywhere in the tracked tree.
