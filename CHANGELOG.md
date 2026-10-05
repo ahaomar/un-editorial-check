@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased – 5 October 2026
+## 1.7.1 – 5 October 2026
 
-The last contiguous sink sequences left the tracked tree. `tests/release-regressions.mjs` still proves the security profile detects `.innerHTML`, `eval()` and `new Function()` sinks, but it now assembles those inputs from fragments at test runtime — the same treatment 1.6.1 gave the flagged fixture — because the skills.sh Socket scanner pattern-matches string literals too. `.socketignore` is gone: it is a format Socket never documented, and there has been nothing to exclude since 1.6.1. `socket.yml` remains as a standard, exclusion-free repository configuration; nothing is hidden from the scanner.
+No rule, exit-code or report-shape change. The two LOW findings the skills.sh Socket scanner raised against `lib/output.mjs` and `lib/icons.mjs` are addressed by real hardening rather than argument. The terminal renderer now runs its control-character guard over `ruleId` and `confidence` too — custom rules make the id caller-controlled, so a hostile id can no more repaint the terminal than a hostile message could — and the SARIF renderer builds its `pdfPage` property by assignment instead of a conditional spread, which is byte-identical output but removes the construct the scanner's parser misread as invalid syntax. The icon renderers escape all five XML-significant characters (the double quote included) in every attribute they interpolate, and validate stroke widths and icon sizes before use, refusing loudly on a non-numeric value the way the path parser already refused an unknown command. Every one of these behaviours is locked by a new assertion in `tests/icons.mjs` and `tests/release-regressions.mjs`.
+
+### Repository
+
+- The last contiguous sink sequences left the tracked tree: `tests/release-regressions.mjs` assembles its security-rule inputs from fragments at test runtime, the same treatment 1.6.1 gave the flagged fixture. `.socketignore` is gone (a format Socket never documented; nothing to exclude since 1.6.1) and `socket.yml` stands as a standard, exclusion-free configuration — nothing is hidden from the scanner.
 
 ## 1.7.0 – 2 October 2026
 

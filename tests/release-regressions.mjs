@@ -10,6 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { CATALOGUE, VERSION, run as runInProcess } from '../bin/check.mjs';
 import { EDITORIAL_RULES } from '../lib/rules.mjs';
+import { renderText } from '../lib/output.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cli = path.join(root, 'bin', 'check.mjs');
@@ -209,6 +210,20 @@ for (const [input, expected] of PROTECTED_FIXES) {
     const result = run(unique('mjs', code), '--format', 'json', '--profile', 'security');
     assert(ids(result).includes('UE-SE004'), code);
   }
+}
+// Terminal hygiene: the text renderer escapes control characters in every
+// caller-controlled field it interpolates. Custom rules (organisation
+// profiles) make ruleId caller-controlled, so a hostile id must reach the
+// terminal escaped, never as a raw escape sequence that repaints it.
+{
+  const finding = {
+    file: 'a.md', line: 1, column: 1, severity: 'warning',
+    category: 'grammar', ruleId: 'UE-evil\u001B[31m', confidence: 'deterministic',
+    message: 'hostile id', suggestion: 'use plain ids',
+  };
+  const out = renderText({ findings: [finding], files: 1, version: VERSION });
+  assert.ok(!out.includes('\u001B'), 'a raw escape sequence must never reach the terminal');
+  assert.ok(out.includes('UE-evil\\u001b[31m'), 'the rule id is rendered with its control character escaped');
 }
 {
   const shouldFlag = [
