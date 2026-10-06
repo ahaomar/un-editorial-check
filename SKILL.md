@@ -1,11 +1,11 @@
 ---
 name: un-editorial-check
-description: Reads user-visible copy the way a United Nations editor would — language, wording, tone, grammar, hate speech, spelling, terminology, dates, numbers, claims and register — and reports what fails. Use when reviewing web pages, dashboards, blog posts, page titles, meta descriptions, copy baked into JavaScript by a coding agent, or the text of a PDF document. Checks HTML, Markdown, plain text, rendered JavaScript string literals, PDF text and Word or OpenDocument document text only; it is not a code-quality, accessibility, security or SEO linter (those run only as explicit opt-in audits) and it does not judge whether a claim is true.
+description: Reads user-visible copy the way a United Nations editor would — language, wording, tone, grammar, hate speech, spelling, terminology, dates, numbers, claims and register — and reports what fails. Use when reviewing web pages, dashboards, blog posts, page titles, meta descriptions, press releases, report or publication copy, copy baked into JavaScript by a coding agent, or the text of a PDF, Word or OpenDocument document. Checks HTML, Markdown, plain text, rendered JavaScript string literals, PDF text and Word or OpenDocument document text only; it is not a code-quality, accessibility, security or SEO linter (those run only as explicit opt-in audits) and it does not judge whether a claim is true.
 license: MIT
 compatibility: Requires Node.js 18 or later and a host that can load the portable Agent Skills SKILL.md format.
 metadata:
   version: "1.7.1"
-  source-date: "2026-10-02"
+  source-date: "2026-10-06"
 ---
 
 # UN editorial check
