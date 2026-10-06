@@ -709,6 +709,10 @@ Stable releases are published to [npm](https://www.npmjs.com/package/un-editoria
 
 The skill is listed through [skills.sh](https://skills.sh/ahaomar/un-editorial-check/un-editorial-check). The repository-root `SKILL.md` remains the canonical public definition.
 
+### Security audits
+
+skills.sh audits the listed skill through three scanners — the Gen Agent Trust Hub, Socket and Snyk — and publishes the results on the skill's [security page](https://skills.sh/ahaomar/un-editorial-check/un-editorial-check). The audit history is part of how this repository is maintained, and every finding has been answered in the tree rather than by exclusion: the test fixture Socket once flagged as a dangerous sink left the repository in 1.6.1, with the security suites now generating their inputs at test runtime, and the two LOW findings on `lib/output.mjs` and `lib/icons.mjs` are answered by the hardening in 1.7.1 — control-character escaping on every caller-controlled field the terminal renderer interpolates, and quote-safe attribute escaping with numeric validation in the icon renderers. The `socket-audit-watch` GitHub Action reads the published audit every four hours and fails if a fresh scan reports alerts, so the state of the audit is visible in the Actions list without visiting the page.
+
 ## Troubleshooting
 
 - **The skill is absent:** run `npx skills list`, confirm the target project or global scope, and compare the installed directory with [COMPATIBILITY.md](COMPATIBILITY.md).
