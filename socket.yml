@@ -7,3 +7,10 @@ version: 2
 # (reported 30 Sep 2026) left the tree in 1.6.1, and the security suites now
 # assemble their sink texts from fragments at test runtime, so no contiguous
 # sink sequence exists anywhere in the tracked tree.
+#
+# Status 6 Oct 2026: the two LOW findings on lib/output.mjs and lib/icons.mjs
+# from the 5 Oct audit are answered by the 1.7.1 hardening — control-character
+# escaping on every caller-controlled field the terminal renderer interpolates,
+# quote-safe attribute escaping and numeric validation in the icon renderers.
+# Release 1.7.1 is published on npm. Both flagged files are fixed in the tree;
+# a fresh scan of any commit since e907670 should report no alerts.

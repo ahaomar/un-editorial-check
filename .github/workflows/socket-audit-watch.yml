@@ -3,7 +3,7 @@
 # The Socket scanner is change-triggered and slow to come back: on 5 Oct 2026
 # it analysed commit ea6c6d0 (the pre-1.7.1 tree) and kept reporting two LOW
 # findings on lib/output.mjs and lib/icons.mjs that 1.7.1 had already fixed.
-# This workflow polls the public audit page every four hours — no secrets, no
+# This workflow polls the public audit page hourly — no secrets, no
 # dependencies on a local machine — and states plainly whether the scan is
 # stale, green, or reporting alerts again. It fails only on a fresh scan that
 # carries alerts, so the Actions list itself answers "is it green yet?".
@@ -11,7 +11,7 @@ name: socket-audit-watch
 
 on:
   schedule:
-    - cron: '7 */4 * * *'
+    - cron: '13 * * * *'
   workflow_dispatch:
 
 permissions: {}
