@@ -16,6 +16,7 @@
 
 import assert from 'node:assert/strict';
 import { buildReport, assertElements, capLines } from '../lib/report.mjs';
+import { CLEAN } from '../lib/output.mjs';
 
 // This suite describes the pre-Phase-9 layout — one block per finding — which
 // `--report-detail full` restores. The grouped default has its own assertions
@@ -553,16 +554,16 @@ assert.deepEqual(
   ['Summary', 'Categories'],
   'an empty scan renders Summary and Categories and no findings section',
 );
-const noFindingsIdx = empty.findIndex(e => e.type === 'paragraph' && e.text === 'No findings.');
-assert(noFindingsIdx >= 0, 'empty scan says No findings.');
+const noFindingsIdx = empty.findIndex(e => e.type === 'paragraph' && e.text === CLEAN);
+assert(noFindingsIdx >= 0, 'empty scan states the shared clean-run sentence');
 const emptyLegend3 = empty.findIndex(e => e.type === 'paragraph' && e.text.includes('changes nothing'));
 assert.equal(noFindingsIdx, emptyLegend3 + 3,
-  'No findings. follows the Categories heading, which follows the promises');
+  'the clean sentence follows the Categories heading, which follows the promises');
 assert(paragraphTexts(empty).includes('0 errors · 0 warnings · 0 notes'), 'zero counts on an empty scan');
 assert.deepEqual(empty[0], { type: 'banner', kind: 'title', text: 'Editorial Review Report' });
 
 const emptyWithSources = buildReportFull(makeInput({ findings: [], sources: ['House style guide, chapter 4'] }));
-const emptyNoteIdx = emptyWithSources.findIndex(e => e.type === 'paragraph' && e.text === 'No findings.');
+const emptyNoteIdx = emptyWithSources.findIndex(e => e.type === 'paragraph' && e.text === CLEAN);
 assert(emptyNoteIdx >= 0 && emptyNoteIdx < headingIndex(emptyWithSources, 'Sources'),
   'empty note precedes the sources appendix');
 

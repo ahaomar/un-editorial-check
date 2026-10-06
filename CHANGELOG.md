@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.8.0 – 6 October 2026
+
+The deep-audit release. A whole-repository review — every shipped file read line by line, unit by unit — found no critical defects and no injection paths, and produced a hardening batch for the hostile-input surfaces: every place the tool reads a document it does not trust now has a memory ceiling where it had none, and three crashes became refusals. No rule's catalogue meaning changes.
+
+### Hardened
+
+- **Decompression bombs are capped everywhere.** A few kilobytes of hostile compressed bytes once inflated without limit — in the DOCX/ODT zip reader, and in the PDF inflater, LZW decoder and RunLength decoder. Each stream is now capped per entry and across the container, and the overflow becomes the ordinary named refusal, not an out-of-memory kill.
+- **Font tables carry budgets.** A CMap whose `bfrange` blocks repeat maximal ranges, and a composite font's `/W` width table, could materialise hundreds of millions of entries; both now refuse past a total budget (UE-DECODABLE refusals name the font).
+- **The cross-reference chain cannot loop.** Two xref tables whose trailers point at each other once drove unbounded recursion; the chain is now bounded by depth and by visited offsets, and a loop is a named refusal.
+- **Redirects are re-validated.** `--url` follows redirects manually: each hop re-applies the http(s)-only check, and the chain is bounded at eight, so a named URL that 302s cannot silently fetch somewhere the contract excludes.
+- **Hostile regular expressions refuse at load.** An organisation-profile `customRules` pattern that nests a quantifier inside a quantified group — the catastrophic-backtracking signature — is refused when the profile loads, fail-closed, because Node has no regex timeout and one hanging pattern once meant one hanging scan.
+- **A broken installation degrades honestly.** A missing or partial `fonts/` directory used to kill every invocation — even `--version` — with a raw ENOENT; the faces now load lazily, so only a run that renders a PDF touches them, through the ordinary error mapping.
+- **A ceiling for every local input.** Files and standard input are refused over 64 MiB with a reason, where a multi-gigabyte read was a heap-exhaustion crash.
+
+### Fixed
+
+- **The fixer never guesses across occurrences.** A finding anchored to an offset whose text no longer holds the match is skipped, instead of an unbounded search that could rewrite a *different* occurrence of the same words.
+- **`ue:ignore` prose can no longer silence the engine.** The suppression spec ends where the ids end: a stray word like "all" in `<!-- ue:ignore UE-TE004 for all audiences -->` is prose, not the off switch.
+- **Zero-width custom-rule matches are skipped**, not emitted as findings with no match text and no position.
+- **The re-run command keeps every target.** Flag-stripping in the capped section stopped at nothing, so a file literally named `--report` vanished from the printed command; everything after `--` is copied verbatim.
+- **SARIF `artifactLocation` is a valid URI reference** — filesystem paths are encoded; `--url` values pass through.
+- **One clean-run sentence on every surface** — the terminal, the HTML report and the PDF all state a clean scan with the same words (the PDF said "No findings.").
+- **The acronym rule's comment now matches its code**: the three-to-five letter window is documented as deliberate precision tuning — six-plus-letter runs are UE-RE008's shouting territory — rather than an unexplained cap.
+
+### Known limitations, stated for the next audit
+
+- Hybrid-reference files whose supplemental xref stream is named indirectly, and `/Prev` chains written as indirect references, fall to the recovery path rather than being read exactly.
+- Encryption detection still recognises the `/Encrypt` key by file text rather than trailer structure, so a document *about* PDF encryption can be refused as encrypted.
+
 ## 1.7.2 – 6 October 2026
 
 No rule, exit-code or report-shape change: the release that makes the audit visible. The skill's published security audit is now monitored, documented and answered at every layer of the repository, while the scanners' own pipeline catches up with code that has been clean since 1.7.1.
