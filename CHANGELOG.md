@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.7.2 – unreleased
+
+### Added
+
+- **The audit is watched.** The `socket-audit-watch` GitHub Action reads the skill's published skills.sh security page every four hours and reports one of three verdicts in the Actions list: the scan is stale, the scan is green, or a fresh scan reports alerts (which alone fails the run). Its page fetch is time-bounded, so a slow endpoint costs a minute rather than the job.
+
+### Documented
+
+- **A Security audits section** in the README, under Releases and discovery: the three scanners, the public security page, and how every finding in the audit history was answered in the tree — the fixture removal in 1.6.1 and the 1.7.1 hardening — never by exclusion.
+- **The indexed skill description is sharpened**: press releases and report copy join the use-when list, and the document formats are named where the reader first meets them.
+
 ## 1.7.1 – 5 October 2026
 
 No rule, exit-code or report-shape change. The two LOW findings the skills.sh Socket scanner raised against `lib/output.mjs` and `lib/icons.mjs` are addressed by real hardening rather than argument. The terminal renderer now runs its control-character guard over `ruleId` and `confidence` too — custom rules make the id caller-controlled, so a hostile id can no more repaint the terminal than a hostile message could — and the SARIF renderer builds its `pdfPage` property by assignment instead of a conditional spread, which is byte-identical output but removes the construct the scanner's parser misread as invalid syntax. The icon renderers escape all five XML-significant characters (the double quote included) in every attribute they interpolate, and validate stroke widths and icon sizes before use, refusing loudly on a non-numeric value the way the path parser already refused an unknown command. Every one of these behaviours is locked by a new assertion in `tests/icons.mjs` and `tests/release-regressions.mjs`.
