@@ -1,15 +1,19 @@
 # Changelog
 
-## 1.7.2 – unreleased
+## 1.7.2 – 6 October 2026
+
+No rule, exit-code or report-shape change: the release that makes the audit visible. The skill's published security audit is now monitored, documented and answered at every layer of the repository, while the scanners' own pipeline catches up with code that has been clean since 1.7.1.
 
 ### Added
 
-- **The audit is watched.** The `socket-audit-watch` GitHub Action reads the skill's published skills.sh security page every four hours and reports one of three verdicts in the Actions list: the scan is stale, the scan is green, or a fresh scan reports alerts (which alone fails the run). Its page fetch is time-bounded, so a slow endpoint costs a minute rather than the job.
+- **The audit is watched.** The `socket-audit-watch` GitHub Action reads the skill's published skills.sh security page hourly and reports one of three verdicts in the Actions list: the scan is stale, the scan is green, or a fresh scan reports alerts (which alone fails the run). Its page fetch is time-bounded, so a slow endpoint costs a minute rather than the job.
 
 ### Documented
 
 - **A Security audits section** in the README, under Releases and discovery: the three scanners, the public security page, and how every finding in the audit history was answered in the tree — the fixture removal in 1.6.1 and the 1.7.1 hardening — never by exclusion.
 - **The indexed skill description is sharpened**: press releases and report copy join the use-when list, and the document formats are named where the reader first meets them.
+- **The Socket repository configuration carries the record**: `socket.yml` states what the 5 October audit's findings became and that any commit since 1.7.1 should scan clean.
+- **The release process is complete again**: 1.7.1, briefly npm-only, is now also tagged and released on GitHub as v1.7.1, restoring the every-version-released convention.
 
 ## 1.7.1 – 5 October 2026
 
