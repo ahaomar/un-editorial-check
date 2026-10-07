@@ -24,7 +24,13 @@ jobs:
         run: |
           set -eu
           url='https://skills.sh/ahaomar/un-editorial-check/un-editorial-check/security/socket'
-          page=$(curl -fsSL --max-time 30 --retry 2 "$url")
+          # A server error is their outage, not our alert: distinguish it from
+          # a real finding so a 500 cannot page us as a failed run. Two clean
+          # retries, then the run reports the outage and exits green.
+          if ! page=$(curl -fsSL --max-time 30 --retry 2 "$url" 2>/dev/null); then
+            echo "SERVER ERROR — skills.sh did not serve the audit page (their side; possibly mid-update). Nothing to compare yet."
+            exit 0
+          fi
           # The audit pins the tree it analysed through the pkg:socket URL; the
           # first 40-hex hash on the page is that commit.
           analyzed=$(printf '%s' "$page" | grep -oE '[0-9a-f]{40}' | head -1 || true)
