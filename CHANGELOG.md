@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.8.2 – 15 October 2026
+
+No rule, exit-code or report-shape change. The re-index release: the version moves to 1.8.2 in every place that must agree, and `SKILL.md`'s source date moves with it, which is that field's purpose — it records when the skill's definition last changed.
+
+### Repository
+
+- **All six anchors agree at 1.8.2**: `package.json`, `VERSION`, `lib/cli.mjs`, `SKILL.md`, `CHANGELOG.md` and `MAINTAINING.md`.
+- **`SKILL.md`'s `source-date` is refreshed to 15 October 2026**, and its `metadata.version` moves with the release, so the indexed skill definition names the version that the repository is on.
+- **What this release cannot reach.** The skills.sh Socket audit still analyses `ea6c6d0` (5 October, 11:30 UTC). Both findings it reports were fixed in 1.7.1 — a Socket reviewer verified that diff, and Socket's own reports for 1.7.1, 1.7.2 and 1.8.0 carry no alerts. Those findings are already answered in the tree, and 1.8.2 adds no code that a fresh scan would read differently.
+
+### Unchanged
+
+- Zero npm dependencies, byte-identical output for identical input, the rule catalogue, the refusal behaviour, and the exit codes.
+- Every byte of `lib/` except the version string in `lib/cli.mjs`.
+
 ## 1.8.1 – 15 October 2026
 
 No rule, exit-code or report-shape change. The audit-refresh release: the version moves to 1.8.1 in every place that must agree, and `lib/icons.mjs` is restored intact — an intermediate local commit had mangled the file, and this commit restores the tested bytes from 1.8.0, with the 1.7.1 hardening untouched: all five XML-significant characters escaped in every interpolated attribute, stroke widths and icon sizes validated before use, and the terminal renderer's control-character guard over `ruleId` and `confidence`.
