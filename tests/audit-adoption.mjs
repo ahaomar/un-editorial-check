@@ -701,11 +701,12 @@ const sortMarks = list => [...list].sort((a, b) =>
 
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   const suites = pkg.scripts.test.split('&&').map(part => part.trim());
-  // The PDF-extraction suite joined the gate after this lock was written; the
-  // two final suites keep their relative order: adoption, then the PDF locks.
-  assert.deepEqual(suites.slice(-2),
-    ['node tests/audit-adoption.mjs', 'node tests/audit-pdf-extraction.mjs'],
-    'the final gate suites must keep their order: adoption, then PDF extraction');
+  // The PDF-extraction suite joined the gate after this lock was written, and
+  // the published-record suite after that; the three final suites keep their
+  // relative order: adoption, then the PDF locks, then the published record.
+  assert.deepEqual(suites.slice(-3),
+    ['node tests/audit-adoption.mjs', 'node tests/audit-pdf-extraction.mjs', 'node tests/audit-published-record.mjs'],
+    'the final gate suites must keep their order: adoption, then PDF extraction, then the published record');
 }
 
 fs.rmSync(tmp, { recursive: true, force: true });
