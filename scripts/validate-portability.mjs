@@ -3,9 +3,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_EXCLUDES } from '../lib/scanner.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(scriptPath), '..');
+
+// An installed copy of this skill is not repository content: agent harnesses
+// write .agents/, agent/ and .claude/ beside the source, and DEFAULT_EXCLUDES
+// already names those scratch. Deferring to that one list is the point — a
+// second list is what let an untracked agent/ copy be read as a committed
+// duplicate. `.git` is added because the walk meets it and the scanner never does.
+export const WALK_EXCLUDES = ['.git', ...DEFAULT_EXCLUDES];
 
 const PORTABLE_FIELDS = new Set(['name', 'description', 'license', 'compatibility', 'metadata']);
 const FIELD = /^([a-z][a-z0-9-]*):(?:\s*(.*))?$/;
@@ -151,7 +159,7 @@ function main() {
   const duplicateSkills = [];
   const findDuplicateSkills = directory => {
     for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
-      if (['.git', 'node_modules', 'coverage'].includes(entry.name)) continue;
+      if (WALK_EXCLUDES.includes(entry.name)) continue;
       if (entry.isDirectory() && entry.name.startsWith('.') && directory === '.') continue; // scratch, not skill definitions
       const relative = path.join(directory, entry.name);
       if (entry.isDirectory()) findDuplicateSkills(relative);
@@ -159,7 +167,7 @@ function main() {
     }
   };
   findDuplicateSkills('.');
-  for (const duplicate of duplicateSkills) fail(`committed duplicate skill definition may drift: ${duplicate}`);
+  for (const duplicate of duplicateSkills) fail(`duplicate skill definition may drift from the canonical one: ${duplicate}`);
 
   const requiredFiles = ['bin/check.mjs', 'lib/cli.mjs', 'rules/catalogue.json', 'config/default.json', 'config/profiles/un-v1.json', 'config/profiles/security.json', 'agents/openai.yaml', 'fonts/RobotoCondensed-Regular.ttf', 'fonts/RobotoCondensed-Bold.ttf', 'fonts/LICENSE-APACHE.txt', 'fonts/NOTICE.txt', 'README.md', 'USER-GUIDE.md', 'COMPATIBILITY.md', 'LICENSE'];
   for (const file of requiredFiles) if (!exists(file)) fail(`required repository file is missing: ${file}`);

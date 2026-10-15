@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { validatePortableFrontmatter } from '../scripts/validate-portability.mjs';
+import { DEFAULT_EXCLUDES } from '../lib/scanner.mjs';
+import { WALK_EXCLUDES, validatePortableFrontmatter } from '../scripts/validate-portability.mjs';
 
 const valid = `---
 name: un-editorial-check
@@ -59,5 +60,14 @@ for (const [label, fixture] of cases) {
 for (const file of ['README.md', 'COMPATIBILITY.md', 'MAINTAINING.md', '.github/workflows/ci.yml']) {
   assert(!fs.readFileSync(new URL(`../${file}`, import.meta.url), 'utf8').includes('skills check'), `${file} contains stale command reference`);
 }
+
+// An installed copy of this skill lands in an agent scratch directory beside the
+// source — .agents/, agent/ or .claude/. Reading one as repository content is the
+// 15 Oct false positive: an untracked agent/ copy failed the local gate while CI
+// stayed green, because the walk kept a second exclusion list of its own.
+assert(WALK_EXCLUDES.includes('agent'),
+  'agent/ is an agent scratch directory: an installed copy there is not a duplicate skill definition');
+assert.deepEqual(WALK_EXCLUDES, ['.git', ...DEFAULT_EXCLUDES],
+  'the walk must defer to DEFAULT_EXCLUDES rather than keep a second list');
 
 console.log('ok — restricted portable frontmatter validator and stale-command guard');

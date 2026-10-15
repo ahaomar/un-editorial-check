@@ -8,6 +8,8 @@ No rule, exit-code or report-shape change. The audit-refresh release: the versio
 
 - **All six anchors agree at 1.8.1**: `package.json`, `VERSION`, `lib/cli.mjs`, `SKILL.md`, `CHANGELOG.md` and `MAINTAINING.md`.
 - **`lib/icons.mjs` is byte-identical to its 1.8.0 form.**
+- **An installed copy of the skill is no longer mistaken for repository content.** `scripts/validate-portability.mjs` hunted a second `SKILL.md` with an exclusion list of its own, so the `agent/` directory the skills.sh installer writes beside the source was reported as a duplicate skill definition — a false positive that failed `npm test` locally while CI, which never carries an install, stayed green. The walk now defers to the scanner's `DEFAULT_EXCLUDES`, so the two hold one definition of what the repository contains, and the message no longer calls the file committed, which it was never shown to be.
+- **The installer's copies are ignored rather than tracked.** The two 257-file copies under `.agents/` and `agent/`, the `.claude/` symlink into them, and `skills-lock.json` are installation state — 514 duplicates of this repository's own source. `MAINTAINING.md` forbids committing agent copies that drift from the canonical skill, so all four are ignored.
 
 ### Unchanged
 
