@@ -1,8 +1,14 @@
 # Watches the skills.sh Socket audit for this skill.
 #
-# The Socket scanner is change-triggered and slow to come back: on 5 Oct 2026
-# it analysed commit ea6c6d0 (the pre-1.7.1 tree) and kept reporting two LOW
-# findings on lib/output.mjs and lib/icons.mjs that 1.7.1 had already fixed.
+# The audit is not ours to trigger, and commits are not a lever. Socket
+# confirmed to the maintainer on 6 Oct 2026 — recorded in vercel-labs/skills#2371
+# — that the skills.sh audit is a scan skills.sh requests through its Socket
+# integration, so pushing to GitHub or publishing to npm cannot refresh it:
+# only a Vercel re-index moves the analysed commit. That is why the audit has
+# stood on ea6c6d0 (the pre-1.7.1 tree) since 5 Oct 2026. #2371 asked for a
+# re-index on 3 Oct, it ran at 11:30 UTC on 5 Oct, and e907670 — the fix for
+# the two LOW findings it reports — landed eleven minutes later at 11:41 UTC.
+#
 # This workflow polls the public audit page hourly — no secrets, no
 # dependencies on a local machine — and states plainly whether the scan is
 # stale, green, or reporting alerts again. It fails only on a fresh scan that
