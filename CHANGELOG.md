@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.8.1 – 15 October 2026
+
+No rule, exit-code or report-shape change. The audit-refresh release: the version moves to 1.8.1 in every place that must agree, and `lib/icons.mjs` is restored intact — an intermediate local commit had mangled the file, and this commit restores the tested bytes from 1.8.0, with the 1.7.1 hardening untouched: all five XML-significant characters escaped in every interpolated attribute, stroke widths and icon sizes validated before use, and the terminal renderer's control-character guard over `ruleId` and `confidence`.
+
+### Repository
+
+- **All six anchors agree at 1.8.1**: `package.json`, `VERSION`, `lib/cli.mjs`, `SKILL.md`, `CHANGELOG.md` and `MAINTAINING.md`.
+- **`lib/icons.mjs` is byte-identical to its 1.8.0 form.**
+
+### Unchanged
+
+- Zero npm dependencies, byte-identical output for identical input, the rule catalogue, the refusal behaviour, and the exit codes.
+
 ## 1.8.0 – 6 October 2026
 
 The deep-audit release. A whole-repository review — every shipped file read line by line, unit by unit — found no critical defects and no injection paths, and produced a hardening batch for the hostile-input surfaces: every place the tool reads a document it does not trust now has a memory ceiling where it had none, and three crashes became refusals. No rule's catalogue meaning changes.
