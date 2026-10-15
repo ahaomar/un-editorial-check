@@ -397,6 +397,28 @@ export const NO_ENCODING_FONT = (descriptor) =>
   '<< /Type /Font /Subtype /Type1 /BaseFont /QQQQQQ+SecretSubset'
   + ` /FirstChar 1 /LastChar 5 /Widths [500 500 500 500 500] /FontDescriptor ${descriptor} 0 R >>`;
 
+/**
+ * A subset-prefixed font under a name that occurs in the wild. The published
+ * documents recorded in U3 carry `MPWDPW+CMR8`, `AQTFCU+CMSY10` and
+ * `THPNLT+CMEX9`; `NO_ENCODING_FONT` above happens to build the same body under
+ * a name nothing would ever emit, so a case could pass while the name is what a
+ * reader reacts to. `extra` carries a /ToUnicode for the companion cases.
+ */
+export const SUBSET_FONT = (name, descriptor, extra = '') =>
+  `<< /Type /Font /Subtype /Type1 /BaseFont /${name}`
+  + ' /FirstChar 1 /LastChar 5 /Widths [500 500 500 500 500]'
+  + ` /FontDescriptor ${descriptor} 0 R${extra} >>`;
+
+/**
+ * A subset-prefixed font that does carry a /Differences encoding, so a code can
+ * name a glyph. Whether that glyph stands for a readable character is the thing
+ * the pairing cases vary.
+ */
+export const SUBSET_DIFFERENCES_FONT = (name, descriptor, differences) =>
+  `<< /Type /Font /Subtype /Type1 /BaseFont /${name} /Encoding`
+  + ' << /Type /Encoding /BaseEncoding /WinAnsiEncoding'
+  + ` /Differences [${differences}] >> /FontDescriptor ${descriptor} 0 R >>`;
+
 export const TYPE0_FONT = (descendant, toUnicodeNum) =>
   '<< /Type /Font /Subtype /Type0 /BaseFont /TestIdentity /Encoding /Identity-H'
   + ` /DescendantFonts [${descendant}]`
@@ -835,6 +857,12 @@ export function build(name) {
     case 'encrypted': return buildEncrypted();
     case 'truncated': return buildTruncated();
     case 'not-a-pdf': return buildNotAPdf();
+    case 'cmr8-no-mapping': return buildCmr8NoMapping();
+    case 'cmr8-mapped': return buildCmr8Mapped();
+    case 'cmsy10-unreadable-glyph': return buildCmsy10UnreadableGlyph();
+    case 'cmsy10-readable-glyph': return buildCmsy10ReadableGlyph();
+    case 'cmex9-code-uncovered': return buildCmex9CodeUncovered();
+    case 'cmex9-code-covered': return buildCmex9CodeCovered();
     default: throw new Error(`make-pdf: unknown case ${name}`);
   }
 }
@@ -1192,6 +1220,147 @@ function buildNonLatin() {
   return serialise(doc, { root, id: ID });
 }
 
+// --- the published shapes U3 records -----------------------------------------
+//
+// `.feedbacks/PDF-DECODE-UNCERTAINTY.md` records four published documents this
+// engine refuses, and one fault runs through all four: a subset-prefixed
+// Computer Modern font where a code carries no character the extractor can
+// read. U3's open question is the *scope* of the refusal — whether one
+// unreadable symbol on an interior page may be carried as a declared hole
+// rather than failing the whole document. These fixtures do not decide that.
+// They pin what the engine does today, so that changing it is deliberate and
+// has a lock to move, which is what the house rules require of every guard.
+//
+// Each refusal has a companion that differs in exactly one thing: the mapping
+// that makes the same document readable. The pair is the proof that the
+// refusal is caused by the absent mapping rather than by the font's name, its
+// subset prefix, or the shape of the page.
+
+/** A two-page document: readable copy on page 1, a second page on its own font. */
+function twoPageDocument(badFontOf) {
+  const doc = new Doc();
+  const good = doc.add(SIMPLE_FONT());
+  const bad = doc.add(badFontOf(doc));
+  const first = textContent(SIMPLE_LINES([PROSE.clean]));
+  const second = textContent([{ bytes: Buffer.from([1, 2, 3, 4, 0x50]), x: MARGIN, y: 700 }]);
+  const firstNum = doc.add(`<< /Length ${first.length} >>`, first);
+  const secondNum = doc.add(`<< /Length ${second.length} >>`, second);
+  const pagesNum = doc.alloc();
+  const firstPage = doc.alloc();
+  const secondPage = doc.alloc();
+  doc.set(firstPage, `<< /Type /Page /Parent ${pagesNum} 0 R`
+    + ` /MediaBox [0 0 ${PAGE_W} ${PAGE_H}]`
+    + ` /Resources << /ProcSet [/PDF /Text] /Font << /F1 ${good} 0 R >> >>`
+    + ` /Contents ${firstNum} 0 R >>`);
+  doc.set(secondPage, `<< /Type /Page /Parent ${pagesNum} 0 R`
+    + ` /MediaBox [0 0 ${PAGE_W} ${PAGE_H}]`
+    + ` /Resources << /ProcSet [/PDF /Text] /Font << /F1 ${bad} 0 R >> >>`
+    + ` /Contents ${secondNum} 0 R >>`);
+  doc.set(pagesNum, `<< /Type /Pages /Kids [${firstPage} 0 R ${secondPage} 0 R] /Count 2 >>`);
+  const root = doc.add(`<< /Type /Catalog /Pages ${pagesNum} 0 R >>`); // ue:ignore UE-SP001  (a PDF object name, not prose)
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * ACL Anthology `P19-1001.pdf`: a subset Computer Modern roman with no
+ * /Encoding and no /ToUnicode, so nothing in the file states what its byte
+ * codes mean. Codes 0x01..0x05 are used, which no standard encoding defines, so
+ * a reader that assumed one would emit control characters as copy.
+ */
+function buildCmr8NoMapping() {
+  const content = textContent([{ bytes: Buffer.from([1, 2, 3, 4, 5]), x: MARGIN, y: 700 }]);
+  const { doc, root } = simpleDocument(content, {
+    font: (builder) => {
+      const descriptor = fontDescriptor(builder, 'MPWDPW+CMR8');
+      return SUBSET_FONT('MPWDPW+CMR8', descriptor);
+    },
+  });
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * The same font, the same subset name, the same five codes, and the /ToUnicode
+ * the case above lacks. Everything else is the same document, so a refusal here
+ * would mean the font name itself were the trigger.
+ */
+function buildCmr8Mapped() {
+  const cmap = toUnicodeCMap({ chars: [[1, 'T'], [2, 'h'], [3, 'e'], [4, 'r'], [5, 'e']] });
+  const content = textContent([{ bytes: Buffer.from([1, 2, 3, 4, 5]), x: MARGIN, y: 700 }]);
+  const { doc, root } = simpleDocument(content, {
+    font: (builder) => {
+      const descriptor = fontDescriptor(builder, 'MPWDPW+CMR8');
+      const cmapNum = builder.add(`<< /Length ${cmap.length} >>`, cmap);
+      return SUBSET_FONT('MPWDPW+CMR8', descriptor, ` /ToUnicode ${cmapNum} 0 R`);
+    },
+  });
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * ACL Anthology `2020.acl-main.0.pdf`: `AQTFCU+CMSY10`, code `<0D>` — decimal
+ * 13. The font does carry an encoding and code 13 is named in it, but the glyph
+ * it names is `circlecopyrt`, which stands for no character this extractor can
+ * read. This is the fault a reader cannot fix by re-encoding the font, which is
+ * why the engine tells it apart from the others.
+ */
+function buildCmsy10UnreadableGlyph() {
+  const content = textContent([{ bytes: Buffer.from([13, 14]), x: MARGIN, y: 700 }]);
+  const { doc, root } = simpleDocument(content, {
+    font: (builder) => {
+      const descriptor = fontDescriptor(builder, 'AQTFCU+CMSY10');
+      return SUBSET_DIFFERENCES_FONT('AQTFCU+CMSY10', descriptor, '13 /circlecopyrt 14 /quoteright');
+    },
+  });
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * The same two codes under the same font and the same encoding, with one glyph
+ * name changed: code 13 now names a glyph the extractor can read. Nothing else
+ * differs, so the pair isolates the glyph name as the cause.
+ */
+function buildCmsy10ReadableGlyph() {
+  const content = textContent([{ bytes: Buffer.from([13, 14]), x: MARGIN, y: 700 }]);
+  const { doc, root } = simpleDocument(content, {
+    font: (builder) => {
+      const descriptor = fontDescriptor(builder, 'AQTFCU+CMSY10');
+      return SUBSET_DIFFERENCES_FONT('AQTFCU+CMSY10', descriptor, '13 /quotedblleft 14 /quoteright');
+    },
+  });
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * arXiv `1706.03762` and ACL `2023.emnlp-main.1.pdf`: page 1 is ordinary
+ * readable copy, and page 2's font carries a /ToUnicode that simply does not
+ * cover one of the codes the page draws. The engine has a mapping for this font
+ * and the mapping is incomplete, which is a different fault from having no
+ * mapping at all. The whole document is refused — that scope is the open half
+ * of U3, and this lock is what has to move if it changes.
+ */
+function buildCmex9CodeUncovered() {
+  return twoPageDocument((doc) => {
+    const cmap = toUnicodeCMap({ chars: [[1, 'T'], [2, 'e'], [3, 's'], [4, 't']] });
+    const descriptor = fontDescriptor(doc, 'THPNLT+CMEX9');
+    const cmapNum = doc.add(`<< /Length ${cmap.length} >>`, cmap);
+    return SUBSET_FONT('THPNLT+CMEX9', descriptor, ` /ToUnicode ${cmapNum} 0 R`);
+  });
+}
+
+/**
+ * The same document with the one mapping entry added, so page 2 decodes in
+ * full. This is the direction that proves the refusal above is about the
+ * coverage of the map and not about the page count or the font name.
+ */
+function buildCmex9CodeCovered() {
+  return twoPageDocument((doc) => {
+    const cmap = toUnicodeCMap({ chars: [[1, 'T'], [2, 'h'], [3, 'e'], [4, 'r'], [0x50, 'e']] });
+    const descriptor = fontDescriptor(doc, 'THPNLT+CMEX9');
+    const cmapNum = doc.add(`<< /Length ${cmap.length} >>`, cmap);
+    return SUBSET_FONT('THPNLT+CMEX9', descriptor, ` /ToUnicode ${cmapNum} 0 R`);
+  });
+}
+
 /**
  * Page 1 is perfectly readable and page 2 carries a font with no recoverable
  * encoding. The whole document must be refused: returning page 1 would report
@@ -1349,8 +1518,14 @@ export const CASES = [
   { name: 'quoted-paragraph', must: 'accept', note: 'a visually indented quotation' },
   { name: 'rules-invisibility', must: 'accept', note: 'four rule defects on one line' },
   { name: 'split-word', must: 'accept', note: 'a doubled word across a line break' },
+  { name: 'cmr8-mapped', must: 'accept', note: 'MPWDPW+CMR8 with the mapping the refusal below lacks' },
+  { name: 'cmsy10-readable-glyph', must: 'accept', note: 'AQTFCU+CMSY10 code 13 naming a readable glyph' },
+  { name: 'cmex9-code-covered', must: 'accept', note: 'page 2 mapped in full, the pair of the refusal below' },
   { name: 'no-to-unicode', must: 'refuse', code: 'UNDECODABLE_FONT', note: 'no recoverable encoding' },
   { name: 'second-page-undecodable', must: 'refuse', code: 'UNDECODABLE_FONT', note: 'page 2 unreadable, no partial extraction' },
+  { name: 'cmr8-no-mapping', must: 'refuse', code: 'UNDECODABLE_FONT', note: 'P19-1001: MPWDPW+CMR8 has no encoding and no ToUnicode' },
+  { name: 'cmsy10-unreadable-glyph', must: 'refuse', code: 'UNDECODABLE_FONT', note: '2020.acl-main.0: AQTFCU+CMSY10 code 13 names circlecopyrt' },
+  { name: 'cmex9-code-uncovered', must: 'refuse', code: 'UNDECODABLE_FONT', note: 'arXiv 1706.03762: THPNLT+CMEX9 code <50> outside its mapping' },
   { name: 'scanned', must: 'refuse', code: 'SCANNED', note: 'image only, no text operators' },
   { name: 'encrypted', must: 'refuse', code: 'ENCRYPTED', note: 'RC4 under the standard handler' },
   { name: 'truncated', must: 'refuse', code: 'MALFORMED', note: 'file cut inside an object' },
