@@ -6,3 +6,10 @@ coverage/
 package-lock.json
 .feedbacks/
 .zcode/
+
+# Agent skill installs: full copies of this repository, which MAINTAINING.md
+# forbids committing because they drift from the canonical skill.
+.agents/
+agent/
+.claude/
+skills-lock.json
