@@ -1217,6 +1217,14 @@ for (const entry of accepted) {
     ['plain-untagged', FILTER_COPY],
     ['differences', ['ÁÇ']],
     ['to-unicode', ['XYabc']],
+    // The CMR8 pair: with the /ToUnicode the producer's word wins, and without
+    // it the font's own OT1 encoding decides — the same five codes both times.
+    ['cmr8-mapped', ['There']],
+    ['cmr8-no-mapping', ['ΔΘΛΞΠ']],
+    // The routing pair: three codes the two text tables read differently —
+    // the ff, fi and fl ligatures under OT1, alpha, beta and gamma under OML.
+    ['cmr8-ligature-codes', ['ﬀﬁﬂ']],
+    ['cmmi8-no-mapping', ['αβγ']],
     ['identity-h', ['Gaxyz']],
     ['multi-page', PAGE_LINES],
     ['rules-invisibility', [PROSE.combined]],

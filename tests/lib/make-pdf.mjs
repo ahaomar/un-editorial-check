@@ -399,14 +399,17 @@ export const NO_ENCODING_FONT = (descriptor) =>
 
 /**
  * A subset-prefixed font under a name that occurs in the wild. The published
- * documents recorded in U3 carry `MPWDPW+CMR8`, `AQTFCU+CMSY10` and
- * `THPNLT+CMEX9`; `NO_ENCODING_FONT` above happens to build the same body under
- * a name nothing would ever emit, so a case could pass while the name is what a
- * reader reacts to. `extra` carries a /ToUnicode for the companion cases.
+ * documents recorded in U3 carry `MPWDPW+CMR8`, `OKFMAA+CMMI8`, `AQTFCU+CMSY10`
+ * and `THPNLT+CMEX9`; `NO_ENCODING_FONT` above happens to build the same body
+ * under a name nothing would ever emit, so a case could pass while the name is
+ * what a reader reacts to. `extra` carries a /ToUnicode for the companion
+ * cases; `first`/`last` narrow the declared code range for a case whose codes
+ * tell the family's encoding from a byte value.
  */
-export const SUBSET_FONT = (name, descriptor, extra = '') =>
+export const SUBSET_FONT = (name, descriptor, extra = '', first = 1, last = 5) =>
   `<< /Type /Font /Subtype /Type1 /BaseFont /${name}`
-  + ' /FirstChar 1 /LastChar 5 /Widths [500 500 500 500 500]'
+  + ` /FirstChar ${first} /LastChar ${last}`
+  + ` /Widths [${Array(last - first + 1).fill(500).join(' ')}]`
   + ` /FontDescriptor ${descriptor} 0 R${extra} >>`;
 
 /**
@@ -859,6 +862,8 @@ export function build(name) {
     case 'not-a-pdf': return buildNotAPdf();
     case 'cmr8-no-mapping': return buildCmr8NoMapping();
     case 'cmr8-mapped': return buildCmr8Mapped();
+    case 'cmmi8-no-mapping': return buildCmmi8NoMapping();
+    case 'cmr8-ligature-codes': return buildCmr8LigatureCodes();
     case 'cmsy10-unreadable-glyph': return buildCmsy10UnreadableGlyph();
     case 'cmsy10-readable-glyph': return buildCmsy10ReadableGlyph();
     case 'cmex9-code-uncovered': return buildCmex9CodeUncovered();
@@ -1264,8 +1269,10 @@ function twoPageDocument(badFontOf) {
 /**
  * ACL Anthology `P19-1001.pdf`: a subset Computer Modern roman with no
  * /Encoding and no /ToUnicode, so nothing in the file states what its byte
- * codes mean. Codes 0x01..0x05 are used, which no standard encoding defines, so
- * a reader that assumed one would emit control characters as copy.
+ * codes mean. The font's own name does: a CMR subset carries the published
+ * OT1 encoding, the engine reads through that table, and codes 0x01..0x05 come
+ * back as the Greek capitals OT1 defines them to be. A reader that assumed one
+ * of the PDF encodings instead would emit control characters as copy.
  */
 function buildCmr8NoMapping() {
   const content = textContent([{ bytes: Buffer.from([1, 2, 3, 4, 5]), x: MARGIN, y: 700 }]);
@@ -1280,8 +1287,9 @@ function buildCmr8NoMapping() {
 
 /**
  * The same font, the same subset name, the same five codes, and the /ToUnicode
- * the case above lacks. Everything else is the same document, so a refusal here
- * would mean the font name itself were the trigger.
+ * the case above lacks. The mapping is the producer's own statement and wins
+ * over the font's OT1 reading: the copy is "There", not the Greek capitals a
+ * reader that ignored the mapping would produce.
  */
 function buildCmr8Mapped() {
   const cmap = toUnicodeCMap({ chars: [[1, 'T'], [2, 'h'], [3, 'e'], [4, 'r'], [5, 'e']] });
@@ -1291,6 +1299,43 @@ function buildCmr8Mapped() {
       const descriptor = fontDescriptor(builder, 'MPWDPW+CMR8');
       const cmapNum = builder.add(`<< /Length ${cmap.length} >>`, cmap);
       return SUBSET_FONT('MPWDPW+CMR8', descriptor, ` /ToUnicode ${cmapNum} 0 R`);
+    },
+  });
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * ACL Anthology `P19-1001.pdf` again: `OKFMAA+CMMI8`, the math italic font that
+ * document uses beside its roman text, under the same no-mapping shape. Codes
+ * 11..13 are used: OT1 would draw them as the ff, fi and fl ligatures, but they
+ * belong to the math italic family, whose OML encoding defines them as alpha,
+ * beta and gamma — so the reconstruction proves which family's table spoke,
+ * and a reader that guessed the roman one would emit "fffifl".
+ */
+function buildCmmi8NoMapping() {
+  const content = textContent([{ bytes: Buffer.from([11, 12, 13]), x: MARGIN, y: 700 }]);
+  const { doc, root } = simpleDocument(content, {
+    font: (builder) => {
+      const descriptor = fontDescriptor(builder, 'OKFMAA+CMMI8');
+      return SUBSET_FONT('OKFMAA+CMMI8', descriptor, '', 11, 13);
+    },
+  });
+  return serialise(doc, { root, id: ID });
+}
+
+/**
+ * The roman font and the no-mapping shape again, over the three codes that
+ * tell the two text tables apart: OT1 draws 11..13 as the ff, fi and fl
+ * ligatures. `cmmi8-no-mapping` above uses the same codes and reads them as
+ * the Greek letters OML defines, so a family routed to the wrong table fails
+ * one of the two.
+ */
+function buildCmr8LigatureCodes() {
+  const content = textContent([{ bytes: Buffer.from([11, 12, 13]), x: MARGIN, y: 700 }]);
+  const { doc, root } = simpleDocument(content, {
+    font: (builder) => {
+      const descriptor = fontDescriptor(builder, 'MPWDPW+CMR8');
+      return SUBSET_FONT('MPWDPW+CMR8', descriptor, '', 11, 13);
     },
   });
   return serialise(doc, { root, id: ID });
@@ -1518,12 +1563,14 @@ export const CASES = [
   { name: 'quoted-paragraph', must: 'accept', note: 'a visually indented quotation' },
   { name: 'rules-invisibility', must: 'accept', note: 'four rule defects on one line' },
   { name: 'split-word', must: 'accept', note: 'a doubled word across a line break' },
-  { name: 'cmr8-mapped', must: 'accept', note: 'MPWDPW+CMR8 with the mapping the refusal below lacks' },
+  { name: 'cmr8-mapped', must: 'accept', note: 'MPWDPW+CMR8 with the mapping the companion below lacks' },
+  { name: 'cmr8-no-mapping', must: 'accept', note: 'P19-1001: MPWDPW+CMR8 reads through the OT1 encoding the font name states' },
+  { name: 'cmmi8-no-mapping', must: 'accept', note: 'P19-1001: OKFMAA+CMMI8 reads through the OML encoding the font name states' },
+  { name: 'cmr8-ligature-codes', must: 'accept', note: 'MPWDPW+CMR8 over the codes the two text tables read differently' },
   { name: 'cmsy10-readable-glyph', must: 'accept', note: 'AQTFCU+CMSY10 code 13 naming a readable glyph' },
   { name: 'cmex9-code-covered', must: 'accept', note: 'page 2 mapped in full, the pair of the refusal below' },
   { name: 'no-to-unicode', must: 'refuse', code: 'UNDECODABLE_FONT', note: 'no recoverable encoding' },
   { name: 'second-page-undecodable', must: 'refuse', code: 'UNDECODABLE_FONT', note: 'page 2 unreadable, no partial extraction' },
-  { name: 'cmr8-no-mapping', must: 'refuse', code: 'UNDECODABLE_FONT', note: 'P19-1001: MPWDPW+CMR8 has no encoding and no ToUnicode' },
   { name: 'cmsy10-unreadable-glyph', must: 'refuse', code: 'UNDECODABLE_FONT', note: '2020.acl-main.0: AQTFCU+CMSY10 code 13 names circlecopyrt' },
   { name: 'cmex9-code-uncovered', must: 'refuse', code: 'UNDECODABLE_FONT', note: 'arXiv 1706.03762: THPNLT+CMEX9 code <50> outside its mapping' },
   { name: 'scanned', must: 'refuse', code: 'SCANNED', note: 'image only, no text operators' },
