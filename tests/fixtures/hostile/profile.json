@@ -1,0 +1,13 @@
+{
+  "profileVersion": 1,
+  "name": "Hostile profile",
+  "source": "A fixture, not a house style. Its own wording carries the characters every output surface has to neutralise.",
+  "description": "A caller-written profile whose terminology replacements carry a terminal escape sequence, a bidirectional override and markup. The findings it produces must reach every surface escaped, never as the characters they are.",
+  "terminology": {
+    "forbidden": [
+      ["colour", "color\u001b[31m"],
+      ["centre", "center\u202e"],
+      ["programme", "program<script>alert(1)</script>"]
+    ]
+  }
+}

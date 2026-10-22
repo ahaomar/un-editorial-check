@@ -839,6 +839,25 @@ assertNoInjectedMarkup(allLanes, 'ordinary report');
     'the control and bidi characters are shown in their escaped form');
 }
 
+// A profile is a file the caller wrote, and its terminology values reach
+// the report the way a document's copy does — so this surface has to
+// neutralise a value it never asked for.
+{
+  const profile = path.join(root, 'tests', 'fixtures', 'hostile', 'profile.json');
+  const document = path.join(root, 'tests', 'fixtures', 'hostile', 'copy.txt');
+  const out = path.join(tmp, 'hostile-profile.html');
+  const result = capture([document, '--profile', profile, '--report', out, '--quiet']);
+  assert.equal(result.code, 1, 'the hostile profile produces findings');
+  const html = fs.readFileSync(out, 'utf8');
+  assertNoInjectedMarkup(html, 'hostile profile');
+  assert(!/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(html),
+    'no control or bidi character may reach the document');
+  assert(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'),
+    'markup in a profile value stays escaped text');
+  assert(html.includes('\\u001b') && html.includes('\\u202e'),
+    'the control and bidi characters are shown in their escaped form');
+}
+
 // --- 7: determinism ----------------------------------------------------------
 
 {

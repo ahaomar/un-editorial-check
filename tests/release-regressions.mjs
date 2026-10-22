@@ -249,6 +249,65 @@ for (const [input, expected] of PROTECTED_FIXES) {
   assert.ok(out.includes('not valid UTF-8\\u001b[5m'), 'the skip reason is rendered with its control character escaped');
   assert.ok(out.includes('custom-audit\\u001b[7m'), 'the audit name is rendered with its control character escaped');
 }
+
+// The CLI's messages are an output surface too. A path, an option or a URL
+// that arrives carrying an escape sequence must not repaint the terminal that
+// reports it, and the message must show the value escaped rather than dropped.
+{
+  const ESC = '\u001b';
+  const hostile = `${ESC}[2J`;
+  const cases = [
+    [['--nope'], 'unknown option', false],
+    [[`${hostile}.txt`], 'path not found', true],
+    [['--config', `${hostile}.json`], 'config not found', true],
+    [['--profile', `${hostile}.json`], 'profile not found', true],
+  ];
+  for (const [args, expected, carriesTheValue] of cases) {
+    const result = run(...args);
+    assert.equal(result.status, 2, `${args[0]}: a refused argument must exit 2`);
+    assert.ok(!/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/.test(result.stderr),
+      `no control character may reach the terminal: ${JSON.stringify(result.stderr)}`);
+    assert.ok(result.stderr.includes(expected),
+      `the message must name the refusal: ${JSON.stringify(result.stderr)}`);
+    if (carriesTheValue) {
+      assert.ok(result.stderr.includes('\\u001b'),
+        `the escape sequence must be shown escaped: ${JSON.stringify(result.stderr)}`);
+    }
+  }
+  // The success path carries the same kind of value: the path a report is
+  // written to is the caller's path, and it is named on the way out.
+  {
+    const out = path.join(tmp, `${hostile}.html`);
+    const written = run(unique('txt', 'copy'), '--report', out);
+    assert.equal(written.status, 0, 'a clean run with a report exits 0');
+    assert.ok(!/[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/.test(written.stdout),
+      `no control character may reach the terminal: ${JSON.stringify(written.stdout)}`);
+    assert.ok(written.stdout.includes('\\u001b'),
+      `the path must be shown escaped: ${JSON.stringify(written.stdout)}`);
+  }
+}
+
+// A profile is a file the caller wrote. Its terminology pairs become
+// findings, and through them they reach every surface the reports have —
+// so the values a document can carry, a profile can carry too, and each
+// surface has to neutralise them.
+{
+  const profile = path.join(root, 'tests', 'fixtures', 'hostile', 'profile.json');
+  const document = path.join(root, 'tests', 'fixtures', 'hostile', 'copy.txt');
+  const FORBIDDEN = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/;
+  for (const [label, args] of [
+    ['text', []],
+    ['json', ['--format', 'json']],
+    ['sarif', ['--format', 'sarif']],
+  ]) {
+    const result = run(document, '--profile', profile, ...args);
+    assert.equal(result.status, 1, `${label}: the hostile profile must produce findings`);
+    assert.ok(!FORBIDDEN.test(result.stdout),
+      `${label}: no control character or bidi override may reach the output`);
+    assert.ok(result.stdout.includes('\\u001b'),
+      `${label}: the escape sequence must be shown escaped`);
+  }
+}
 {
   const shouldFlag = [
     ['script', '<script src="https://cdn.test/lib.js"></script>', 'UE-SE002'],

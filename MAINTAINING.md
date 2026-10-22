@@ -50,4 +50,13 @@ The deep dive on 22 October 2026 added two things. The alert named a stray inval
 
 None of that moves the page on its own. The copy the audit reads is replaced on the skills.sh side, and the request for that replacement is the open issue `vercel-labs/skills#2371`.
 
+### The surfaces, swept
+
+The deep dive on 22 October 2026 read the two alerts against the copy the audit holds, and then asked the same three questions of every surface this tool has: does a value that came from outside reach the output raw, does a number go into an attribute raw, and does a path reach a URI unencoded. Two answers were found and closed.
+
+- **The CLI's own messages were unguarded.** A path, an option, a URL, a profile name or a file error arriving from the caller reached the terminal in the clear, so a name carrying an escape sequence could repaint the screen that reported it. Every one of those values now takes the same guard the reports take — twenty-seven sites — and the message shows the value escaped rather than dropped.
+- **The data surfaces left the bidi overrides alone.** `JSON.stringify` escapes the C0 controls, so the JSON and SARIF payloads were already safe from an escape sequence; it leaves the bidi overrides and the isolate markers in the clear, and a consumer that prints a finding would then print them. The payloads now take a guard that drops the controls and the overrides and keeps the newline and the tab, because in a payload those are structure rather than an attack.
+
+Two fixtures now carry the values a caller can write — a profile whose terminology replacements carry an escape sequence, a bidirectional override and markup, and the document that triggers them — and four locks hold the answers: the CLI's words, the terminal, the JSON and the SARIF payloads, and the HTML report.
+
 Run `npm run check:syntax` (every file under `bin/`, `lib/`, `tests/` and `scripts/`), `npm test`, `npm run check:portability`, parse every tracked JSON file, `npm pack --dry-run`, `node bin/check.mjs . --self-scan --quiet` (it must exit `0`), an installed executable smoke test and `git diff --check`. GitHub Actions are pinned to full verified commit SHAs with version comments. Never commit generated tarballs, local profiles, installed-package directories or agent copies that can drift from the canonical skill.
