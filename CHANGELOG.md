@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.8.3 – 22 October 2026
+
+The release that answers the two security alerts, read against the copy of this repository the audit actually holds. No rule, exit-code or report-shape change, and no dependency. One behaviour does change, and only for values that could repaint a terminal: the skip reason, the audit name and the line and column beside the file name now take the same escaping the rule id already took.
+
+### Repository
+
+- **The two alerts on the skills.sh security page are read, answered and locked.** The page reports `lib/output.mjs` — a stray fragment in `renderSARIF()`, and a rule id or a confidence reaching the terminal unescaped — and `lib/icons.mjs` — `className` and path data written into quoted attributes without the quote escaped, and a stroke width inserted raw. Both were raised against the copy skills.sh took on 5 October (`ea6c6d0`, whose `package.json` reads 1.7.0), eleven minutes before the hardening that answers them.
+- **The syntax half of the first alert does not exist.** That file parses, and 1.7.0 ran from npm; the claim is a false positive of the fragment reader.
+- **The terminal guard now covers the whole surface.** The suite had proven it for the rule id alone; the confidence, the file name, the category, the suggestion, the skip reason and the audit name take the same guard, and the lock holds the C1 controls and the bidi overrides as well.
+- **One genuine defect of the class the alert names is fixed.** `lib/output.mjs` held a statement joined to the next one on the same line: it parses, it passes every gate, and to a scanner reading a fragment it reads as a stray piece of syntax. It came in with the 1.8.0 release, it was the only line of its kind in the tree, and it is written out again.
+- **A tripwire holds the shape.** The suite now fails when any line in `lib/`, `tests/`, `scripts/` or `bin/` joins two statements.
+- **The icon answer is verified rather than assumed.** The escape covers all five XML-significant characters, a stroke width or a size that is not a positive finite number refuses loudly, and `tests/icons.mjs` locks all three.
+- **`MAINTAINING.md` states the disposition** where the published record is described, so the next reader finds what each alert said and where its answer stands without re-deriving it.
+
+### Unchanged
+
+- Zero npm dependencies, byte-identical output for identical input, the rule catalogue, the report shape, and the refusal behaviour.
+
+### What this release cannot reach
+
+- The skills.sh audit still analyses `ea6c6d0` (5 October, 11:30 UTC), and nothing in this repository moves it: the copy is replaced on the skills.sh side, and the request for that replacement is the open issue `vercel-labs/skills#2371`. The two alerts on the page therefore keep describing that copy until it is replaced, whatever this tree holds. `scripts/skills-sh-audit-watch.mjs` reports the replacement when it happens.
+
 ## 1.8.2 – 15 October 2026
 
 No rule or report-shape change. One refusal became an extraction — Computer Modern text fonts are read through their published encodings, in Added below — so for documents typeset with them the exit code now follows the findings. The re-index release: the version moves to 1.8.2 in every place that must agree, and `SKILL.md`'s source date moves with it, which is that field's purpose — it records when the skill's definition last changed.

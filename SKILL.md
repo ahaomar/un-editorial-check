@@ -4,8 +4,8 @@ description: Reads user-visible copy the way a United Nations editor would — l
 license: MIT
 compatibility: Requires Node.js 18 or later and a host that can load the portable Agent Skills SKILL.md format.
 metadata:
-  version: "1.8.2"
-  source-date: "2026-10-15"
+  version: "1.8.3"
+  source-date: "2026-10-22"
 ---
 
 # UN editorial check
