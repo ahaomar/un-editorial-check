@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.8.4 – 22 October 2026
+
+The release that sweeps the output surfaces. The two security alerts on the skills.sh page named one class of question — does a value that came from outside reach the output raw — and this release puts that question to every surface the tool has. No rule, exit-code or report-shape change.
+
+### Repository
+
+- **The CLI's own messages now take the guard the reports take.** A path, an option, a URL, a profile name or a file error arriving from the caller reached the terminal in the clear, so a name carrying an escape sequence could repaint the screen that reported it. Twenty-seven sites now escape the value, and the error path escapes again where it is printed, so a site added later is covered twice.
+- **The JSON and SARIF payloads no longer carry a raw bidi override.** `JSON.stringify` escapes the C0 controls on its way out; it leaves the bidi overrides and the isolate markers in the clear, and a consumer that prints a finding would then print them. The payloads now take a guard that drops the controls and the overrides and keeps the newline and the tab, because in a payload those are structure rather than an attack.
+- **Two fixtures carry the values a caller can write**: a profile whose terminology replacements carry an escape sequence, a bidirectional override and markup, and the document that triggers them.
+- **Four locks hold the answers**: the CLI's words on the error path and on the success path, the terminal, the JSON and SARIF payloads, and the HTML report.
+- **`MAINTAINING.md` states the sweep** where the published record is described, so the next reader finds which surfaces were asked and what they answered.
+
+### Unchanged
+
+- Zero npm dependencies, byte-identical output for identical input, the rule catalogue, the report shape, and the refusal behaviour. A value that carries no control character and no bidi override comes out byte for byte as before.
+
+### What this release cannot reach
+
+- The skills.sh audit still analyses `ea6c6d0` (5 October, 11:30 UTC). The copy is replaced on the skills.sh side, and the request for that replacement is the open issue `vercel-labs/skills#2371`, which carries an update naming this release.
+
 ## 1.8.3 – 22 October 2026
 
 The release that answers the two security alerts, read against the copy of this repository the audit actually holds. No rule, exit-code or report-shape change, and no dependency. One behaviour does change, and only for values that could repaint a terminal: the skip reason, the audit name and the line and column beside the file name now take the same escaping the rule id already took.

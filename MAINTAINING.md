@@ -29,7 +29,7 @@ HTML and JavaScript analysis is intentionally conservative and regex-based. `UE-
 
 ## Release gate
 
-Keep `package.json`, `VERSION` and the newest `CHANGELOG.md` heading identical, and keep `MAINTAINING.md` and `SKILL.md` in step with them; the current version is `1.8.3`. A version moves only when the documented release process calls for it. The package has no dependencies, so no lockfile is required.
+Keep `package.json`, `VERSION` and the newest `CHANGELOG.md` heading identical, and keep `MAINTAINING.md` and `SKILL.md` in step with them; the current version is `1.8.4`. A version moves only when the documented release process calls for it. The package has no dependencies, so no lockfile is required.
 
 ## The published skills.sh record
 
