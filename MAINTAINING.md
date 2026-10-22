@@ -37,4 +37,17 @@ skills.sh stores a copy of this repository and runs the Gen, Socket and Snyk aud
 
 Do not spend commits on this. Version bumps, documentation commits, an empty re-index request, a substantive testing commit, the tag and release, the npm publish and reinstalling through `npx skills add` were each tried against the frozen copy, and none moved it, because none of them is read by the scanner. The copy is replaced on the skills.sh side only; `scripts/skills-sh-audit-watch.mjs`, run hourly by `.github/workflows/socket-audit-watch.yml`, reports the replacement and is the one place to look. The header of that workflow carries the full evidence, and `tests/audit-published-record.mjs` locks how the record is read.
 
+### What the two alerts on that copy describe
+
+Both were raised against the code the copy carried on 5 October, and both are about code this repository has since answered.
+
+| Alert | What it said | Where the answer stands |
+|---|---|---|
+| `lib/output.mjs` | A stray fragment in `renderSARIF()` that reads as invalid syntax, and a rule id or a confidence reaching the terminal unescaped | The syntax half was a false positive: that file parses, and 1.7.0 ran from npm. The injection half is answered — every caller-controlled value the terminal prints passes through `escapeControl` — and `tests/release-regressions.mjs` now locks the whole surface: the rule id, the confidence, the file name, the category, the suggestion, the skip reason and the audit name. |
+| `lib/icons.mjs` | `className` and path data written into quoted attributes without the quote escaped, and a stroke width inserted raw | Answered in 1.7.1: the escape covers all five XML-significant characters, a stroke width or a size that is not a positive finite number refuses loudly, and `tests/icons.mjs` locks all three. |
+
+The deep dive on 22 October 2026 added two things. The alert named a stray invalid syntax in a file that parses, and the tree did hold one line of that kind: a statement joined to the next one on the same line, in `lib/output.mjs`, put there by the 1.8.0 release. It parses, it passes every gate, and to a scanner reading a fragment it reads as a stray piece of syntax — so it is written out again, and a tripwire now fails the suite when any line in `lib/`, `tests/`, `scripts/` or `bin/` joins two statements. The second thing is the lock the alert's own wording asked for and the suite did not hold: the terminal guard had been proven for the rule id alone, and it now covers every field the renderer prints that the engine did not write itself.
+
+None of that moves the page on its own. The copy the audit reads is replaced on the skills.sh side, and the request for that replacement is the open issue `vercel-labs/skills#2371`.
+
 Run `npm run check:syntax` (every file under `bin/`, `lib/`, `tests/` and `scripts/`), `npm test`, `npm run check:portability`, parse every tracked JSON file, `npm pack --dry-run`, `node bin/check.mjs . --self-scan --quiet` (it must exit `0`), an installed executable smoke test and `git diff --check`. GitHub Actions are pinned to full verified commit SHAs with version comments. Never commit generated tarballs, local profiles, installed-package directories or agent copies that can drift from the canonical skill.

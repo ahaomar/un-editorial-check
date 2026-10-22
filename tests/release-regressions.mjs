@@ -215,15 +215,39 @@ for (const [input, expected] of PROTECTED_FIXES) {
 // caller-controlled field it interpolates. Custom rules (organisation
 // profiles) make ruleId caller-controlled, so a hostile id must reach the
 // terminal escaped, never as a raw escape sequence that repaints it.
+//
+// The security audit names this surface, and it named the rule id and the
+// confidence. The other fields carry values from the same places — a file
+// name, a category from a profile, a skip reason, an audit name — so the lock
+// covers all of them, and it covers the C1 controls and the bidi overrides as
+// well as the escape character: nothing the engine did not write itself may
+// carry any of them into the terminal.
 {
+  const ESC = '\u001b';
+  const C1 = '\u009b';
+  const BIDI = '\u202e';
   const finding = {
-    file: 'a.md', line: 1, column: 1, severity: 'warning',
-    category: 'grammar', ruleId: 'UE-evil\u001B[31m', confidence: 'deterministic',
-    message: 'hostile id', suggestion: 'use plain ids',
+    file: `a${ESC}[6n.md`, line: 1, column: 1, severity: 'warning',
+    category: `custom${C1}-category`, ruleId: `UE-evil${ESC}[31m`,
+    confidence: `deterministic${BIDI}`,
+    message: 'hostile id', suggestion: `use plain ids${ESC}[1A`,
+    audit: `custom-audit${ESC}[7m`,
   };
-  const out = renderText({ findings: [finding], files: 1, version: VERSION });
-  assert.ok(!out.includes('\u001B'), 'a raw escape sequence must never reach the terminal');
+  const out = renderText({
+    findings: [finding],
+    files: 1,
+    skipped: [{ file: `skipped${ESC}[5n.md`, reason: `not valid UTF-8${ESC}[5m` }],
+    version: VERSION,
+  });
+  assert.ok(!/[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(out),
+    'no raw control character, C1 control or bidi override may reach the terminal');
   assert.ok(out.includes('UE-evil\\u001b[31m'), 'the rule id is rendered with its control character escaped');
+  assert.ok(out.includes('deterministic\\u202e'), 'the confidence is rendered with its bidi override escaped');
+  assert.ok(out.includes('a\\u001b[6n.md'), 'the file name is rendered with its control character escaped');
+  assert.ok(out.includes('custom\\u009b-category'), 'the category is rendered with its C1 control escaped');
+  assert.ok(out.includes('use plain ids\\u001b[1A'), 'the suggestion is rendered with its control character escaped');
+  assert.ok(out.includes('not valid UTF-8\\u001b[5m'), 'the skip reason is rendered with its control character escaped');
+  assert.ok(out.includes('custom-audit\\u001b[7m'), 'the audit name is rendered with its control character escaped');
 }
 {
   const shouldFlag = [
@@ -385,6 +409,35 @@ for (const entity of ['&#x110000;', '&#999999999999;', '&#0;']) {
   // The skill's own prose is written to pass its own rules.
   const result = run('.', '--self-scan', '--quiet');
   assert.equal(result.status, 0, `self-scan must be clean:\n${result.stdout}\n${result.stderr}`);
+}
+
+{
+  // A statement joined to the next one on the same line is what a merged
+  // branch leaves behind. It parses, it passes every gate, and to a scanner
+  // reading a fragment it reads as a stray piece of syntax: the copy of this
+  // tree the security audit held carried exactly one line like that, in
+  // `lib/output.mjs`, put there by the 1.8.0 release. The rule is narrow on
+  // purpose — a brace or a semicolon followed by two or more spaces and a
+  // word — and comment lines are exempt, because a documented type annotation
+  // aligns its columns the same way.
+  const JOINED = /[;{}][ ]{2,}[A-Za-z_"'`}]/;
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => (
+    entry.isDirectory()
+      ? walk(path.join(dir, entry.name))
+      : (entry.name.endsWith('.mjs') ? [path.join(dir, entry.name)] : [])
+  ));
+  const offenders = [];
+  for (const dir of ['lib', 'tests', 'scripts', 'bin']) {
+    for (const file of walk(path.join(root, dir))) {
+      fs.readFileSync(file, 'utf8').split('\n').forEach((line, index) => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('*') || trimmed.startsWith('//') || trimmed.startsWith('/*')) return;
+        if (JOINED.test(line)) offenders.push(`${path.relative(root, file)}:${index + 1}`);
+      });
+    }
+  }
+  assert.deepEqual(offenders, [],
+    'no line may carry two statements joined on one line');
 }
 
 // --- installable package -------------------------------------------------------
